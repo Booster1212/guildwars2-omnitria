@@ -874,15 +874,28 @@ export function formatLocalTime(date: Date): string {
 }
 
 /**
- * Generates the German chat announcement string to paste directly into Guild Wars 2:
- * User requirement: "where you can like just click and it sends Waypoint Tag + Remaining Time till event start/runs, but in german"
+ * Generates the in-game chat announcement string to paste directly into Guild Wars 2:
+ * Supports both German and English based on the selected language setting.
  */
-export function formatGermanCallout(inst: EventInstance, template: MessageTemplateType = 'standard'): string {
-  const { waypoint, name, zone, categoryLabel } = inst.event;
+export function formatCallout(
+  inst: EventInstance,
+  template: MessageTemplateType = 'standard',
+  lang: 'de' | 'en' = 'de'
+): string {
+  const isEn = lang === 'en';
+  const name = isEn ? (inst.event.nameEn || inst.event.name) : inst.event.name;
+  const { waypoint, zone, categoryLabel } = inst.event;
 
-  const timeString = inst.isActive
-    ? `Jetzt aktiv! (Restzeit: ${formatCountdown(inst.endsInSeconds)})`
-    : `startet in ${formatCountdown(inst.startsInSeconds)}`;
+  let timeString: string;
+  if (isEn) {
+    timeString = inst.isActive
+      ? `Active now! (ends in ${formatCountdown(inst.endsInSeconds)})`
+      : `starts in ${formatCountdown(inst.startsInSeconds)}`;
+  } else {
+    timeString = inst.isActive
+      ? `Jetzt aktiv! (Restzeit: ${formatCountdown(inst.endsInSeconds)})`
+      : `startet in ${formatCountdown(inst.startsInSeconds)}`;
+  }
 
   switch (template) {
     case 'compact':
@@ -895,4 +908,8 @@ export function formatGermanCallout(inst: EventInstance, template: MessageTempla
     default:
       return `${waypoint} ${name} - ${timeString}`;
   }
+}
+
+export function formatGermanCallout(inst: EventInstance, template: MessageTemplateType = 'standard'): string {
+  return formatCallout(inst, template, 'de');
 }

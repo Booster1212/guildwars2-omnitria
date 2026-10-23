@@ -3,6 +3,8 @@ import { Search, Clock, Globe, ArrowUpDown, Layers } from 'lucide-react';
 import { formatLocalTime } from '../data/events';
 import { SortMode } from '../types';
 
+import { useTranslation } from '../i18n';
+
 interface BossFilterBarProps {
   searchTerm: string;
   onSearchChange: (val: string) => void;
@@ -22,14 +24,15 @@ export const BossFilterBar: React.FC<BossFilterBarProps> = ({
   onSelectSortMode,
   currentTime,
 }) => {
+  const { t } = useTranslation();
   const utcString = currentTime.toISOString().substring(11, 16) + ' UTC';
   const localString = formatLocalTime(currentTime);
 
   const categories = [
-    { id: 'all', label: 'Alle' },
-    { id: 'active', label: 'Aktiv / Bald' },
-    { id: 'bosses', label: 'Weltbosse' },
-    { id: 'metas', label: 'Meta-Events' },
+    { id: 'all', label: t('events.all') },
+    { id: 'active', label: t('events.active') },
+    { id: 'bosses', label: t('events.bosses') },
+    { id: 'metas', label: t('events.metas') },
     { id: 'core', label: 'Core' },
     { id: 'hardcore', label: 'Hardcore' },
     { id: 'hot', label: 'HoT' },
@@ -61,7 +64,7 @@ export const BossFilterBar: React.FC<BossFilterBarProps> = ({
           <input
             type="text"
             className="search-input"
-            placeholder="Event oder Gebiet suchen..."
+            placeholder={t('events.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -73,12 +76,12 @@ export const BossFilterBar: React.FC<BossFilterBarProps> = ({
             className="sort-dropdown"
             value={sortMode}
             onChange={(e) => onSelectSortMode(e.target.value as SortMode)}
-            title="Sortierreihenfolge ändern"
+            title="Sortierreihenfolge ändern / Change sorting"
           >
-            <option value="time">Zeit (Nächste zuerst)</option>
-            <option value="grouped">Typ gruppiert (Bosse / Metas)</option>
-            <option value="bossesFirst">Weltbosse zuerst</option>
-            <option value="metasFirst">Meta-Events zuerst</option>
+            <option value="time">{t('events.sortTime')}</option>
+            <option value="grouped">{t('events.sortGrouped')}</option>
+            <option value="bossesFirst">{t('events.sortBossesFirst')}</option>
+            <option value="metasFirst">{t('events.sortMetasFirst')}</option>
           </select>
         </div>
       </div>

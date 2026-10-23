@@ -6,11 +6,10 @@ import { usePrices } from '../../data/gw2/prices';
 import { getItem, useItems } from '../../data/gw2/items';
 import { CURATED_DISCOVERIES } from '../../data/crafting/curatedDiscoveries';
 import {
-  CRAFTING_TIERS,
-  DISCIPLINE_DE,
-  DISCOVERY_GUIDES,
-  RECIPE_TYPE_DE,
-  fmtInt,
+  getCraftingTiers,
+  getDisciplineName,
+  getDiscoveryGuide,
+  getRecipeTypeName,
 } from '../common/labels';
 import { Coin, ItemIcon, ProgressBar } from '../common/ui';
 import {
@@ -32,6 +31,7 @@ import {
   Layers,
   HelpCircle,
 } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface DiscoveryViewProps {
   discipline: DisciplineId;
@@ -48,16 +48,21 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
   currentRank,
   onOpenItem,
 }) => {
+  const { t, lang } = useTranslation();
   const recipeDb = useRecipeDb(true);
   const account = useAccountState();
 
+  const craftingTiers = useMemo(() => getCraftingTiers(lang), [lang]);
+  const guide = useMemo(() => getDiscoveryGuide(discipline, lang), [discipline, lang]);
+  const discName = useMemo(() => getDisciplineName(discipline, lang), [discipline, lang]);
+
   // Tier selection: default to tier matching current rank
   const defaultTierId = useMemo(() => {
-    const tier = CRAFTING_TIERS.find(
+    const tier = craftingTiers.find(
       (t) => t.id !== 'all' && currentRank >= t.minRating && currentRank <= t.maxRating,
     );
     return tier ? tier.id : 'all';
-  }, [currentRank]);
+  }, [craftingTiers, currentRank]);
 
   const [selectedTier, setSelectedTier] = useState<string>(defaultTierId);
   const [statusFilter, setStatusFilter] = useState<DiscoveryStatusFilter>('all');
@@ -77,8 +82,8 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
   }, [recipeDb.recipes, recipeDb.status]);
 
   const activeTier = useMemo(() => {
-    return CRAFTING_TIERS.find((t) => t.id === selectedTier) ?? CRAFTING_TIERS[0];
-  }, [selectedTier]);
+    return craftingTiers.find((t) => t.id === selectedTier) ?? craftingTiers[0];
+  }, [craftingTiers, selectedTier]);
 
   // Overall stats for this tier
   const stats = useMemo(() => {
@@ -119,101 +124,110 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       const q = searchQuery.toLowerCase().trim();
       return list.filter((r) => {
         const item = getItem(r.outputId);
-        const nameMatches = item?.name.toLowerCase().includes(q);
-        const typeMatches = r.type?.toLowerCase().includes(q) || (r.type && RECIPE_TYPE_DE[r.type]?.toLowerCase().includes(q));
-        return nameMatches || typeMatches || String(r.id).includes(q) || String(r.outputId).includes(q);
+        if (item && item.name.toLowerCase().includes(q)) return true;
+        return r.ingredients.some((ing) => {
+          const ingItem = getItem(ing.itemId);
+          return ingItem && ingItem.name.toLowerCase().includes(q);
+        });
       });
     }
 
     return list;
-  }, [allDisciplineRecipes, discipline, activeTier, selectedType, searchQuery, statusFilter, account.knownRecipeSet]);
+  }, [
+    allDisciplineRecipes,
+    discipline,
+    activeTier.minRating,
+    activeTier.maxRating,
+    selectedType,
+    searchQuery,
+    statusFilter,
+    account.knownRecipeSet,
+  ]);
 
-  // Item IDs of ingredients to get prices
-  const relevantItemIds = useMemo(() => {
+  // Preload items into cache for visible candidates
+  const visibleItemIds = useMemo(() => {
     const ids = new Set<number>();
-    // Collect output IDs and ingredients for visible items (up to 100)
-    for (const r of filteredRecipes.slice(0, 100)) {
+    filteredRecipes.slice(0, 100).forEach((r) => {
       ids.add(r.outputId);
-      for (const ing of r.ingredients) ids.add(ing.itemId);
-    }
+      r.ingredients.forEach((ing) => ids.add(ing.itemId));
+    });
     return Array.from(ids);
   }, [filteredRecipes]);
 
-  const prices = usePrices(relevantItemIds);
-  // Ensure items are fetched reactively
-  useItems(relevantItemIds);
+  useItems(visibleItemIds);
+  const prices = usePrices(visibleItemIds);
 
   // Sorting
   const sortedRecipes = useMemo(() => {
-    const list = [...filteredRecipes];
+    const arr = [...filteredRecipes];
     if (sortOrder === 'rating_asc') {
-      list.sort((a, b) => a.rating - b.rating || a.outputId - b.outputId);
+      arr.sort((a, b) => a.rating - b.rating || a.outputId - b.outputId);
     } else if (sortOrder === 'rating_desc') {
-      list.sort((a, b) => b.rating - a.rating || a.outputId - b.outputId);
+      arr.sort((a, b) => b.rating - a.rating || a.outputId - b.outputId);
     } else if (sortOrder === 'cost_asc') {
-      list.sort((a, b) => {
+      arr.sort((a, b) => {
         const costA = estimateRecipeCost(a, prices.map).totalCost;
         const costB = estimateRecipeCost(b, prices.map).totalCost;
-        return costA - costB;
+        return costA - costB || a.rating - b.rating;
       });
     } else if (sortOrder === 'undiscovered_first') {
-      const known = account.knownRecipeSet;
-      list.sort((a, b) => {
-        const aKnown = known?.has(Number(a.id)) ? 1 : 0;
-        const bKnown = known?.has(Number(b.id)) ? 1 : 0;
-        if (aKnown !== bKnown) return aKnown - bKnown;
+      arr.sort((a, b) => {
+        const knownA = account.knownRecipeSet ? account.knownRecipeSet.has(Number(a.id)) : false;
+        const knownB = account.knownRecipeSet ? account.knownRecipeSet.has(Number(b.id)) : false;
+        if (!knownA && knownB) return -1;
+        if (knownA && !knownB) return 1;
         return a.rating - b.rating;
       });
     }
-    return list;
+    return arr;
   }, [filteredRecipes, sortOrder, prices.map, account.knownRecipeSet]);
 
-  // Reset page when filters change
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedTier, statusFilter, selectedType, searchQuery, sortOrder]);
-
+  // Pagination
   const totalPages = Math.max(1, Math.ceil(sortedRecipes.length / PAGE_SIZE));
   const paginatedRecipes = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
     return sortedRecipes.slice(start, start + PAGE_SIZE);
   }, [sortedRecipes, currentPage]);
 
-  const guide = DISCOVERY_GUIDES[discipline];
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedTier, statusFilter, selectedType, searchQuery, sortOrder]);
 
-  const handleCopyChatLink = (item: { chatLink?: string } | undefined, recipeId: string) => {
+  const handleCopyChatLink = (item: { chatLink?: string } | undefined, recipeId: number | string) => {
     if (!item?.chatLink) return;
-    void navigator.clipboard.writeText(item.chatLink);
-    setCopiedId(recipeId);
-    setTimeout(() => setCopiedId(null), 2000);
+    navigator.clipboard?.writeText(item.chatLink).then(() => {
+      setCopiedId(String(recipeId));
+      setTimeout(() => setCopiedId(null), 1500);
+    }).catch(() => {});
   };
 
   return (
-    <div className="discovery-recipes-view">
-      {/* Discovery Guide / Formula Banner */}
+    <div className="discovery-view-container">
+      {/* Top Banner: Discovery Assistant Guide */}
       <div className="discovery-guide-card">
         <div className="guide-header" onClick={() => setShowGuide(!showGuide)}>
-          <div className="guide-title-row">
+          <div className="guide-title-wrap">
             <Sparkles className="guide-icon text-amber-400" size={18} />
-            <div className="guide-header-text">
-              <span className="guide-main-heading font-serif">
-                Entdeckungs-Assistent: {DISCIPLINE_DE[discipline]}
+            <div className="guide-titles">
+              <span className="guide-main-title font-serif">
+                {t('crafting.guideTitle')}: {discName}
               </span>
               <span className="guide-bonus-badge">
-                +100 % bis +200 % Bonus-Erfahrung bei Erstentdeckung
+                {t('crafting.guideBonus')}
               </span>
             </div>
           </div>
-          <button className="guide-toggle-btn" title="Leitfaden ein-/ausblenden">
+          <button className="guide-toggle-btn" title="Toggle guide">
             <HelpCircle size={15} />
-            <span>{showGuide ? 'Minimieren' : 'Leitfaden anzeigen'}</span>
+            <span>{showGuide ? (lang === 'en' ? 'Minimize' : 'Minimieren') : (lang === 'en' ? 'Show Guide' : 'Leitfaden anzeigen')}</span>
           </button>
         </div>
 
         {showGuide && (
           <div className="guide-body">
             <div className="guide-formula-box">
-              <div className="formula-label">Kombination im Entdeckungsfenster:</div>
+              <div className="formula-label">{t('crafting.formulaLabel')}</div>
               <div className="formula-equation font-mono">
                 {guide.formula}
               </div>
@@ -221,22 +235,22 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
 
             <div className="guide-columns">
               <div className="guide-col">
-                <span className="col-tag">1. Primärteil:</span>
+                <span className="col-tag">{t('crafting.primary')}</span>
                 <span className="col-desc">{guide.primary}</span>
               </div>
               <div className="guide-col">
-                <span className="col-tag">2. Sekundärteil:</span>
+                <span className="col-tag">{t('crafting.secondary')}</span>
                 <span className="col-desc">{guide.secondary}</span>
               </div>
               <div className="guide-col">
-                <span className="col-tag">3. Veredler / Modifikator:</span>
+                <span className="col-tag">{t('crafting.modifier')}</span>
                 <span className="col-desc">{guide.modifier}</span>
               </div>
             </div>
 
             <div className="guide-tip-row">
               <Info size={14} className="text-amber-400" />
-              <span className="tip-text"><strong>Tipp:</strong> {guide.tip}</span>
+              <span className="tip-text"><strong>{t('crafting.tip')}</strong> {guide.tip}</span>
             </div>
           </div>
         )}
@@ -246,15 +260,15 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       <div className="discovery-stats-banner">
         <div className="stats-info">
           <span className="stats-title font-serif">
-            Entdeckungsstatus ({activeTier.label}):
+            {t('crafting.statusBannerTitle')} ({activeTier.label}):
           </span>
           <span className="stats-counts">
-            <strong>{stats.discovered}</strong> von <strong>{stats.total}</strong> Rezepten entdeckt
+            <strong>{stats.discovered}</strong> {lang === 'en' ? 'of' : 'von'} <strong>{stats.total}</strong> {lang === 'en' ? 'recipes discovered' : 'Rezepten entdeckt'}
             ({stats.pctDiscovered} %)
           </span>
           {account.knownRecipeSet === null && (
             <span className="stats-no-key dim">
-              (Verbinde einen API-Schlüssel mit „unlocks“, um deinen Entdeckungsstand live zu sehen)
+              ({lang === 'en' ? 'Connect an API key with "unlocks" to see your live discovery progress' : 'Verbinde einen API-Schlüssel mit „unlocks“, um deinen Entdeckungsstand live zu sehen'})
             </span>
           )}
         </div>
@@ -265,9 +279,9 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
 
       {/* Tier Filter Chips */}
       <div className="discovery-tier-bar">
-        <div className="tier-chips-label">Rangstufe:</div>
+        <div className="tier-chips-label">{t('crafting.tier')}</div>
         <div className="tier-chips-row">
-          {CRAFTING_TIERS.map((tier) => {
+          {craftingTiers.map((tier) => {
             const isMatchCurrent =
               tier.id !== 'all' && currentRank >= tier.minRating && currentRank <= tier.maxRating;
             const isSelected = selectedTier === tier.id;
@@ -279,7 +293,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                 title={`${tier.label} (${tier.materials})`}
               >
                 <span className="tier-name">{tier.shortLabel}</span>
-                {isMatchCurrent && <span className="tier-current-dot" title="Aktueller Rangbereich" />}
+                {isMatchCurrent && <span className="tier-current-dot" title="Current rank" />}
               </button>
             );
           })}
@@ -289,9 +303,9 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
           <button
             className="tier-jump-btn"
             onClick={() => setSelectedTier(defaultTierId)}
-            title="Direkt zur Rangstufe deines Charakters springen"
+            title="Jump to current rank"
           >
-            Zu Rang {currentRank} springen
+            {t('crafting.jumpToRank', { rank: currentRank })}
           </button>
         )}
       </div>
@@ -304,23 +318,23 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
             className={`status-pill ${statusFilter === 'all' ? 'active' : ''}`}
             onClick={() => setStatusFilter('all')}
           >
-            Alle ({stats.total})
+            {t('crafting.statusAll')} ({stats.total})
           </button>
           <button
             className={`status-pill undiscovered ${statusFilter === 'undiscovered' ? 'active' : ''}`}
             onClick={() => setStatusFilter('undiscovered')}
-            title="Nur Rezepte, die du im Spiel noch nicht entdeckt hast"
+            title="Undiscovered"
           >
             <Sparkles size={13} />
-            <span>Unentdeckt ({stats.undiscovered})</span>
+            <span>{t('crafting.statusUndiscovered')} ({stats.undiscovered})</span>
           </button>
           <button
             className={`status-pill discovered ${statusFilter === 'discovered' ? 'active' : ''}`}
             onClick={() => setStatusFilter('discovered')}
-            title="Rezepte, die dein Account bereits entdeckt hat"
+            title="Discovered"
           >
             <Check size={13} />
-            <span>Entdeckt ({stats.discovered})</span>
+            <span>{t('crafting.statusDiscovered')} ({stats.discovered})</span>
           </button>
         </div>
 
@@ -333,10 +347,10 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
               onChange={(e) => setSelectedType(e.target.value)}
               className="gw2-select type-select"
             >
-              <option value="all">Alle Kategorien ({availableTypes.length})</option>
-              {availableTypes.map((t) => (
-                <option key={t} value={t}>
-                  {RECIPE_TYPE_DE[t] ?? t}
+              <option value="all">{lang === 'en' ? `All Categories (${availableTypes.length})` : `Alle Kategorien (${availableTypes.length})`}</option>
+              {availableTypes.map((itemType) => (
+                <option key={itemType} value={itemType}>
+                  {getRecipeTypeName(itemType, lang)}
                 </option>
               ))}
             </select>
@@ -348,7 +362,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
           <Search size={14} className="search-icon dim" />
           <input
             type="text"
-            placeholder="Gegenstand oder Typ suchen..."
+            placeholder={t('crafting.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="gw2-input search-input"
@@ -367,10 +381,10 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
             onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
             className="gw2-select sort-select"
           >
-            <option value="rating_asc">Rang: aufsteigend</option>
-            <option value="rating_desc">Rang: absteigend</option>
-            <option value="cost_asc">Herstellungskosten: günstigste</option>
-            <option value="undiscovered_first">Unentdeckt zuerst</option>
+            <option value="rating_asc">{t('crafting.sortRatingAsc')}</option>
+            <option value="rating_desc">{t('crafting.sortRatingDesc')}</option>
+            <option value="cost_asc">{t('crafting.sortCostAsc')}</option>
+            <option value="undiscovered_first">{t('crafting.sortUndiscoveredFirst')}</option>
           </select>
         </div>
       </div>
@@ -378,12 +392,12 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       {/* Recipes Cards Grid */}
       <div className="discovery-grid-header">
         <span className="results-count">
-          {sortedRecipes.length} {sortedRecipes.length === 1 ? 'Entdeckungsrezept' : 'Entdeckungsrezepte'} gefunden
-          {selectedTier !== 'all' && ` in ${activeTier.label}`}
+          {sortedRecipes.length} {t('crafting.recipesFound')}
+          {selectedTier !== 'all' && ` (${activeTier.label})`}
         </span>
         {totalPages > 1 && (
           <div className="pagination-summary dim">
-            Seite {currentPage} von {totalPages}
+            {lang === 'en' ? `Page ${currentPage} of ${totalPages}` : `Seite ${currentPage} von ${totalPages}`}
           </div>
         )}
       </div>
@@ -391,9 +405,9 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       {sortedRecipes.length === 0 ? (
         <div className="discovery-empty-state">
           <Sparkles size={32} className="dim text-amber-400" />
-          <p className="empty-title">Keine Entdeckungsrezepte für diese Filterkriterien gefunden.</p>
+          <p className="empty-title">{lang === 'en' ? 'No discovery recipes found for these filter criteria.' : 'Keine Entdeckungsrezepte für diese Filterkriterien gefunden.'}</p>
           <p className="dim empty-subtitle">
-            Versuche eine andere Rangstufe oder wähle „Alle Kategorien“.
+            {lang === 'en' ? 'Try another crafting tier or choose "All Categories".' : 'Versuche eine andere Rangstufe oder wähle „Alle Kategorien“.'}
           </p>
         </div>
       ) : (
@@ -402,6 +416,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
             const outItem = getItem(r.outputId);
             const isKnown = account.knownRecipeSet ? account.knownRecipeSet.has(Number(r.id)) : false;
             const cost = estimateRecipeCost(r, prices.map);
+            const typeLabel = r.type ? getRecipeTypeName(r.type, lang) : '';
 
             return (
               <div key={r.id} className={`discovery-recipe-card ${isKnown ? 'is-discovered' : 'is-undiscovered'}`}>
@@ -417,17 +432,17 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                       <span
                         className="drc-item-name font-serif cursor-pointer hover:underline"
                         onClick={() => onOpenItem(r.outputId)}
-                        title={outItem?.name ?? `Gegenstand #${r.outputId}`}
+                        title={outItem?.name ?? `#${r.outputId}`}
                       >
-                        {outItem?.name ?? `Gegenstand #${r.outputId}`}
+                        {outItem?.name ?? `#${r.outputId}`}
                       </span>
                       <div className="drc-tags-row">
                         <span className="drc-rank-tag">
-                          Rang {r.rating}
+                          {lang === 'en' ? `Rank ${r.rating}` : `Rang ${r.rating}`}
                         </span>
-                        {r.type && (
+                        {typeLabel && (
                           <span className="drc-type-tag dim">
-                            {RECIPE_TYPE_DE[r.type] ?? r.type}
+                            {typeLabel}
                           </span>
                         )}
                       </div>
@@ -439,16 +454,16 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                     {account.knownRecipeSet !== null ? (
                       isKnown ? (
                         <span className="disc-status-badge known">
-                          <Check size={11} /> Entdeckt
+                          <Check size={11} /> {t('crafting.statusDiscovered')}
                         </span>
                       ) : (
                         <span className="disc-status-badge fresh">
-                          <Sparkles size={11} /> Neu (+Bonus-EP)
+                          <Sparkles size={11} /> {lang === 'en' ? 'New (+Bonus XP)' : 'Neu (+Bonus-EP)'}
                         </span>
                       )
                     ) : (
                       <span className="disc-status-badge neutral">
-                        <Sparkles size={11} /> Entdeckung
+                        <Sparkles size={11} /> {lang === 'en' ? 'Discovery' : 'Entdeckung'}
                       </span>
                     )}
                   </div>
@@ -457,7 +472,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                 {/* Formula Ingredients */}
                 <div className="drc-ingredients-box">
                   <div className="drc-ing-headline">
-                    <span className="dim">Benötigte Entdeckungskomponenten:</span>
+                    <span className="dim">{lang === 'en' ? 'Required discovery components:' : 'Benötigte Entdeckungskomponenten:'}</span>
                   </div>
                   <div className="drc-ingredients-list">
                     {r.ingredients.map((ing) => {
@@ -470,7 +485,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                           key={ing.itemId}
                           className={`drc-ing-item cursor-pointer ${hasEnough ? 'stock-ok' : ''}`}
                           onClick={() => onOpenItem(ing.itemId)}
-                          title={`${ingItem?.name ?? ing.itemId} (Im Lager: ${inStock})`}
+                          title={`${ingItem?.name ?? ing.itemId} (${t('crafting.inStock')} ${inStock})`}
                         >
                           <ItemIcon id={ing.itemId} count={ing.count} size="s" />
                           <div className="drc-ing-info">
@@ -480,9 +495,9 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                             <span className="drc-ing-stock dim">
                               {account.hasStockData ? (
                                 hasEnough ? (
-                                  <span className="stock-badge ok">✓ Lager: {inStock}</span>
+                                  <span className="stock-badge ok">✓ {t('crafting.inStock')} {inStock}</span>
                                 ) : (
-                                  <span className="stock-badge missing">Lager: {inStock}/{ing.count}</span>
+                                  <span className="stock-badge missing">{t('crafting.inStock')} {inStock}/{ing.count}</span>
                                 )
                               ) : (
                                 `${ing.count}×`
@@ -498,11 +513,11 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                 {/* Footer: Price & Actions */}
                 <div className="drc-footer">
                   <div className="drc-cost-block">
-                    <span className="cost-label dim">Materialwert:</span>
+                    <span className="cost-label dim">{t('crafting.materialValue')}</span>
                     {cost.totalCost > 0 ? (
                       <Coin copper={cost.totalCost} />
                     ) : (
-                      <span className="dim text-xs">Preise laden...</span>
+                      <span className="dim text-xs">{t('crafting.pricesLoading')}</span>
                     )}
                   </div>
 
@@ -511,19 +526,19 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                       <button
                         className="drc-action-btn copy-btn"
                         onClick={() => handleCopyChatLink(outItem, r.id)}
-                        title="Chatcode in Zwischenablage kopieren"
+                        title="Copy chat link"
                       >
-                        {copiedId === r.id ? <CheckCheck size={13} className="text-green-400" /> : <Copy size={13} />}
-                        <span>{copiedId === r.id ? 'Kopiert!' : 'Chatcode'}</span>
+                        {copiedId === String(r.id) ? <CheckCheck size={13} className="text-green-400" /> : <Copy size={13} />}
+                        <span>{copiedId === String(r.id) ? t('events.copied') : t('crafting.chatCode')}</span>
                       </button>
                     )}
                     <button
                       className="drc-action-btn details-btn"
                       onClick={() => onOpenItem(r.outputId)}
-                      title="Item-Details und Baum im Hero Panel öffnen"
+                      title="Item Details"
                     >
                       <Layers size={13} />
-                      <span>Details</span>
+                      <span>{t('crafting.details')}</span>
                     </button>
                   </div>
                 </div>
@@ -541,17 +556,17 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
             disabled={currentPage <= 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           >
-            <ChevronLeft size={14} /> Vorherige
+            <ChevronLeft size={14} /> {t('crafting.prev')}
           </button>
           <span className="pagination-page-indicator font-mono">
-            Seite {currentPage} von {totalPages}
+            {lang === 'en' ? `Page ${currentPage} of ${totalPages}` : `Seite ${currentPage} von ${totalPages}`}
           </span>
           <button
             className="gw2-btn pagination-btn"
             disabled={currentPage >= totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           >
-            Nächste <ChevronRight size={14} />
+            {t('crafting.next')} <ChevronRight size={14} />
           </button>
         </div>
       )}

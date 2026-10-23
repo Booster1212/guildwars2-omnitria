@@ -4,7 +4,8 @@ import { getItem } from '../../data/gw2/items';
 import { progressActions } from '../../data/progressStore';
 import { ItemIcon, Check, ProgressBar } from '../common/ui';
 import { fmtInt } from '../common/labels';
-import { ChevronDown, ChevronRight, ShoppingCart, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, ShoppingCart, Sparkles } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface CraftTreeProps {
   rootNode: TreeNode;
@@ -13,6 +14,7 @@ interface CraftTreeProps {
 }
 
 export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpenItem }) => {
+  const { t, lang } = useTranslation();
   // Set of collapsed node keys
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
 
@@ -40,7 +42,7 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
               <button
                 className="btn-tree-toggle"
                 onClick={() => toggleCollapse(node.key)}
-                title={isCollapsed ? 'Zweige ausklappen' : 'Zweige einklappen'}
+                title={isCollapsed ? (lang === 'en' ? 'Expand branch' : 'Zweige ausklappen') : (lang === 'en' ? 'Collapse branch' : 'Zweige einklappen')}
               >
                 {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
               </button>
@@ -54,7 +56,7 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
             <Check
               checked={node.done}
               onChange={() => progressActions.toggleNodeDone(weaponId, node.key)}
-              title={node.done ? 'Als nicht erledigt markieren' : 'Als erledigt markieren'}
+              title={node.done ? (lang === 'en' ? 'Mark as not done' : 'Als nicht erledigt markieren') : (lang === 'en' ? 'Mark as done' : 'Als erledigt markieren')}
             />
           </div>
 
@@ -70,18 +72,18 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
                 className={`node-item-name font-serif cursor-pointer r-${item?.rarity ?? 'Basic'}`}
                 onClick={() => onOpenItem(node.itemId)}
               >
-                {item?.name ?? `Gegenstand #${node.itemId}`}
+                {item?.name ?? `#${node.itemId}`}
               </span>
 
               {node.random && (
-                <span className="random-tag" title="Zufallsrezept der Mystischen Schmiede (Erfolgsquote geschätzt)">
-                  <Sparkles size={10} /> Schätzung
+                <span className="random-tag" title="RNG Estimate">
+                  <Sparkles size={10} /> {t('legendary.estimate')}
                 </span>
               )}
 
               {node.bought && (
-                <span className="bought-tag" title="Wird direkt gekauft statt hergestellt">
-                  <ShoppingCart size={10} /> Kauf
+                <span className="bought-tag" title="Purchase directly">
+                  <ShoppingCart size={10} /> {t('legendary.purchase')}
                 </span>
               )}
             </div>
@@ -89,21 +91,21 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
             {/* Quantities: Demand / From Stock / Missing */}
             <div className="node-quantities-line font-mono">
               <span className="q-item">
-                Bedarf: <strong>{fmtInt(node.demand)}</strong>
+                {t('legendary.demand')} <strong>{fmtInt(node.demand)}</strong>
               </span>
               {node.fromStock > 0 && (
                 <span className="q-item good">
-                  Lager: {fmtInt(node.fromStock)}
+                  {t('legendary.storage')} {fmtInt(node.fromStock)}
                 </span>
               )}
               {node.missing > 0 && !node.muted && (
                 <span className="q-item bad">
-                  Offen: <strong>{fmtInt(node.missing)}</strong>
+                  {t('legendary.open')} <strong>{fmtInt(node.missing)}</strong>
                 </span>
               )}
               {node.crafts > 0 && !node.muted && (
                 <span className="q-crafts dim">
-                  ({node.crafts}× herstellen)
+                  {t('legendary.craftTimes', { count: node.crafts })}
                 </span>
               )}
             </div>
@@ -115,10 +117,10 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
               <button
                 className={`btn-tiny ${node.bought ? 'active' : ''}`}
                 onClick={() => progressActions.toggleBuy(weaponId, node.itemId)}
-                title={node.bought ? 'Wieder als Herstellungsbaum anzeigen' : 'Diesen Gegenstand kaufen statt herstellen'}
+                title={node.bought ? 'Toggle craft' : 'Toggle buy'}
               >
                 <ShoppingCart size={10} />
-                <span>{node.bought ? 'Herstellen' : 'Kaufen'}</span>
+                <span>{node.bought ? t('legendary.craftOption') : t('legendary.buyOption')}</span>
               </button>
             </div>
           )}
@@ -146,8 +148,7 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
     <div className="craft-tree-container">
       <div className="tree-header-hints">
         <span className="dim">
-          Hierarchischer Herstellungsbaum: Markiere erledigte Teilkomponenten oder schalte auf „Kauf“ um, wenn du einen
-          Gegenstand direkt über die Handelsgesellschaft beziehen möchtest.
+          {t('legendary.treeHint')}
         </span>
       </div>
 

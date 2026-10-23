@@ -6,9 +6,10 @@ import { usePrices } from '../../data/gw2/prices';
 import { useAccountState } from '../../data/gw2/account';
 import { useProgress, progressActions } from '../../data/progressStore';
 import { getItem, useItems } from '../../data/gw2/items';
-import { DISCIPLINE_DE, fmtInt, fmtQty } from '../common/labels';
+import { fmtInt } from '../common/labels';
 import { Coin, ItemIcon, Notice, Check, ProgressBar } from '../common/ui';
-import { AlertCircle, CheckCircle2, ChevronRight, Sliders, ShoppingBag, Layers, Wrench } from 'lucide-react';
+import { ChevronRight, Sliders, ShoppingBag, Layers } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface LevelPlannerProps {
   discipline: DisciplineId;
@@ -17,6 +18,7 @@ interface LevelPlannerProps {
 }
 
 export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank, onOpenItem }) => {
+  const { t, lang } = useTranslation();
   const recipeDb = useRecipeDb(true);
   const account = useAccountState();
   const progress = useProgress();
@@ -125,11 +127,13 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     return (
       <div className="planner-loading-state">
         <div className="spinner" />
-        <span className="font-serif">Lade offizielle Rezeptdatenbank der GW2-API …</span>
+        <span className="font-serif">{lang === 'en' ? 'Loading official GW2 API recipe database…' : 'Lade offizielle Rezeptdatenbank der GW2-API …'}</span>
         <span className="dim">
           {recipeDb.progress.total > 0
-            ? `${recipeDb.progress.done} von ${recipeDb.progress.total} Rezeptblöcken verarbeitet`
-            : 'Initialisiere …'}
+            ? lang === 'en'
+              ? `${recipeDb.progress.done} of ${recipeDb.progress.total} recipe chunks processed`
+              : `${recipeDb.progress.done} von ${recipeDb.progress.total} Rezeptblöcken verarbeitet`
+            : lang === 'en' ? 'Initializing…' : 'Initialisiere …'}
         </span>
       </div>
     );
@@ -137,10 +141,10 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   if (recipeDb.status === 'error') {
     return (
-      <Notice tone="error" title="Fehler beim Laden der Rezepte">
+      <Notice tone="error" title={lang === 'en' ? 'Error loading recipes' : 'Fehler beim Laden der Rezepte'}>
         {recipeDb.error}
         <button className="btn sm" onClick={() => recipeDb.reload()} style={{ marginTop: '8px' }}>
-          Erneut versuchen
+          {lang === 'en' ? 'Try Again' : 'Erneut versuchen'}
         </button>
       </Notice>
     );
@@ -149,17 +153,17 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   return (
     <div className="level-planner-wrap">
       {/* Disclaimer Banner: Community XP Model */}
-      <Notice tone="warn" title="Schätzung basierend auf dem Community-XP-Modell">
-        Die offizielle GW2-API stellt weder Erfahrungswerte je Rezept noch den aktuellen XP-Fortschritt innerhalb eines
-        Ranges bereit. Die berechneten Schrittanzahlen beruhen auf der etablierten GW2-Wiki-XP-Formel und stellen
-        eine konservative <strong>Kostenschätzung</strong> dar.
+      <Notice tone="warn" title={lang === 'en' ? 'Estimate based on Community XP Model' : 'Schätzung basierend auf dem Community-XP-Modell'}>
+        {lang === 'en'
+          ? 'The official GW2 API provides neither per-recipe XP values nor current XP within a rank. Calculated step counts are based on the standard GW2 Wiki formula and represent a conservative cost estimate.'
+          : 'Die offizielle GW2-API stellt weder Erfahrungswerte je Rezept noch den aktuellen XP-Fortschritt innerhalb eines Ranges bereit. Die berechneten Schrittanzahlen beruhen auf der etablierten GW2-Wiki-XP-Formel und stellen eine konservative Kostenschätzung dar.'}
       </Notice>
 
       {/* Configuration Controls Bar */}
       <div className="planner-controls-panel">
         <div className="controls-row">
           <div className="control-group">
-            <label className="control-label">Start-Rang:</label>
+            <label className="control-label">{t('crafting.fromRank')}</label>
             <input
               type="number"
               className="gw2-num-input"
@@ -172,7 +176,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               <button
                 className="btn-tiny"
                 onClick={() => handleStartChange(charRating)}
-                title={`Auf aktuellen Account-Charakter-Rang (${charRating}) zurücksetzen`}
+                title={`Reset to character rank (${charRating})`}
               >
                 Char ({charRating})
               </button>
@@ -180,7 +184,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           </div>
 
           <div className="control-group">
-            <label className="control-label">Ziel-Rang:</label>
+            <label className="control-label">{t('crafting.toRank')}</label>
             <input
               type="number"
               className="gw2-num-input"
@@ -213,14 +217,14 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             <Check
               checked={allowDiscovery}
               onChange={handleToggleDiscovery}
-              label="Entdeckungsrezepte zulassen"
-              title="Schließt auch Rezepte ohne automatisches Freischalt-Flag ein (erfordert ggf. Experimentieren an der Station)"
+              label={t('crafting.allowDiscovery')}
+              title="Includes recipes that require experimentation in discovery panel"
             />
             <Check
               checked={craftIntermediates}
               onChange={handleToggleIntermediates}
-              label="Zwischenprodukte selbst herstellen"
-              title="Berechnet Barren, Dübel etc. als eigene Herstellungen, wenn günstiger als der Sofortkauf"
+              label={t('crafting.craftIntermediates')}
+              title="Crafts ingots, dowels etc. yourself when cheaper than buying from TP"
             />
           </div>
         </div>
@@ -229,28 +233,28 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         {plan && (
           <div className="plan-stats-strip">
             <div className="stat-box">
-              <span className="stat-label">Gesamtkosten (geschätzt):</span>
+              <span className="stat-label">{t('crafting.totalCost')}</span>
               <span className="stat-value">
                 <Coin copper={plan.totalCost} />
               </span>
             </div>
             <div className="stat-box">
-              <span className="stat-label">Herstellungen:</span>
+              <span className="stat-label">{lang === 'en' ? 'Crafts:' : 'Herstellungen:'}</span>
               <span className="stat-value font-mono">
-                {plan.totalCrafts} ({plan.steps.length} Schritte)
+                {plan.totalCrafts} ({plan.steps.length} {lang === 'en' ? 'steps' : 'Schritte'})
               </span>
             </div>
             <div className="stat-box">
-              <span className="stat-label">Fortschritt:</span>
+              <span className="stat-label">{lang === 'en' ? 'Progress:' : 'Fortschritt:'}</span>
               <span className="stat-value font-mono">
-                {completedStepsCount} / {plan.steps.length} erledigt
+                {completedStepsCount} / {plan.steps.length} {lang === 'en' ? 'done' : 'erledigt'}
               </span>
             </div>
             {plan.unpricedItems.length > 0 && (
               <div className="stat-box warn">
-                <span className="stat-label">Ohne Preis:</span>
+                <span className="stat-label">{lang === 'en' ? 'Unpriced:' : 'Ohne Preis:'}</span>
                 <span className="stat-value dim">
-                  {plan.unpricedItems.length} Posten (Händler/Gebunden)
+                  {plan.unpricedItems.length} {lang === 'en' ? 'items (Vendor/Bound)' : 'Posten (Händler/Gebunden)'}
                 </span>
               </div>
             )}
@@ -266,11 +270,10 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
       {/* Plan Gaps Warning if any */}
       {plan && plan.gaps.length > 0 && (
-        <Notice tone="warn" title="Rezeptlücken im offiziellen Datenbestand">
-          Für die Ränge{' '}
-          {plan.gaps.map((g) => `${g.from}–${g.to}`).join(', ')} stehen keine automatisch erlernten Standardrezepte zur
-          Verfügung. Aktiviere oben <em>„Entdeckungsrezepte zulassen“</em> oder schließe im Spiel Entdeckungen,
-          Händler-Rezepte oder Dungeons ab.
+        <Notice tone="warn" title={lang === 'en' ? 'Recipe gaps in official dataset' : 'Rezeptlücken im offiziellen Datenbestand'}>
+          {lang === 'en'
+            ? `No automatic recipes are available for ranks ${plan.gaps.map((g) => `${g.from}–${g.to}`).join(', ')}. Enable "Allow discovery recipes" or unlock vendor/dungeon recipes in game.`
+            : `Für die Ränge ${plan.gaps.map((g) => `${g.from}–${g.to}`).join(', ')} stehen keine automatisch erlernten Standardrezepte zur Verfügung. Aktiviere oben „Entdeckungsrezepte zulassen“ oder schließe im Spiel Entdeckungen ab.`}
         </Notice>
       )}
 
@@ -282,21 +285,21 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             onClick={() => setActiveTab('steps')}
           >
             <Sliders size={13} />
-            <span>Herstellungsschritte ({plan?.steps.length ?? 0})</span>
+            <span>{t('crafting.stepsTab')} ({plan?.steps.length ?? 0})</span>
           </button>
           <button
             className={`subtab-btn ${activeTab === 'shopping' ? 'active' : ''}`}
             onClick={() => setActiveTab('shopping')}
           >
             <ShoppingBag size={13} />
-            <span>Einkaufsliste ({plan?.purchases.size ?? 0})</span>
+            <span>{t('crafting.shoppingTab')} ({plan?.purchases.size ?? 0})</span>
           </button>
           <button
             className={`subtab-btn ${activeTab === 'intermediates' ? 'active' : ''}`}
             onClick={() => setActiveTab('intermediates')}
           >
             <Layers size={13} />
-            <span>Zwischenprodukte ({plan?.intermediates.length ?? 0})</span>
+            <span>{t('crafting.intermediatesTab')} ({plan?.intermediates.length ?? 0})</span>
           </button>
         </div>
       </div>
@@ -305,9 +308,9 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
       {activeTab === 'steps' && plan && (
         <div className="planner-steps-list">
           {plan.steps.length === 0 ? (
-            <div className="empty-panel">Keine Schritte für den gewählten Rangbereich erforderlich.</div>
+            <div className="empty-panel">{lang === 'en' ? 'No crafting steps required for this rank range.' : 'Keine Schritte für den gewählten Rangbereich erforderlich.'}</div>
           ) : (
-            plan.steps.map((st, idx) => {
+            plan.steps.map((st) => {
               const outItem = getItem(st.recipe.outputId);
               const isAutoDone = charRating !== undefined && charRating >= st.toRank;
               const isMarkedDone = doneSteps.includes(st.key) || isAutoDone;
@@ -319,7 +322,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                       checked={isMarkedDone}
                       onChange={() => progressActions.toggleStepDone(discipline, st.key)}
                       disabled={isAutoDone}
-                      title={isAutoDone ? 'Bereits durch Account-Rang erreicht' : 'Als erledigt markieren'}
+                      title={isAutoDone ? 'Auto done' : 'Toggle step done'}
                     />
                   </div>
 
@@ -343,20 +346,20 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                         className="step-item-name font-serif cursor-pointer"
                         onClick={() => onOpenItem(st.recipe.outputId)}
                       >
-                        {outItem?.name ?? `Item #${st.recipe.outputId}`}
+                        {outItem?.name ?? `#${st.recipe.outputId}`}
                       </span>
                       <span className="step-crafts-count font-mono">
-                        {st.crafts}× herstellen
+                        {lang === 'en' ? `${st.crafts}× craft` : `${st.crafts}× herstellen`}
                       </span>
                       {st.needsDiscovery && (
-                        <span className="discovery-tag" title="Muss an der Station entdeckt werden">
-                          Entdeckung
+                        <span className="discovery-tag" title="Discovery recipe">
+                          {lang === 'en' ? 'Discovery' : 'Entdeckung'}
                         </span>
                       )}
                     </div>
 
                     <div className="step-ings-line">
-                      <span className="ings-label dim">Zutaten:</span>
+                      <span className="ings-label dim">{lang === 'en' ? 'Ingredients:' : 'Zutaten:'}</span>
                       <div className="step-ings-wrap">
                         {st.ingredients.map((ing) => {
                           const it = getItem(ing.itemId);
@@ -365,7 +368,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                               key={ing.itemId}
                               className="step-ing-chip"
                               onClick={() => onOpenItem(ing.itemId)}
-                              title={`${it?.name ?? ing.itemId}: ${fmtInt(ing.qty)} benötigt`}
+                              title={`${it?.name ?? ing.itemId}: ${fmtInt(ing.qty)}`}
                             >
                               <ItemIcon id={ing.itemId} count={ing.qty} size="s" />
                               <span className="ing-name">{it?.name ?? `#${ing.itemId}`}</span>
@@ -379,7 +382,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                   <div className="step-cost-col">
                     <Coin copper={st.cost} />
                     {st.unpricedCount > 0 && (
-                      <span className="unpriced-note dim">+{st.unpricedCount} unbepreist</span>
+                      <span className="unpriced-note dim">+{st.unpricedCount} {lang === 'en' ? 'unpriced' : 'unbepreist'}</span>
                     )}
                   </div>
                 </div>
@@ -397,11 +400,11 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               <tr>
                 <th style={{ width: '40px' }}>Icon</th>
                 <th>Material</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>Gesamtbedarf</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>Im Besitz</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>Noch kaufen</th>
-                <th style={{ width: '120px', textAlign: 'right' }}>Einzelpreis</th>
-                <th style={{ width: '140px', textAlign: 'right' }}>Gesamtkosten</th>
+                <th style={{ width: '100px', textAlign: 'right' }}>{lang === 'en' ? 'Total Demand' : 'Gesamtbedarf'}</th>
+                <th style={{ width: '100px', textAlign: 'right' }}>{lang === 'en' ? 'In Stock' : 'Im Besitz'}</th>
+                <th style={{ width: '100px', textAlign: 'right' }}>{lang === 'en' ? 'Still Buy' : 'Noch kaufen'}</th>
+                <th style={{ width: '120px', textAlign: 'right' }}>{lang === 'en' ? 'Unit Price' : 'Einzelpreis'}</th>
+                <th style={{ width: '140px', textAlign: 'right' }}>{lang === 'en' ? 'Total Cost' : 'Gesamtkosten'}</th>
               </tr>
             </thead>
             <tbody>
@@ -419,7 +422,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                       <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
                     </td>
                     <td className="name-cell font-serif cursor-pointer" onClick={() => onOpenItem(itemId)}>
-                      <span className={`r-${item?.rarity ?? 'Basic'}`}>{item?.name ?? `Gegenstand #${itemId}`}</span>
+                      <span className={`r-${item?.rarity ?? 'Basic'}`}>{item?.name ?? `#${itemId}`}</span>
                     </td>
                     <td className="num font-mono">{fmtInt(qty)}</td>
                     <td className="num font-mono dim">{account.hasStockData ? fmtInt(stock) : '–'}</td>
@@ -445,7 +448,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         <div className="planner-intermediates-wrap">
           {plan.intermediates.length === 0 ? (
             <div className="empty-panel">
-              Keine Zwischenprodukte eingeplant (entweder deaktiviert oder direkte Materialien günstiger).
+              {lang === 'en' ? 'No intermediate components planned (either disabled or direct materials are cheaper).' : 'Keine Zwischenprodukte eingeplant (entweder deaktiviert oder direkte Materialien günstiger).'}
             </div>
           ) : (
             <div className="intermediates-grid">
@@ -462,7 +465,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                         >
                           {outItem?.name ?? `#${im.recipe.outputId}`}
                         </span>
-                        <span className="im-crafts font-mono">{im.crafts}× herstellen</span>
+                        <span className="im-crafts font-mono">{lang === 'en' ? `${im.crafts}× craft` : `${im.crafts}× herstellen`}</span>
                       </div>
                     </div>
                     <div className="im-ingredients">

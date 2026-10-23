@@ -5,9 +5,28 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { GameItem, Rarity } from '../../domain/types';
 import { fetchByIds } from './client';
 import { cacheGet, cacheSet, createEmitter } from './cache';
+import type { Language } from '../../types.ts';
+import { registerLanguageChangeHandler } from '../../i18n/index.ts';
 
-export const LANG = 'de';
-const CACHE_KEY = `items:${LANG}:v1`;
+let currentLang: Language = (() => {
+  try {
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('gw2_overlay_lang') : null;
+    if (saved === 'en' || saved === 'de') return saved;
+  } catch {
+    /* ignore */
+  }
+  return 'de';
+})();
+
+registerLanguageChangeHandler((newLang) => {
+  void setItemLanguage(newLang);
+});
+
+function getCacheKey(lang: Language): string {
+  return `items:${lang}:v1`;
+}
+
+export const LANG = currentLang;
 const TTL_MS = 14 * 24 * 3600 * 1000;
 
 interface ApiItem {
@@ -32,8 +51,27 @@ let version = 0;
 let loadError: string | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
+export function getItemLanguage(): Language {
+  return currentLang;
+}
+
+export async function setItemLanguage(lang: Language): Promise<void> {
+  if (currentLang === lang) return;
+  currentLang = lang;
+  items.clear();
+  missing.clear();
+  requested.clear();
+  const entry = await cacheGet<{ items: GameItem[]; missing: number[] }>(getCacheKey(lang));
+  if (entry && Date.now() - entry.savedAt < TTL_MS) {
+    entry.value.items.forEach((i) => items.set(i.id, i));
+    entry.value.missing.forEach((i) => missing.add(i));
+  }
+  version++;
+  emitter.emit();
+}
+
 const ready: Promise<void> = (async () => {
-  const entry = await cacheGet<{ items: GameItem[]; missing: number[] }>(CACHE_KEY);
+  const entry = await cacheGet<{ items: GameItem[]; missing: number[] }>(getCacheKey(currentLang));
   if (entry && Date.now() - entry.savedAt < TTL_MS) {
     entry.value.items.forEach((i) => items.set(i.id, i));
     entry.value.missing.forEach((i) => missing.add(i));
@@ -45,7 +83,7 @@ const ready: Promise<void> = (async () => {
 function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    void cacheSet(CACHE_KEY, { items: [...items.values()], missing: [...missing] });
+    void cacheSet(getCacheKey(currentLang), { items: [...items.values()], missing: [...missing] });
   }, 1500);
 }
 
@@ -83,7 +121,7 @@ export async function ensureItems(ids: readonly number[]): Promise<void> {
       batchQueue = [];
       batchPromise = null;
       if (!toFetch.length) return;
-      const res = await fetchByIds<ApiItem>('items', toFetch, { lang: LANG });
+      const res = await fetchByIds<ApiItem>('items', toFetch, { lang: currentLang });
       res.items.forEach((a) => items.set(a.id, convert(a)));
       if (res.error) {
         loadError = res.error;

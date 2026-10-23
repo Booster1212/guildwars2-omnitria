@@ -18,6 +18,8 @@ import { EventInstance } from '../types';
 import { formatCountdown, formatLocalTime } from '../data/events';
 import { Gw2AccountAchievement } from '../data/gw2Api';
 
+import { useTranslation } from '../i18n';
+
 interface EventCardProps {
   instance: EventInstance;
   onSendMessage: (inst: EventInstance) => void;
@@ -35,10 +37,12 @@ export const EventCard: React.FC<EventCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const { t, lang } = useTranslation();
   const { event, isActive, startsInSeconds, endsInSeconds } = instance;
 
   const isImminent = !isActive && startsInSeconds <= 15 * 60;
   const achievements = event.achievements || [];
+  const displayName = lang === 'en' ? (event.nameEn || event.name) : event.name;
 
   const getCategoryClass = () => {
     switch (event.category) {
@@ -84,8 +88,8 @@ export const EventCard: React.FC<EventCardProps> = ({
               <span className={`gw2-cat-tag ${getCategoryClass()}`}>
                 {event.categoryLabel}
               </span>
-              <span className="gw2-boss-name" title={event.name}>
-                {event.name}
+              <span className="gw2-boss-name" title={displayName}>
+                {displayName}
               </span>
             </div>
 
@@ -102,11 +106,11 @@ export const EventCard: React.FC<EventCardProps> = ({
               {isActive ? (
                 <>
                   <Flame size={11} className="flame-icon" />
-                  <span>AKTIV ({formatCountdown(endsInSeconds)})</span>
+                  <span>{t('events.activeBadge')} ({formatCountdown(endsInSeconds)})</span>
                 </>
               ) : (
                 <>
-                  <span>in {formatCountdown(startsInSeconds)}</span>
+                  <span>{t('events.in')} {formatCountdown(startsInSeconds)}</span>
                 </>
               )}
             </div>
@@ -126,10 +130,10 @@ export const EventCard: React.FC<EventCardProps> = ({
               <button
                 className={`gw2-achieve-pill-btn ${showAchievements ? 'active' : ''}`}
                 onClick={() => setShowAchievements(!showAchievements)}
-                title="Mögliche Erfolge für diesen Boss einsehen"
+                title={t('events.achievements')}
               >
                 <Trophy size={10} className="trophy-icon" />
-                <span>{achievements.length} Erfolge</span>
+                <span>{achievements.length} {t('events.achievements')}</span>
                 {showAchievements ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
               </button>
             )}
@@ -148,7 +152,7 @@ export const EventCard: React.FC<EventCardProps> = ({
               ) : (
                 <MessageSquare size={11} />
               )}
-              <span>Nachricht senden</span>
+              <span>{isJustCopied ? t('events.copied') : t('events.sendChat')}</span>
             </button>
 
             {/* 2. Zur Wegmarke Teleportieren */}
@@ -158,7 +162,7 @@ export const EventCard: React.FC<EventCardProps> = ({
               title="Wegmarken-Code senden (im Chat anklicken zum Teleportieren)"
             >
               <Compass size={11} />
-              <span>Wegmarke Teleport</span>
+              <span>{t('events.copyWaypoint')}</span>
             </button>
 
             {/* Accordion Toggle for Taktik & Beute */}

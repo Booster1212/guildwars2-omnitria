@@ -263,3 +263,74 @@ test('Events: SotO, Janthir Wilds und Visions of Eternity sind im Zeitplan entha
   assert.equal(foundJanthir, true, 'Janthir Event in 6h-Zeitplan gefunden');
   assert.equal(foundVoe, true, 'VoE Event in 6h-Zeitplan gefunden');
 });
+
+test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts', async () => {
+  const { t, getLanguage, setLanguage, TRANSLATIONS } = await import('../src/i18n/index.ts');
+  const { formatCallout, EVENTS } = await import('../src/data/events.ts');
+  const {
+    getDisciplineName,
+    getRarityName,
+    getItemTypeName,
+    getRecipeTypeName,
+    getCraftingTiers,
+    getDiscoveryGuide,
+  } = await import('../src/components/common/labels.ts');
+
+  // 1. Language switching
+  setLanguage('de');
+  assert.equal(getLanguage(), 'de');
+  assert.equal(t('nav.events'), 'Eventübersicht');
+  assert.equal(t('nav.crafting'), 'Handwerk & Berufe');
+  assert.equal(t('settings.language'), 'Sprache / Language');
+
+  setLanguage('en');
+  assert.equal(getLanguage(), 'en');
+  assert.equal(t('nav.events'), 'Event Timers');
+  assert.equal(t('nav.crafting'), 'Crafting & Disciplines');
+  assert.equal(t('settings.language'), 'Language / Sprache');
+
+  // 2. Bilingual Discipline & Rarity labels
+  assert.equal(getDisciplineName('Weaponsmith', 'de'), 'Waffenschmied');
+  assert.equal(getDisciplineName('Weaponsmith', 'en'), 'Weaponsmith');
+  assert.equal(getDisciplineName('Chef', 'de'), 'Koch');
+  assert.equal(getDisciplineName('Chef', 'en'), 'Chef');
+
+  assert.equal(getRarityName('Ascended', 'de'), 'Aufgestiegen');
+  assert.equal(getRarityName('Ascended', 'en'), 'Ascended');
+  assert.equal(getItemTypeName('Weapon', 'de'), 'Waffe');
+  assert.equal(getItemTypeName('Weapon', 'en'), 'Weapon');
+  assert.equal(getRecipeTypeName('Greatsword', 'de'), 'Großschwert');
+  assert.equal(getRecipeTypeName('Greatsword', 'en'), 'Greatsword');
+
+  // 3. Tiers & Discovery Guides
+  const deTiers = getCraftingTiers('de');
+  const enTiers = getCraftingTiers('en');
+  assert.ok(deTiers[1].materials.includes('Kupfer'));
+  assert.ok(enTiers[1].materials.includes('Copper'));
+
+  const deGuide = getDiscoveryGuide('Weaponsmith', 'de');
+  const enGuide = getDiscoveryGuide('Weaponsmith', 'en');
+  assert.ok(deGuide.primary.includes('Klinge'));
+  assert.ok(enGuide.primary.includes('Blade'));
+
+  // 4. Bilingual Callout generation
+  const sampleEvent = EVENTS.find((e) => e.id === 'tequatl')!;
+  const inst = {
+    event: sampleEvent,
+    startTime: new Date('2026-10-23T12:00:00Z'),
+    endTime: new Date('2026-10-23T12:15:00Z'),
+    isActive: false,
+    startsInSeconds: 300,
+    endsInSeconds: 1200,
+  };
+
+  const deCallout = formatCallout(inst, 'standard', 'de');
+  const enCallout = formatCallout(inst, 'standard', 'en');
+
+  assert.ok(deCallout.includes('startet in'), 'Deutscher Callout enthält "startet in"');
+  assert.ok(enCallout.includes('starts in'), 'Englischer Callout enthält "starts in"');
+  assert.ok(enCallout.includes(sampleEvent.nameEn), 'Englischer Callout enthält englischen Namen');
+
+  // Reset back to de
+  setLanguage('de');
+});

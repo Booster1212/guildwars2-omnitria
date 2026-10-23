@@ -12,7 +12,8 @@ import { Coin, ItemIcon, Notice, ProgressBar, Tabs } from '../common/ui';
 import { CraftTree } from './CraftTree';
 import { MaterialTable } from './MaterialTable';
 import { CollectionList } from './CollectionList';
-import { Star, RotateCcw, AlertTriangle, BookOpen, Layers, Info } from 'lucide-react';
+import { Star, RotateCcw, AlertTriangle, Info } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface WeaponDetailProps {
   weapon: LegendaryWeapon;
@@ -27,6 +28,7 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
   userAchievements,
   onOpenItem,
 }) => {
+  const { t, lang } = useTranslation();
   const [activeTab, setActiveTab] = useState<'tree' | 'materials' | 'collections' | 'notes'>('tree');
   const account = useAccountState();
   const progress = useProgress();
@@ -61,22 +63,22 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
   useItems(allTreeItemIds);
   const prices = usePrices(allTreeItemIds);
 
-  // Compute overall estimated costs for missing items
-  const costSummary = useMemo(() => {
-    const missingNeeds = Array.from(treeResult.bom.values()).map((e) => {
-      const stock = account.stockMap.get(e.itemId) ?? 0;
-      const isDone = doneMaterials.has(e.itemId) || (account.hasStockData && stock >= e.total);
-      const missing = isDone ? 0 : account.hasStockData ? Math.max(0, e.total - stock) : e.missing;
-      return { itemId: e.itemId, qty: missing };
-    });
-    return estimateCosts(missingNeeds, prices.map, new Map());
-  }, [treeResult.bom, account.stockMap, account.hasStockData, doneMaterials, prices.map]);
-
   const item = getItem(weapon.id);
   const genInfo = GENERATION_LABEL[weapon.generation] ?? { short: `Gen ${weapon.generation}`, long: '' };
-  const typeLabel = WEAPON_TYPE_DE[item?.weaponType ?? weapon.type] ?? weapon.type;
+  const rawType = item?.weaponType ?? weapon.type;
+  const typeLabel = lang === 'en' ? rawType : (WEAPON_TYPE_DE[rawType] ?? rawType);
   const slot = weaponSlot(weapon, item);
-  const slotLabel = slot ? SLOT_LABEL[slot] : '';
+  const slotLabel = slot
+    ? lang === 'en'
+      ? slot === 'oneHand'
+        ? 'One-Handed'
+        : slot === 'twoHand'
+        ? 'Two-Handed'
+        : slot === 'offHand'
+        ? 'Off-Hand'
+        : 'Aquatic'
+      : SLOT_LABEL[slot]
+    : '';
 
   return (
     <div className="gw2-detail-panel weapon-detail-panel">
@@ -90,10 +92,10 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
               <button
                 className={`btn-track-header ${isTracked ? 'active' : ''}`}
                 onClick={() => progressActions.toggleTracked(weapon.id)}
-                title={isTracked ? 'Aus Verfolgung entfernen' : 'Waffe zur Verfolgung anheften'}
+                title={isTracked ? 'Untrack' : 'Track'}
               >
                 <Star size={13} fill={isTracked ? '#d2b268' : 'none'} />
-                <span>{isTracked ? 'Verfolgt' : 'Verfolgen'}</span>
+                <span>{isTracked ? t('legendary.tracking') : t('legendary.track')}</span>
               </button>
             </div>
 
@@ -121,31 +123,46 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
               />
             </div>
             <div className="progress-sub-text dim font-mono">
-              {treeResult.components.complete} / {treeResult.components.total} Hauptstufen fertig
+              {t('legendary.stepsDone', {
+                done: treeResult.components.complete,
+                total: treeResult.components.total,
+              })}
             </div>
           </div>
 
           <button
             className="btn-tiny reset-btn"
             onClick={() => {
-              if (window.confirm(`Möchtest du den manuellen Fortschritt für ${item?.name ?? weapon.nameEn} wirklich zurücksetzen?`)) {
+              const confirmMsg = lang === 'en'
+                ? `Reset manual progress for ${item?.name ?? weapon.nameEn}?`
+                : `Möchtest du den manuellen Fortschritt für ${item?.name ?? weapon.nameEn} wirklich zurücksetzen?`;
+              if (window.confirm(confirmMsg)) {
                 progressActions.resetLegendary(weapon.id);
               }
             }}
-            title="Markierungen für diese Waffe zurücksetzen"
+            title="Reset progress"
           >
             <RotateCcw size={10} />
-            <span>Zurücksetzen</span>
+            <span>{t('legendary.reset')}</span>
           </button>
         </div>
       </div>
 
       {/* Incomplete Warning if no recipe exists in dataset */}
       {!weapon.hasRecipe && (
-        <Notice tone="warn" title="Rezeptdaten im Community-Datensatz unvollständig">
-          Für <strong>{item?.name ?? weapon.nameEn}</strong> liegt im hinterlegten Community-Datensatz noch kein
-          Rezept vor. Da die offizielle GW2-API keine Mystische-Schmiede-Rezepte ausgibt, werden keine erfundenen
-          Zutaten angezeigt. Sobald die Rezeptur im Datensatz vorliegt, wird sie hier automatisch aufgeschlüsselt.
+        <Notice tone="warn" title={lang === 'en' ? 'Recipe data incomplete in dataset' : 'Rezeptdaten im Community-Datensatz unvollständig'}>
+          {lang === 'en' ? (
+            <>
+              No recipe is currently available for <strong>{item?.name ?? weapon.nameEn}</strong> in the offline dataset.
+              As the official GW2 API does not expose Mystic Forge recipes, no artificial ingredients are displayed.
+            </>
+          ) : (
+            <>
+              Für <strong>{item?.name ?? weapon.nameEn}</strong> liegt im hinterlegten Community-Datensatz noch kein
+              Rezept vor. Da die offizielle GW2-API keine Mystische-Schmiede-Rezepte ausgibt, werden keine erfundenen
+              Zutaten angezeigt.
+            </>
+          )}
         </Notice>
       )}
 
@@ -153,10 +170,10 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
       <div className="detail-tabs-strip">
         <Tabs
           tabs={[
-            { id: 'tree', label: 'Komponenten-Baum' },
-            { id: 'materials', label: `Materialien & BOM (${treeResult.bom.size})` },
-            { id: 'collections', label: 'Sammlungen' },
-            { id: 'notes', label: 'Hinweise & Herkunft' },
+            { id: 'tree', label: t('legendary.craftTree') },
+            { id: 'materials', label: t('legendary.materialsBom', { count: treeResult.bom.size }) },
+            { id: 'collections', label: t('legendary.collections') },
+            { id: 'notes', label: t('legendary.notes') },
           ]}
           value={activeTab}
           onChange={(tab) => setActiveTab(tab as 'tree' | 'materials' | 'collections' | 'notes')}
@@ -186,11 +203,12 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
           <div className="weapon-notes-view">
             <div className="notes-card">
               <h4 className="notes-card-title font-serif">
-                <Info size={14} className="gold" /> Datenquellen &amp; Methodik
+                <Info size={14} className="gold" /> {lang === 'en' ? 'Data Sources & Methodology' : 'Datenquellen & Methodik'}
               </h4>
               <p>
-                Die Rezepte der <strong>Mystischen Schmiede</strong> sind prinzipbedingt nicht Teil der offiziellen
-                Guild Wars 2 API. Die hier genutzten Rezeptbäume und Herkunfts-Tags basieren auf dem geprüften Open-Source-Datensatz{' '}
+                {lang === 'en'
+                  ? 'Mystic Forge recipes are inherently not provided by the official Guild Wars 2 API. The recipe trees and origins here are based on the vetted open-source dataset '
+                  : 'Die Rezepte der Mystischen Schmiede sind prinzipbedingt nicht Teil der offiziellen Guild Wars 2 API. Die hier genutzten Rezeptbäume und Herkunfts-Tags basieren auf dem geprüften Open-Source-Datensatz '}
                 <a
                   href="https://github.com/PieOrCake/crafty_legend"
                   target="_blank"
@@ -199,23 +217,23 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
                 >
                   PieOrCake/crafty_legend
                 </a>{' '}
-                (Lizenz: MIT, Commit <code>8b674229</code>).
+                (MIT, Commit <code>8b674229</code>).
               </p>
               <p>
-                Alle Item-Namen, Symbole, Waffentypen und Handelsgesellschafts-Preise werden zur Laufzeit direkt und
-                tagesaktuell von der offiziellen ArenaNet API geladen.
+                {lang === 'en'
+                  ? 'All item names, icons, weapon types and Trading Post prices are loaded directly from the official ArenaNet API in real time.'
+                  : 'Alle Item-Namen, Symbole, Waffentypen und Handelsgesellschafts-Preise werden zur Laufzeit direkt und tagesaktuell von der offiziellen ArenaNet API geladen.'}
               </p>
             </div>
 
             <div className="notes-card">
               <h4 className="notes-card-title font-serif">
-                <AlertTriangle size={14} className="gold" /> Zufallsrezepte &amp; Schätzungen
+                <AlertTriangle size={14} className="gold" /> {lang === 'en' ? 'RNG Recipes & Estimates' : 'Zufallsrezepte & Schätzungen'}
               </h4>
               <p>
-                Das Rezept für <strong>Mystische Kleeblätter</strong> (10er-Rezept der Mystischen Schmiede) besitzt eine
-                zufällige Erfolgschance. In den Berechnungen wird eine von der Community ermittelte durchschnittliche
-                Erfolgsquote von ca. <strong>31 %</strong> zugrunde gelegt. Der tatsächliche Verbrauch im Spiel kann
-                aufgrund von Zufallsschwankungen abweichen.
+                {lang === 'en'
+                  ? 'The recipe for Mystic Clovers has a random success chance. Calculations assume a community-verified average success rate of ~31%. Actual consumption in game may differ due to RNG.'
+                  : 'Das Rezept für Mystische Kleeblätter besitzt eine zufällige Erfolgschance. In den Berechnungen wird eine von der Community ermittelte durchschnittliche Erfolgsquote von ca. 31 % zugrunde gelegt. Der tatsächliche Verbrauch im Spiel kann aufgrund von Zufallsschwankungen abweichen.'}
               </p>
             </div>
           </div>

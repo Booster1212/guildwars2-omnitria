@@ -3,8 +3,9 @@ import type { DisciplineId } from '../../domain/types';
 import { DISCIPLINES } from '../../data/gw2/recipes';
 import { useAccountState } from '../../data/gw2/account';
 import { useProgress } from '../../data/progressStore';
-import { DISCIPLINE_DE } from '../common/labels';
+import { getDisciplineName } from '../common/labels';
 import { DisciplineIcon, ProgressBar } from '../common/ui';
+import { useTranslation } from '../../i18n';
 
 interface DisciplineListProps {
   selectedDiscipline: DisciplineId;
@@ -17,14 +18,15 @@ export const DisciplineList: React.FC<DisciplineListProps> = ({
   onSelectDiscipline,
   maxRanks,
 }) => {
+  const { t, lang } = useTranslation();
   const account = useAccountState();
   const progress = useProgress();
 
   return (
     <div className="gw2-master-list disciplines-list">
       <div className="list-section-header">
-        <span className="section-title">Handwerksberufe</span>
-        <span className="section-counter">8 Disziplinen</span>
+        <span className="section-title">{t('crafting.disciplines')}</span>
+        <span className="section-counter">{t('crafting.disciplinesCount', { count: DISCIPLINES.length })}</span>
       </div>
 
       <div className="list-items-container">
@@ -52,7 +54,7 @@ export const DisciplineList: React.FC<DisciplineListProps> = ({
 
               <div className="row-content">
                 <div className="row-title-bar">
-                  <span className="row-name font-serif">{DISCIPLINE_DE[disc]}</span>
+                  <span className="row-name font-serif">{getDisciplineName(disc, lang)}</span>
                   <span className="row-rank-badge">
                     {currentRank} / {maxRank}
                   </span>
@@ -70,12 +72,12 @@ export const DisciplineList: React.FC<DisciplineListProps> = ({
                   {charName ? (
                     <span className="dim char-indicator">Char: {charName}</span>
                   ) : manualProgress?.start !== null && manualProgress?.start !== undefined ? (
-                    <span className="dim">Manuell gesetzt</span>
+                    <span className="dim">{t('crafting.manuallySet')}</span>
                   ) : (
-                    <span className="dim">Stufe 0</span>
+                    <span className="dim">{t('crafting.levelZero')}</span>
                   )}
                   {manualProgress?.target ? (
-                    <span className="target-indicator">Ziel: {manualProgress.target}</span>
+                    <span className="target-indicator">{t('crafting.target', { rank: manualProgress.target })}</span>
                   ) : null}
                 </div>
               </div>

@@ -3,14 +3,15 @@ import type { DisciplineId } from '../../domain/types';
 import { useAccountState } from '../../data/gw2/account';
 import { useRecipeDb } from '../../data/gw2/recipes';
 import { useProgress } from '../../data/progressStore';
-import { DISCIPLINE_DE, fmtInt } from '../common/labels';
+import { getDisciplineName, getRecipeTypeName } from '../common/labels';
 import { DisciplineIcon, ItemIcon, ProgressBar, Tabs } from '../common/ui';
 import { LevelPlanner } from './LevelPlanner';
 import { DiscoveryView } from './DiscoveryView';
 import { CURATED_DISCOVERIES } from '../../data/crafting/curatedDiscoveries';
 import { isDiscoveryRecipe } from '../../domain/discovery';
 import { getItem } from '../../data/gw2/items';
-import { Compass, BookOpen, Sliders, User, Sparkles } from 'lucide-react';
+import { User } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface DisciplineDetailProps {
   discipline: DisciplineId;
@@ -19,6 +20,7 @@ interface DisciplineDetailProps {
 }
 
 export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, maxRank, onOpenItem }) => {
+  const { t, lang } = useTranslation();
   const [activeTab, setActiveTab] = useState<'planner' | 'discovery' | 'recipes'>('planner');
   const account = useAccountState();
   const progress = useProgress();
@@ -48,6 +50,8 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
       .slice(0, 50);
   }, [recipeDb.recipes, recipeDb.status, discipline, currentRank]);
 
+  const discName = getDisciplineName(discipline, lang);
+
   return (
     <div className="gw2-detail-panel discipline-detail">
       {/* Discipline Header Banner */}
@@ -55,17 +59,17 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
         <div className="banner-left">
           <DisciplineIcon discipline={discipline} size="l" />
           <div className="banner-titles">
-            <h2 className="banner-main-title font-serif">{DISCIPLINE_DE[discipline]}</h2>
+            <h2 className="banner-main-title font-serif">{discName}</h2>
             <div className="banner-sub-meta">
               <span className="rank-label">
-                Rang {currentRank} von {maxRank}
+                {t('crafting.rankOf', { rank: currentRank, max: maxRank })}
               </span>
               {charName ? (
                 <span className="char-badge">
                   <User size={11} /> {charName}
                 </span>
               ) : (
-                <span className="dim">Kein Charakter mit diesem Beruf verknüpft</span>
+                <span className="dim">{t('crafting.noCharacter')}</span>
               )}
             </div>
           </div>
@@ -87,9 +91,9 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
       <div className="detail-tabs-strip">
         <Tabs
           tabs={[
-            { id: 'planner', label: 'Interaktiver Levelplaner' },
-            { id: 'discovery', label: `✨ Entdeckungsrezepte (${discoveryRecipesCount})` },
-            { id: 'recipes', label: `Erlernte / Relevante Rezepte (${relevantRecipes.length})` },
+            { id: 'planner', label: t('crafting.plannerTab') },
+            { id: 'discovery', label: `${t('crafting.discoveryTab')} (${discoveryRecipesCount})` },
+            { id: 'recipes', label: `${t('crafting.recipesTab')} (${relevantRecipes.length})` },
           ]}
           value={activeTab}
           onChange={(tab) => setActiveTab(tab as 'planner' | 'discovery' | 'recipes')}
@@ -113,13 +117,14 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
           <div className="discipline-recipes-view">
             <div className="recipes-intro-bar">
               <span className="dim">
-                Zeigt Rezepte für {DISCIPLINE_DE[discipline]} bis Rang {currentRank + 25}. Klicke auf ein Ergebnis oder eine Zutat für Details.
+                {t('crafting.recipesIntro', { disc: discName, rank: currentRank + 25 })}
               </span>
             </div>
 
             <div className="recipes-grid">
               {relevantRecipes.map((r) => {
                 const outItem = getItem(r.outputId);
+                const typeLabel = r.type ? getRecipeTypeName(r.type, lang) : '';
                 return (
                   <div key={r.id} className="recipe-card">
                     <div className="rc-header">
@@ -129,11 +134,11 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
                           className="rc-title font-serif cursor-pointer"
                           onClick={() => onOpenItem(r.outputId)}
                         >
-                          {outItem?.name ?? `Gegenstand #${r.outputId}`}
+                          {outItem?.name ?? `#${r.outputId}`}
                         </span>
                         <div className="rc-rating-meta">
-                          <span className="rc-rating">Rang {r.rating}</span>
-                          {r.type && <span className="rc-type dim">({r.type})</span>}
+                          <span className="rc-rating">{lang === 'en' ? `Rank ${r.rating}` : `Rang ${r.rating}`}</span>
+                          {typeLabel && <span className="rc-type dim">({typeLabel})</span>}
                         </div>
                       </div>
                     </div>

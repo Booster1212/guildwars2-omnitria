@@ -268,6 +268,24 @@ button {
   background: #24221a;
 }
 
+.gw2-nav-icon-btn.lang-toggle-pill {
+  width: auto;
+  min-width: 48px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #3d331c;
+  color: var(--gw2-gold);
+  cursor: pointer;
+}
+.gw2-nav-icon-btn.lang-toggle-pill:hover {
+  border-color: var(--gw2-gold);
+  background: rgba(210, 178, 104, 0.15);
+  color: var(--gw2-gold-bright);
+}
+
 .gw2-parchment-close-btn {
   width: 20px;
   height: 20px;

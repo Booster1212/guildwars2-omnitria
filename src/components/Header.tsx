@@ -11,6 +11,7 @@ import {
 import type { OverlaySettings, OverlayTab } from '../types';
 import { BrandMark } from './common/Glyphs';
 import { useAccountState } from '../data/gw2/account';
+import { useTranslation } from '../i18n';
 
 interface HeaderProps {
   settings: OverlaySettings;
@@ -32,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   accountName,
 }) => {
   const account = useAccountState();
+  const { t, lang, setLanguage } = useTranslation();
 
   const handleToggleMini = () => {
     onUpdateSettings({ widgetMode: !settings.widgetMode });
@@ -59,16 +61,16 @@ export const Header: React.FC<HeaderProps> = ({
   const getSubTitle = () => {
     switch (currentTab) {
       case 'waypoints':
-        return 'Wegmarken-Verzeichnis';
+        return t('waypoints.title');
       case 'achievements':
-        return 'Heldin • Erfolge';
+        return t('achievements.title');
       case 'crafting':
-        return 'Berufe & Handwerk';
+        return t('crafting.title');
       case 'legendary':
-        return 'Legendäre Waffen';
+        return t('legendary.title');
       case 'events':
       default:
-        return 'Events & Weltbosse';
+        return t('nav.events');
     }
   };
 
@@ -81,14 +83,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className="gw2-title-text-wrap">
-            <span className="gw2-hero-title font-serif">Heldin</span>
+            <span className="gw2-hero-title font-serif">{lang === 'en' ? 'Hero' : 'Heldin'}</span>
             <span className="gw2-tab-subtitle dim font-serif">{getSubTitle()}</span>
 
             {accountName ? (
               <span
                 className="gw2-account-badge"
-                title={`Verbunden mit GW2-Account ${accountName}${
-                  account.data?.permissions ? ` (Berechtigungen: ${account.data.permissions.join(', ')})` : ''
+                title={`${lang === 'en' ? 'Connected to GW2 Account' : 'Verbunden mit GW2-Account'} ${accountName}${
+                  account.data?.permissions ? ` (${lang === 'en' ? 'Permissions' : 'Berechtigungen'}: ${account.data.permissions.join(', ')})` : ''
                 }`}
               >
                 <span className="status-dot green" />
@@ -98,10 +100,10 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 className="gw2-account-badge-hint"
                 onClick={onOpenSettings}
-                title="Klicke hier, um deinen Guild Wars 2 API-Schlüssel zu verbinden"
+                title={lang === 'en' ? 'Click here to connect your GW2 API key' : 'Klicke hier, um deinen Guild Wars 2 API-Schlüssel zu verbinden'}
               >
                 <span className="status-dot neutral" />
-                API verbinden
+                {lang === 'en' ? 'Connect API' : 'API verbinden'}
               </button>
             )}
           </div>
@@ -109,11 +111,24 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls & GW2 Square Close Button */}
         <div className="gw2-header-controls">
+          {/* Quick Language Toggle */}
+          <button
+            className="gw2-nav-icon-btn lang-toggle-pill"
+            title={lang === 'de' ? 'Switch to English / Auf Englisch wechseln' : 'Auf Deutsch wechseln / Switch to German'}
+            onClick={() => {
+              const next = lang === 'de' ? 'en' : 'de';
+              setLanguage(next);
+              onUpdateSettings({ language: next });
+            }}
+          >
+            <span className="lang-code font-bold">{lang === 'de' ? '🇩🇪 DE' : '🇬🇧 EN'}</span>
+          </button>
+
           {/* Dock Reset Button (Position above chat) */}
           {isElectron && (
             <button
               className="gw2-nav-icon-btn"
-              title="Standardposition über dem GW2-Chat wiederherstellen"
+              title={lang === 'en' ? 'Reset position above GW2 chat' : 'Standardposition über dem GW2-Chat wiederherstellen'}
               onClick={handleResetPosition}
             >
               <Compass size={13} />
@@ -123,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Mini Widget Toggle */}
           <button
             className={`gw2-nav-icon-btn ${settings.widgetMode ? 'active' : ''}`}
-            title={settings.widgetMode ? 'Erweiterte Ansicht öffnen' : 'Kompaktes Chat-Overlay (Mini-HUD)'}
+            title={settings.widgetMode ? (lang === 'en' ? 'Open Expanded View' : 'Erweiterte Ansicht öffnen') : (lang === 'en' ? 'Compact Chat Overlay (Mini-HUD)' : 'Kompaktes Chat-Overlay (Mini-HUD)')}
             onClick={handleToggleMini}
           >
             {settings.widgetMode ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
@@ -132,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Sound Toggle */}
           <button
             className={`gw2-nav-icon-btn ${settings.soundEnabled ? 'active' : ''}`}
-            title={settings.soundEnabled ? 'Ton stummschalten' : 'Signalton beim Kopieren aktivieren'}
+            title={settings.soundEnabled ? (lang === 'en' ? 'Mute Sounds' : 'Signaltöne stummschalten') : (lang === 'en' ? 'Enable Sounds' : 'Signaltöne aktivieren')}
             onClick={handleToggleSound}
           >
             {settings.soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
@@ -141,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Settings Button */}
           <button
             className="gw2-nav-icon-btn"
-            title="Overlay-Einstellungen & API-Schlüssel"
+            title={t('nav.settings')}
             onClick={onOpenSettings}
           >
             <Settings size={13} />
@@ -151,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
           {isElectron && (
             <button
               className="gw2-nav-icon-btn"
-              title="Minimieren"
+              title={lang === 'en' ? 'Minimize' : 'Minimieren'}
               onClick={handleMinimizeWindow}
             >
               <Minus size={13} />
@@ -162,7 +177,7 @@ export const Header: React.FC<HeaderProps> = ({
           {isElectron && (
             <button
               className="gw2-parchment-close-btn"
-              title="Schließen"
+              title={lang === 'en' ? 'Close' : 'Schließen'}
               onClick={handleCloseWindow}
             >
               <span className="close-x">✕</span>

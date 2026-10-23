@@ -2,6 +2,7 @@ import React from 'react';
 import { Flame, MessageSquare, Compass, ChevronDown, Check } from 'lucide-react';
 import { EventInstance } from '../types';
 import { formatShortCountdown, formatCountdown } from '../data/events';
+import { useTranslation } from '../i18n';
 
 interface MiniWidgetProps {
   instances: EventInstance[];
@@ -18,6 +19,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
   copiedId,
   onExpand,
 }) => {
+  const { t, lang } = useTranslation();
   // Exactly the next 3 events!
   const displayItems = instances.slice(0, 3);
 
@@ -25,11 +27,12 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
     <div className="mini-widget">
       {displayItems.length === 0 ? (
         <div style={{ fontSize: '11px', color: 'var(--gw2-text-dim)', textAlign: 'center', padding: '12px' }}>
-          Keine anstehenden Events gefunden
+          {t('events.empty')}
         </div>
       ) : (
         displayItems.map((inst, index) => {
           const isCopied = copiedId === `${inst.event.id}_${inst.startTime.getTime()}`;
+          const eventDisplayName = lang === 'en' ? (inst.event.nameEn || inst.event.name) : inst.event.name;
           return (
             <div
               key={`${inst.event.id}_${inst.startTime.getTime()}`}
@@ -42,8 +45,8 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
                   {inst.isActive && (
                     <Flame size={12} color="#10b981" style={{ flexShrink: 0 }} />
                   )}
-                  <span className="mini-name" title={inst.event.name}>
-                    {inst.event.name}
+                  <span className="mini-name" title={eventDisplayName}>
+                    {eventDisplayName}
                   </span>
                 </div>
 
@@ -57,8 +60,8 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
                   }`}
                 >
                   {inst.isActive
-                    ? `AKTIV (${formatShortCountdown(inst.endsInSeconds)})`
-                    : `in ${formatCountdown(inst.startsInSeconds)}`}
+                    ? `${t('events.activeBadge')} (${formatShortCountdown(inst.endsInSeconds)})`
+                    : `${t('events.in')} ${formatCountdown(inst.startsInSeconds)}`}
                 </div>
               </div>
 
@@ -67,30 +70,28 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
                 {inst.event.zone} • {inst.event.waypointName}
               </div>
 
-              {/* The 2 requested action buttons: "Nachricht senden" | "Zur Wegmarke Teleportieren" */}
+              {/* Action buttons */}
               <div className="mini-actions-row">
-                {/* 1. Nachricht senden */}
                 <button
                   className="mini-btn send-btn"
                   onClick={() => onSendMessage(inst)}
-                  title="Wegmarke & Restzeit in den GW2-Kartenchat senden / kopieren"
+                  title={t('events.sendChat')}
                 >
                   {isCopied ? (
                     <Check size={11} color="#4ade80" />
                   ) : (
                     <MessageSquare size={11} />
                   )}
-                  <span>Nachricht senden</span>
+                  <span>{t('events.sendChat')}</span>
                 </button>
 
-                {/* 2. Zur Wegmarke Teleportieren */}
                 <button
                   className="mini-btn teleport-btn"
                   onClick={() => onTeleport(inst)}
-                  title="Wegmarken-Code senden (im Chat anklicken zum direkten Teleportieren!)"
+                  title={t('events.teleportWaypoint')}
                 >
                   <Compass size={11} />
-                  <span>Wegmarke Teleport</span>
+                  <span>{t('events.teleportWaypoint')}</span>
                 </button>
               </div>
             </div>
@@ -102,9 +103,9 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
       <button
         className="mini-expand-footer"
         onClick={onExpand}
-        title="Volle Event-Tafel mit Suche & allen Bossen öffnen"
+        title={lang === 'en' ? 'Open full event timer panel' : 'Volle Event-Tafel mit Suche & allen Bossen öffnen'}
       >
-        <span>Alle Bosse anzeigen</span>
+        <span>{lang === 'en' ? 'Show All Events' : 'Alle Bosse anzeigen'}</span>
         <ChevronDown size={11} />
       </button>
     </div>

@@ -8,6 +8,7 @@ import {
   GlyphLegendary,
   GlyphGear,
 } from './common/Glyphs';
+import { useTranslation } from '../i18n';
 
 interface Gw2NavRailProps {
   currentTab: OverlayTab;
@@ -20,13 +21,15 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
   onSelectTab,
   onOpenSettings,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <nav className="gw2-nav-rail" aria-label="Hauptnavigation">
       {/* 1. Events & Weltbosse */}
       <button
         className={`nav-rail-item ${currentTab === 'events' ? 'active' : ''}`}
         onClick={() => onSelectTab('events')}
-        title="Weltenbosse & Event-Timer [Events]"
+        title={t('nav.events')}
       >
         <div className="nav-item-icon">
           <GlyphEvents />
@@ -39,12 +42,12 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
       <button
         className={`nav-rail-item ${currentTab === 'waypoints' ? 'active' : ''}`}
         onClick={() => onSelectTab('waypoints')}
-        title="Wegmarken & Schnellreise [Wegmarken]"
+        title={t('nav.waypoints')}
       >
         <div className="nav-item-icon">
           <GlyphWaypoint />
         </div>
-        <span className="nav-rail-label">Wegmarken</span>
+        <span className="nav-rail-label">{t('nav.waypoints')}</span>
         {currentTab === 'waypoints' && <div className="nav-rail-active-notch" />}
       </button>
 
@@ -52,12 +55,12 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
       <button
         className={`nav-rail-item ${currentTab === 'achievements' ? 'active' : ''}`}
         onClick={() => onSelectTab('achievements')}
-        title="Bosse & Erfolge [Erfolge]"
+        title={t('nav.achievements')}
       >
         <div className="nav-item-icon">
           <GlyphAchievements />
         </div>
-        <span className="nav-rail-label">Erfolge</span>
+        <span className="nav-rail-label">{t('nav.achievements')}</span>
         {currentTab === 'achievements' && <div className="nav-rail-active-notch" />}
       </button>
 
@@ -65,12 +68,12 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
       <button
         className={`nav-rail-item ${currentTab === 'crafting' ? 'active' : ''}`}
         onClick={() => onSelectTab('crafting')}
-        title="Berufe, Handwerk & Levelplaner [Berufe]"
+        title={t('nav.crafting')}
       >
         <div className="nav-item-icon">
           <GlyphCrafting />
         </div>
-        <span className="nav-rail-label">Berufe</span>
+        <span className="nav-rail-label">{t('nav.crafting')}</span>
         {currentTab === 'crafting' && <div className="nav-rail-active-notch" />}
       </button>
 
@@ -78,12 +81,12 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
       <button
         className={`nav-rail-item ${currentTab === 'legendary' ? 'active' : ''}`}
         onClick={() => onSelectTab('legendary')}
-        title="Legendäre Waffen, Komponenten & Materialien [Legendär]"
+        title={t('nav.legendary')}
       >
         <div className="nav-item-icon">
           <GlyphLegendary />
         </div>
-        <span className="nav-rail-label">Legendär</span>
+        <span className="nav-rail-label">{t('nav.legendary')}</span>
         {currentTab === 'legendary' && <div className="nav-rail-active-notch" />}
       </button>
 
@@ -93,12 +96,12 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
       <button
         className="nav-rail-item settings-item"
         onClick={onOpenSettings}
-        title="Overlay-Einstellungen & API-Schlüssel"
+        title={t('nav.settings')}
       >
         <div className="nav-item-icon">
           <GlyphGear />
         </div>
-        <span className="nav-rail-label">Optionen</span>
+        <span className="nav-rail-label">{t('nav.settings')}</span>
       </button>
     </nav>
   );

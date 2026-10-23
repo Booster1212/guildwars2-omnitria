@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Award,
   ChevronDown,
@@ -15,8 +15,6 @@ import {
   Sparkles,
   Clock,
   Shield,
-  Layers,
-  MapPin,
 } from 'lucide-react';
 import {
   GLOBAL_ACHIEVEMENTS,
@@ -27,6 +25,7 @@ import type { EventInstance } from '../types';
 import type { Gw2AccountInfo, Gw2AccountAchievement } from '../data/gw2Api';
 import { ProgressBar } from './common/ui';
 import { formatCountdown } from '../data/events';
+import { useTranslation } from '../i18n';
 
 interface AchievementsViewProps {
   upcomingInstances: EventInstance[];
@@ -42,18 +41,7 @@ const STORAGE_KEY_WATCHLIST = 'gw2_watchlist_achievements';
 interface CategoryTabOption {
   id: 'all' | AchievementCategory | 'watchlist';
   label: string;
-  countKey?: string;
 }
-
-const CATEGORY_TABS: CategoryTabOption[] = [
-  { id: 'all', label: 'Alle' },
-  { id: 'watchlist', label: 'Verfolgt' },
-  { id: 'daily', label: 'Täglich' },
-  { id: 'worldboss', label: 'Weltenbosse' },
-  { id: 'exploration', label: 'Erkundung' },
-  { id: 'fractals', label: 'Fraktale & Raids' },
-  { id: 'collections', label: 'Sammlungen' },
-];
 
 export const AchievementsView: React.FC<AchievementsViewProps> = ({
   upcomingInstances,
@@ -63,6 +51,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   accountInfo,
   userAchievements,
 }) => {
+  const { t, lang } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<'all' | AchievementCategory | 'watchlist'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'inprogress' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -77,6 +66,16 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
       return ['daily-completer', 'wb-tequatl-meta'];
     }
   });
+
+  const categoryTabs: CategoryTabOption[] = [
+    { id: 'all', label: t('achievements.all') },
+    { id: 'watchlist', label: t('achievements.watchlist') },
+    { id: 'daily', label: t('achievements.daily') },
+    { id: 'worldboss', label: t('achievements.worldboss') },
+    { id: 'exploration', label: t('achievements.exploration') },
+    { id: 'fractals', label: t('achievements.fractals') },
+    { id: 'collections', label: t('achievements.collections') },
+  ];
 
   const toggleWatchlist = (achId: string) => {
     setWatchlist((prev) => {
@@ -191,31 +190,31 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
           </div>
           <div className="hero-ap-titles">
             <div className="hero-title-row">
-              <span className="hero-main-title font-serif">Heldin • Erfolge</span>
+              <span className="hero-main-title font-serif">{t('achievements.title')}</span>
               {accountInfo && (
                 <span className="hero-account-tag font-mono">
                   {accountInfo.name}
-                  {accountInfo.commander && <span className="commander-pill">Kommandeur</span>}
+                  {accountInfo.commander && <span className="commander-pill">{t('achievements.commander')}</span>}
                 </span>
               )}
             </div>
             <div className="hero-stats-row font-mono">
               <span className="stat-item">
-                <span className="stat-label dim">Erfolge im Overlay:</span>
+                <span className="stat-label dim">{t('achievements.statOverlay')}</span>
                 <span className="stat-val gold">
                   {completedCount} / {mergedAchievements.length}
                 </span>
               </span>
               <span className="stat-divider">•</span>
               <span className="stat-item">
-                <span className="stat-label dim">Verfügbare AP:</span>
+                <span className="stat-label dim">{t('achievements.statAvailableAp')}</span>
                 <span className="stat-val gold">+{totalAvailableAp} AP</span>
               </span>
               {accountInfo?.daily_ap !== undefined && (
                 <>
                   <span className="stat-divider">•</span>
                   <span className="stat-item">
-                    <span className="stat-label dim">Tägliche AP:</span>
+                    <span className="stat-label dim">{t('achievements.statDailyAp')}</span>
                     <span className="stat-val">{accountInfo.daily_ap} / 15.000 max</span>
                   </span>
                 </>
@@ -231,7 +230,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
             <input
               type="text"
               className="gw2-input-clean"
-              placeholder="Erfolge, Titel, Ziele durchsuchen..."
+              placeholder={t('achievements.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -251,16 +250,16 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'all' | 'inprogress' | 'completed')}
           >
-            <option value="all">Alle Status</option>
-            <option value="inprogress">In Arbeit</option>
-            <option value="completed">Abgeschlossen</option>
+            <option value="all">{t('achievements.statusAll')}</option>
+            <option value="inprogress">{t('achievements.statusInProgress')}</option>
+            <option value="completed">{t('achievements.statusCompleted')}</option>
           </select>
         </div>
       </div>
 
       {/* 2. GW2 Category Navigation Bar */}
       <div className="gw2-achieve-category-bar">
-        {CATEGORY_TABS.map((tab) => {
+        {categoryTabs.map((tab) => {
           const isActive = selectedCategory === tab.id;
           const count = categoryCounts[tab.id] ?? 0;
           return (
@@ -284,11 +283,11 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
         {filteredAchievements.length === 0 ? (
           <div className="achieve-empty-state">
             <Trophy size={28} className="dim" />
-            <span className="empty-title font-serif">Keine Erfolge gefunden</span>
+            <span className="empty-title font-serif">{t('achievements.emptyTitle')}</span>
             <p className="empty-desc dim">
               {selectedCategory === 'watchlist'
-                ? 'Du hast noch keine Erfolge auf deiner Watchlist. Klicke auf den Stern bei einem beliebigen Erfolg, um ihn hier zu verfolgen.'
-                : 'Passe die Filter oder den Suchbegriff an, um passende Erfolge anzuzeigen.'}
+                ? t('achievements.emptyWatchlist')
+                : t('achievements.emptyFilter')}
             </p>
             {(searchQuery || statusFilter !== 'all' || selectedCategory !== 'all') && (
               <button
@@ -299,7 +298,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                   setSelectedCategory('all');
                 }}
               >
-                Filter zurücksetzen
+                {t('achievements.resetFilter')}
               </button>
             )}
           </div>
@@ -351,7 +350,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                         <button
                           className={`btn-star-watch ${isWatched ? 'active' : ''}`}
                           onClick={() => toggleWatchlist(item.id)}
-                          title={isWatched ? 'Von Watchlist entfernen' : 'Auf Watchlist setzen'}
+                          title={isWatched ? 'Watchlist' : 'Watchlist'}
                         >
                           <Star size={12} className={isWatched ? 'fill-gold' : ''} />
                         </button>
@@ -386,7 +385,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                           className="btn-toggle-objectives"
                           onClick={() => toggleObjectives(item.id)}
                         >
-                          <span>Teilziele ({item.objectives!.length})</span>
+                          <span>{t('achievements.objectives')} ({item.objectives!.length})</span>
                           {isObjectivesOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                         </button>
 
@@ -417,7 +416,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                         {item.rewardTitle && (
                           <span className="reward-tag font-serif" title="Freischaltbarer Titel">
                             <Award size={10} className="gold" />
-                            <span>Titel: {item.rewardTitle}</span>
+                            <span>{t('achievements.titleReward')} {item.rewardTitle}</span>
                           </span>
                         )}
                         {item.rewardMastery && (
@@ -426,7 +425,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                             title={`Beherrschungspunkt (${item.rewardMastery.region.toUpperCase()})`}
                           >
                             <Sparkles size={10} />
-                            <span>+{item.rewardMastery.points} Beherrschung</span>
+                            <span>+{item.rewardMastery.points} {t('achievements.mastery')}</span>
                           </span>
                         )}
                         {item.rewardItem && (
@@ -444,12 +443,12 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                             {linkedEvent.isActive ? (
                               <span className="badge-active-pulse">
                                 <Flame size={10} />
-                                <span>Jetzt aktiv ({formatCountdown(linkedEvent.endsInSeconds)})</span>
+                                <span>{t('achievements.nowActive')} ({formatCountdown(linkedEvent.endsInSeconds)})</span>
                               </span>
                             ) : (
                               <span className="badge-upcoming font-mono">
                                 <Clock size={10} />
-                                <span>in {formatCountdown(linkedEvent.startsInSeconds)}</span>
+                                <span>{t('achievements.inTime', { time: formatCountdown(linkedEvent.startsInSeconds) })}</span>
                               </span>
                             )}
                             <span className="boss-zone dim">{linkedEvent.event.zone}</span>
@@ -459,18 +458,18 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                             <button
                               className="btn-action sm"
                               onClick={() => onSendMessage(linkedEvent)}
-                              title="Wegmarke & Zeit in den Chat senden"
+                              title={t('events.sendChat')}
                             >
                               <MessageSquare size={10} />
-                              <span>Chat</span>
+                              <span>{t('achievements.chat')}</span>
                             </button>
                             <button
                               className="btn-action sm gold"
                               onClick={() => onTeleport(linkedEvent)}
-                              title="Wegmarken-Code senden zum Teleportieren"
+                              title={t('events.teleportWaypoint')}
                             >
                               <Compass size={10} />
-                              <span>Wegmarke</span>
+                              <span>{t('achievements.waypoint')}</span>
                             </button>
                           </div>
                         </div>
@@ -496,18 +495,18 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
             {accountInfo.wvw_rank !== undefined && (
               <span className="dock-pill">WvW-Rang {accountInfo.wvw_rank}</span>
             )}
-            <span className="dock-hint dim">Synchronisiert mit Spielaccount</span>
+            <span className="dock-hint dim">{t('achievements.synced')}</span>
           </div>
         ) : (
           <div className="dock-connect-hint">
             <span className="hint-text dim">
-              Tipp: Trage deinen GW2 API-Schlüssel in den Optionen ein, um deine persönlichen Erfolge live abzugleichen.
+              {t('achievements.apiHint')}
             </span>
           </div>
         )}
 
         <button className="gw2-text-btn" onClick={onSwitchToEvents}>
-          <span>Zurück zur Event-Tafel</span>
+          <span>{t('achievements.backToEvents')}</span>
           <Compass size={11} />
         </button>
       </div>

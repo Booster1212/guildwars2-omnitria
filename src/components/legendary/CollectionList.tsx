@@ -4,7 +4,8 @@ import { collectionMatches } from '../../domain/legendary';
 import { useCollections } from '../../data/gw2/collections';
 import type { Gw2AccountAchievement } from '../../data/gw2Api';
 import { ProgressBar, Notice } from '../common/ui';
-import { Trophy, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Trophy, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface CollectionListProps {
   weapon: LegendaryWeapon;
@@ -12,6 +13,7 @@ interface CollectionListProps {
 }
 
 export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchievements }) => {
+  const { lang } = useTranslation();
   const collectionsState = useCollections();
 
   const matchingAchievements = useMemo(() => {
@@ -24,14 +26,16 @@ export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchi
     return (
       <div className="planner-loading-state">
         <div className="spinner" />
-        <span className="font-serif">Lade Sammlungs-Erfolge der GW2-API …</span>
+        <span className="font-serif">
+          {lang === 'en' ? 'Loading collection achievements from GW2 API…' : 'Lade Sammlungs-Erfolge der GW2-API …'}
+        </span>
       </div>
     );
   }
 
   if (collectionsState.status === 'error') {
     return (
-      <Notice tone="error" title="Sammlungen konnten nicht geladen werden">
+      <Notice tone="error" title={lang === 'en' ? 'Failed to load collections' : 'Sammlungen konnten nicht geladen werden'}>
         {collectionsState.error}
       </Notice>
     );
@@ -40,18 +44,40 @@ export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchi
   if (matchingAchievements.length === 0) {
     return (
       <div className="collections-empty-panel">
-        <div className="empty-title font-serif">Keine zugeordneten Sammlungs-Erfolge</div>
+        <div className="empty-title font-serif">
+          {lang === 'en' ? 'No associated collection achievements' : 'Keine zugeordneten Sammlungs-Erfolge'}
+        </div>
         <div className="empty-desc dim">
           {weapon.generation === 3 ? (
-            <>
-              Für Waffen der <strong>Generation 3 (Aurene)</strong> erfolgt die Freischaltung des Vorläufers und der
-              Waffe über Handwerksdisziplinen und Tausch bei Handwerkern in Cantha (Erweiterung <em>End of Dragons</em>) statt
-              über klassische mehrstufige Vorläufer-Sammlungen.
-            </>
+            lang === 'en' ? (
+              <>
+                For <strong>Generation 3 (Aurene)</strong> weapons, precursor and weapon acquisition is handled
+                via crafting disciplines and bartering with merchants in Cantha (expansion <em>End of Dragons</em>) rather
+                than classical multi-tier precursor collections.
+              </>
+            ) : (
+              <>
+                Für Waffen der <strong>Generation 3 (Aurene)</strong> erfolgt die Freischaltung des Vorläufers und der
+                Waffe über Handwerksdisziplinen und Tausch bei Handwerkern in Cantha (Erweiterung <em>End of Dragons</em>) statt
+                über klassische mehrstufige Vorläufer-Sammlungen.
+              </>
+            )
           ) : weapon.generation === 15 ? (
+            lang === 'en' ? (
+              <>
+                For <strong>Generation 4</strong> weapons, acquisition progresses via quests and crafting in{' '}
+                <em>Janthir Wilds</em>.
+              </>
+            ) : (
+              <>
+                Für Waffen der <strong>Generation 4</strong> erfolgt die Freischaltung über Quests und Handwerk in{' '}
+                <em>Janthir Wilds</em>.
+              </>
+            )
+          ) : lang === 'en' ? (
             <>
-              Für Waffen der <strong>Generation 4</strong> erfolgt die Freischaltung über Quests und Handwerk in{' '}
-              <em>Janthir Wilds</em>.
+              No direct collection achievements are linked to this weapon in the official <em>Legendary Weapons</em> category,
+              or the precursor is obtained directly via the Mystic Forge.
             </>
           ) : (
             <>
@@ -68,8 +94,9 @@ export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchi
     <div className="collection-list-container">
       <div className="collections-intro-bar">
         <span className="dim">
-          Offizielle Vorläufer- und Waffen-Sammlungen aus der GW2-API (Kategorie „Legendäre Waffen“). Der persönliche
-          Fortschritt wird über deinen API-Schlüssel (Berechtigung <code>progression</code>) synchronisiert.
+          {lang === 'en'
+            ? 'Official precursor and weapon collections from GW2 API (Category "Legendary Weapons"). Personal progress is synced with your API key.'
+            : 'Offizielle Vorläufer- und Waffen-Sammlungen aus der GW2-API (Kategorie „Legendäre Waffen“). Der persönliche Fortschritt wird über deinen API-Schlüssel synchronisiert.'}
         </span>
       </div>
 
@@ -80,6 +107,7 @@ export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchi
           const current = userAch?.current ?? (isDone ? ach.total : 0);
           const total = ach.total > 0 ? ach.total : 1;
           const frac = Math.min(1, current / total);
+          const title = lang === 'en' ? (ach.nameEn || ach.name) : ach.name;
 
           return (
             <div key={ach.id} className={`collection-card ${isDone ? 'card-complete' : ''}`}>
@@ -93,10 +121,10 @@ export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchi
 
               <div className="col-body">
                 <div className="col-header-line">
-                  <span className="col-title font-serif">{ach.name}</span>
+                  <span className="col-title font-serif">{title}</span>
                   <div className="col-progress-badge font-mono">
                     {isDone ? (
-                      <span className="good font-bold">Abgeschlossen</span>
+                      <span className="good font-bold">{lang === 'en' ? 'Completed' : 'Abgeschlossen'}</span>
                     ) : (
                       <span>
                         {current} / {total}

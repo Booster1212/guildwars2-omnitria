@@ -4,7 +4,8 @@ import { GENERATION_LABEL, SLOT_LABEL, WEAPON_TYPE_DE, weaponSlot } from '../../
 import { getItem } from '../../data/gw2/items';
 import { useProgress, progressActions } from '../../data/progressStore';
 import { ItemIcon, ProgressBar } from '../common/ui';
-import { Search, Star, Filter } from 'lucide-react';
+import { Search, Star } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface WeaponListProps {
   model: LegendaryModel;
@@ -19,6 +20,7 @@ export const WeaponList: React.FC<WeaponListProps> = ({
   onSelectWeapon,
   weaponProgressMap,
 }) => {
+  const { t, lang } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedSlot, setSelectedSlot] = useState<WeaponSlot | 'all'>('all');
   const [selectedGen, setSelectedGen] = useState<number | 'all'>('all');
@@ -74,7 +76,8 @@ export const WeaponList: React.FC<WeaponListProps> = ({
     const item = getItem(w.id);
     const prog = weaponProgressMap[w.id] ?? 0;
     const genInfo = GENERATION_LABEL[w.generation] ?? { short: `Gen ${w.generation}` };
-    const typeLabel = WEAPON_TYPE_DE[item?.weaponType ?? w.type] ?? w.type;
+    const rawType = item?.weaponType ?? w.type;
+    const typeLabel = lang === 'en' ? rawType : (WEAPON_TYPE_DE[rawType] ?? rawType);
 
     return (
       <div
@@ -90,7 +93,7 @@ export const WeaponList: React.FC<WeaponListProps> = ({
             e.stopPropagation();
             progressActions.toggleTracked(w.id);
           }}
-          title={isTracked ? 'Aus Verfolgung entfernen' : 'Waffe zur Verfolgung anheften'}
+          title={isTracked ? 'Untrack' : 'Track'}
         >
           <Star size={12} fill={isTracked ? '#d2b268' : 'none'} />
         </button>
@@ -103,8 +106,8 @@ export const WeaponList: React.FC<WeaponListProps> = ({
           <div className="row-title-bar">
             <span className="row-name font-serif r-Legendary">{item?.name ?? w.nameEn}</span>
             {!w.hasRecipe && (
-              <span className="incomplete-tag" title="Rezept im Community-Datensatz noch nicht erfasst">
-                Unvollständig
+              <span className="incomplete-tag" title="Incomplete">
+                {lang === 'en' ? 'Incomplete' : 'Unvollständig'}
               </span>
             )}
           </div>
@@ -133,7 +136,7 @@ export const WeaponList: React.FC<WeaponListProps> = ({
           <input
             type="text"
             className="gw2-input"
-            placeholder="Waffe oder Typ suchen..."
+            placeholder={t('legendary.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -146,11 +149,11 @@ export const WeaponList: React.FC<WeaponListProps> = ({
             value={selectedSlot}
             onChange={(e) => setSelectedSlot(e.target.value as WeaponSlot | 'all')}
           >
-            <option value="all">Alle Waffentypen</option>
-            <option value="oneHand">{SLOT_LABEL.oneHand}</option>
-            <option value="twoHand">{SLOT_LABEL.twoHand}</option>
-            <option value="offHand">{SLOT_LABEL.offHand}</option>
-            <option value="aquatic">{SLOT_LABEL.aquatic}</option>
+            <option value="all">{t('legendary.allSlots')}</option>
+            <option value="oneHand">{t('legendary.slotOneHand')}</option>
+            <option value="twoHand">{t('legendary.slotTwoHand')}</option>
+            <option value="offHand">{t('legendary.slotOffHand')}</option>
+            <option value="aquatic">{t('legendary.slotAquatic')}</option>
           </select>
 
           <select
@@ -160,20 +163,20 @@ export const WeaponList: React.FC<WeaponListProps> = ({
               setSelectedGen(e.target.value === 'all' ? 'all' : Number(e.target.value))
             }
           >
-            <option value="all">Alle Generationen</option>
-            <option value="1">Generation 1 (Core)</option>
-            <option value="2">Generation 2 (HoT/PoF)</option>
-            <option value="3">Generation 3 (Aurene/EoD)</option>
-            <option value="15">Generation 4 (Janthir)</option>
+            <option value="all">{t('legendary.allGens')}</option>
+            <option value="1">{t('legendary.gen1')}</option>
+            <option value="2">{t('legendary.gen2')}</option>
+            <option value="3">{t('legendary.gen3')}</option>
+            <option value="15">{t('legendary.gen4')}</option>
           </select>
 
           <button
             className={`btn-filter-toggle ${onlyTracked ? 'active' : ''}`}
             onClick={() => setOnlyTracked(!onlyTracked)}
-            title="Nur mit Stern markierte Waffen anzeigen"
+            title="Tracked weapons filter"
           >
             <Star size={11} fill={onlyTracked ? '#d2b268' : 'none'} />
-            <span>Verfolgt ({trackedSet.size})</span>
+            <span>{t('legendary.trackedOnly', { count: trackedSet.size })}</span>
           </button>
         </div>
       </div>
@@ -183,7 +186,7 @@ export const WeaponList: React.FC<WeaponListProps> = ({
         {pinnedTracked.length > 0 && (
           <div className="pinned-group-divider">
             <span className="divider-label">
-              <Star size={10} fill="#d2b268" /> Verfolgte Waffen ({pinnedTracked.length})
+              <Star size={10} fill="#d2b268" /> {t('legendary.pinnedHeader', { count: pinnedTracked.length })}
             </span>
           </div>
         )}
@@ -191,13 +194,13 @@ export const WeaponList: React.FC<WeaponListProps> = ({
 
         {pinnedTracked.length > 0 && regularWeapons.length > 0 && (
           <div className="pinned-group-divider">
-            <span className="divider-label">Alle Waffen ({regularWeapons.length})</span>
+            <span className="divider-label">{t('legendary.allWeaponsHeader', { count: regularWeapons.length })}</span>
           </div>
         )}
         {regularWeapons.map((w) => renderWeaponRow(w, false))}
 
         {filteredWeapons.length === 0 && (
-          <div className="empty-panel">Keine legendären Waffen für diese Filterkriterien gefunden.</div>
+          <div className="empty-panel">{lang === 'en' ? 'No legendary weapons found for these filter criteria.' : 'Keine legendären Waffen für diese Filterkriterien gefunden.'}</div>
         )}
       </div>
     </div>

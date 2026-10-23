@@ -63,14 +63,17 @@ export type OverlayTab = 'events' | 'waypoints' | 'achievements' | 'crafting' | 
 
 export type SortMode = 'time' | 'grouped' | 'bossesFirst' | 'metasFirst';
 
+export type Language = 'de' | 'en';
+
 export interface OverlaySettings {
+  language: Language;        // 'de' | 'en'
   opacity: number;           // 0.3 - 1.0
   compactView: boolean;      // dense list for minimal space above chat
   soundEnabled: boolean;     // audio chime when copying & on alerts
   soundVolume: number;       // 0.0 - 1.0
   notifyBeforeMinutes: number; // 0 = off, 5, 10
   messageTemplate: MessageTemplateType;
-  filterCategory: string;    // 'all' | 'active' | 'bosses' | 'metas' | 'core' | 'hardcore' | 'hot' | 'pof' | 'eod'
+  filterCategory: string;    // 'all' | 'active' | 'bosses' | 'metas' | 'core' | 'hardcore' | 'hot' | 'pof' | 'eod' | 'soto' | 'janthir' | 'voe'
   sortMode: SortMode;        // 'time' | 'grouped' | 'bossesFirst' | 'metasFirst'
   pinnedOnTop: boolean;
   widgetMode: boolean;       // super mini strip

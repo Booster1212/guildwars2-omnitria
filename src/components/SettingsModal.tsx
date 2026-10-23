@@ -18,8 +18,9 @@ import {
   Database,
   Activity,
   Award,
+  Globe,
 } from 'lucide-react';
-import { OverlaySettings, MessageTemplateType } from '../types';
+import { OverlaySettings, MessageTemplateType, Language } from '../types';
 import {
   validateApiKey,
   fetchAccountAchievements,
@@ -29,6 +30,7 @@ import {
   Gw2AccountAchievement,
 } from '../data/gw2Api';
 import { syncAccountData, clearAccountData } from '../data/gw2/account';
+import { useTranslation } from '../i18n';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -47,6 +49,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   isElectron,
   onApiDataSynced,
 }) => {
+  const { t, lang, setLanguage } = useTranslation();
   const [apiKeyInput, setApiKeyInput] = useState<string>(settings.apiKey || '');
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -78,7 +81,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleValidateAndSync = async () => {
     const trimmed = apiKeyInput.trim();
     if (!trimmed) {
-      setApiError('Bitte gib einen gültigen Guild Wars 2 API-Schlüssel ein.');
+      setApiError(lang === 'en' ? 'Please enter a valid Guild Wars 2 API key.' : 'Bitte gib einen gültigen Guild Wars 2 API-Schlüssel ein.');
       return;
     }
 
@@ -89,7 +92,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const accResult = await validateApiKey(trimmed);
     if (!accResult.success || !accResult.account) {
       setIsValidating(false);
-      setApiError(accResult.error || 'Fehler beim Überprüfen des API-Schlüssels.');
+      setApiError(accResult.error || (lang === 'en' ? 'Error validating API key.' : 'Fehler beim Überprüfen des API-Schlüssels.'));
       return;
     }
 
@@ -132,6 +135,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleSelectLanguage = (newLang: Language) => {
+    setLanguage(newLang);
+    onUpdateSettings({ language: newLang });
+  };
+
   const handleTemplateChange = (tmpl: MessageTemplateType) => {
     onUpdateSettings({ messageTemplate: tmpl });
   };
@@ -155,23 +163,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const templateSamples: { type: MessageTemplateType; title: string; sample: string }[] = [
     {
       type: 'standard',
-      title: 'Standard (Empfohlen für Karten- & Squad-Chat)',
-      sample: '[&BMIDAAA=] Svanir-Schamane (Frostgipfel) - startet in 04m 12s',
+      title: t('settings.tmplStandardTitle'),
+      sample: lang === 'en'
+        ? '[&BMIDAAA=] Svanir Shaman Chief (Frostgorge Sound) - starts in 04m 12s'
+        : '[&BMIDAAA=] Svanir-Schamane (Frostgipfel) - startet in 04m 12s',
     },
     {
       type: 'compact',
-      title: 'Kompakte Kurzform',
-      sample: '[&BMIDAAA=] Svanir-Schamane (startet in 04m 12s)',
+      title: t('settings.tmplCompactTitle'),
+      sample: lang === 'en'
+        ? '[&BMIDAAA=] Svanir Shaman Chief (starts in 04m 12s)'
+        : '[&BMIDAAA=] Svanir-Schamane (startet in 04m 12s)',
     },
     {
       type: 'waypointOnly',
-      title: 'Nur Wegmarken-Code (Minimal)',
+      title: t('settings.tmplWaypointTitle'),
       sample: '[&BMIDAAA=]',
     },
     {
       type: 'detailed',
-      title: 'Detailliert mit Kategorie & Zone',
-      sample: '[&BMIDAAA=] [Core Weltboss] Svanir-Schamane (Wanderer-Hügel) - startet in 04m 12s',
+      title: t('settings.tmplDetailedTitle'),
+      sample: lang === 'en'
+        ? '[&BMIDAAA=] [Core World Boss] Svanir Shaman Chief (Wayfarer Foothills) - starts in 04m 12s'
+        : '[&BMIDAAA=] [Core Weltboss] Svanir-Schamane (Wanderer-Hügel) - startet in 04m 12s',
     },
   ];
 
@@ -182,24 +196,82 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="modal-solid-header">
           <div className="modal-title-wrap">
             <Sliders size={16} className="modal-gold-icon" />
-            <span className="modal-title-text">Heldin • Overlay-Einstellungen</span>
+            <span className="modal-title-text">{t('settings.title')}</span>
           </div>
-          <button className="gw2-parchment-close-btn" onClick={onClose} title="Schließen">
+          <button className="gw2-parchment-close-btn" onClick={onClose} title={t('settings.doneClose')}>
             <span className="close-x">✕</span>
           </button>
         </div>
 
         {/* Modal Body with Solid Background and High Contrast */}
         <div className="modal-solid-body">
-          {/* SECTION 1: Guild Wars 2 API Key & Achievements Sync */}
-          <div className="settings-card-panel api-panel">
+          {/* SECTION 1: Language Switcher */}
+          <div className="settings-card-panel">
             <div className="card-panel-header">
-              <Key size={14} className="gold-accent" />
-              <span className="card-panel-title">Guild Wars 2 API-Schlüssel (Erfolge live synchronisieren)</span>
+              <Globe size={14} className="gold-accent" />
+              <span className="card-panel-title">{t('settings.language')}</span>
             </div>
 
             <div className="card-panel-desc">
-              Verbinde deinen offiziellen ArenaNet API-Schlüssel, um deinen <strong>echten Account-Namen</strong>, <strong>Erfolgspunkte</strong> und den Status deiner <strong>Weltenboss-Erfolge</strong> live im Overlay anzuzeigen.
+              {t('settings.languageDesc')}
+            </div>
+
+            <div className="gw2-lang-switch-cluster" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button
+                type="button"
+                className={`gw2-gw-btn ${lang === 'de' ? 'send-btn' : ''}`}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  border: lang === 'de' ? '1px solid var(--gw2-gold)' : '1px solid rgba(255,255,255,0.15)',
+                  background: lang === 'de' ? 'rgba(210, 178, 104, 0.18)' : 'rgba(0,0,0,0.3)',
+                }}
+                onClick={() => handleSelectLanguage('de')}
+              >
+                <span style={{ fontSize: '16px' }}>🇩🇪</span>
+                <span style={{ fontWeight: lang === 'de' ? 'bold' : 'normal', color: lang === 'de' ? 'var(--gw2-gold)' : 'var(--gw2-text)' }}>
+                  Deutsch (DE)
+                </span>
+                {lang === 'de' && <CheckCircle2 size={13} className="gold-accent" />}
+              </button>
+
+              <button
+                type="button"
+                className={`gw2-gw-btn ${lang === 'en' ? 'send-btn' : ''}`}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  border: lang === 'en' ? '1px solid var(--gw2-gold)' : '1px solid rgba(255,255,255,0.15)',
+                  background: lang === 'en' ? 'rgba(210, 178, 104, 0.18)' : 'rgba(0,0,0,0.3)',
+                }}
+                onClick={() => handleSelectLanguage('en')}
+              >
+                <span style={{ fontSize: '16px' }}>🇬🇧</span>
+                <span style={{ fontWeight: lang === 'en' ? 'bold' : 'normal', color: lang === 'en' ? 'var(--gw2-gold)' : 'var(--gw2-text)' }}>
+                  English (EN)
+                </span>
+                {lang === 'en' && <CheckCircle2 size={13} className="gold-accent" />}
+              </button>
+            </div>
+          </div>
+
+          {/* SECTION 2: Guild Wars 2 API Key & Achievements Sync */}
+          <div className="settings-card-panel api-panel">
+            <div className="card-panel-header">
+              <Key size={14} className="gold-accent" />
+              <span className="card-panel-title">{t('settings.apiKey')}</span>
+            </div>
+
+            <div className="card-panel-desc">
+              {t('settings.apiKeyDesc')}
             </div>
 
             {/* Input & Action Buttons */}
@@ -217,7 +289,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="button"
                   className="api-reveal-btn"
                   onClick={() => setShowKeyText(!showKeyText)}
-                  title={showKeyText ? 'Schlüssel verbergen' : 'Schlüssel im Klartext anzeigen'}
+                  title={showKeyText ? t('settings.hideKey') : t('settings.showKey')}
                 >
                   <Eye size={12} />
                 </button>
@@ -227,17 +299,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="gw2-gw-btn send-btn sync-btn"
                 onClick={handleValidateAndSync}
                 disabled={isValidating}
-                title="Mit ArenaNet-Servern abgleichen"
+                title={t('settings.sync')}
               >
                 <RefreshCw size={12} className={isValidating ? 'spin' : ''} />
-                <span>{isValidating ? 'Prüfe...' : 'Synchronisieren'}</span>
+                <span>{isValidating ? t('settings.checking') : t('settings.sync')}</span>
               </button>
 
               {accountInfo && (
                 <button
                   className="gw2-gw-btn danger-btn"
                   onClick={handleClearApiKey}
-                  title="Schlüssel und Account-Verbindung trennen"
+                  title="API Key disconnect"
                 >
                   <Trash2 size={12} />
                 </button>
@@ -250,15 +322,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <CheckCircle2 size={14} className="status-icon green" />
                 <div className="status-text-wrap">
                   <div className="account-tag-row">
-                    <span className="acc-label">Verbunden mit Account:</span>
+                    <span className="acc-label">{t('settings.connected')}</span>
                     <strong className="acc-name">{accountInfo.name}</strong>
                   </div>
                   <div className="acc-meta-row">
                     <span className="acc-sync-badge">
                       <Award size={11} className="gold-accent" />
-                      <span>{syncedAchCount} Account-Erfolge synchronisiert</span>
+                      <span>{t('settings.achievementsSynced', { count: syncedAchCount })}</span>
                     </span>
-                    {accountInfo.commander && <span className="commander-badge">Kommandeur</span>}
+                    {accountInfo.commander && <span className="commander-badge">{t('settings.commander')}</span>}
                   </div>
                 </div>
               </div>
@@ -266,7 +338,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="api-status-box error">
                 <AlertCircle size={14} className="status-icon red" />
                 <div className="status-text-wrap">
-                  <span className="error-title">Verbindungsfehler:</span>
+                  <span className="error-title">API Error:</span>
                   <span className="error-desc">{apiError}</span>
                 </div>
               </div>
@@ -274,7 +346,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="api-status-box neutral">
                 <ShieldCheck size={14} className="status-icon gold" />
                 <div className="status-text-wrap">
-                  <span>Noch kein API-Schlüssel aktiv. Das Overlay zeigt Standard-Erfolge an.</span>
+                  <span>{t('settings.noKeyActive')}</span>
                 </div>
               </div>
             )}
@@ -287,11 +359,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 rel="noreferrer"
                 className="api-help-link"
               >
-                <span>Eigenen API-Schlüssel auf account.arena.net erstellen</span>
+                <span>{t('settings.createKeyLink')}</span>
                 <ExternalLink size={10} />
               </a>
               <span className="api-help-hint">
-                (Empfohlene Berechtigungen: <code>account</code>, <code>progression</code>, <code>inventories</code>, <code>characters</code>, <code>wallet</code>, <code>unlocks</code>)
+                {t('settings.createKeyHint')}
               </span>
             </div>
 
@@ -299,95 +371,95 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="api-intervals-card">
               <div className="intervals-header">
                 <Activity size={12} className="gold-accent" />
-                <span className="intervals-title font-serif">Wie oft aktualisiert die Guild Wars 2 API?</span>
+                <span className="intervals-title font-serif">{t('settings.faqTitle')}</span>
               </div>
               <div className="intervals-grid font-mono">
                 <div className="interval-item">
                   <div className="item-title-row">
                     <Database size={11} className="gold-accent" />
-                    <span className="item-name">Handelsposten (TP-Preise):</span>
+                    <span className="item-name">{t('settings.faqTp')}</span>
                   </div>
                   <span className="item-desc">
-                    ArenaNet-Server cachen TP-Preise für <strong>1–5 Minuten</strong> (Cache-Header 300s). Das Overlay fragt Preise bei Bedarf ab und puffert sie <strong>15 Minuten</strong> lokal.
+                    {t('settings.faqTpDesc')}
                   </span>
                 </div>
 
                 <div className="interval-item">
                   <div className="item-title-row">
                     <Clock size={11} className="gold-accent" />
-                    <span className="item-name">Account-Fortschritt & Erfolge:</span>
+                    <span className="item-name">{t('settings.faqAcc')}</span>
                   </div>
                   <span className="item-desc">
-                    ArenaNet-Server aktualisieren Account-Endpunkte alle <strong>5 Minuten</strong>. Das Overlay synchronisiert automatisch bei Start und alle <strong>15 Minuten</strong> im Hintergrund (oder sofort per Klick auf „Synchronisieren“).
+                    {t('settings.faqAccDesc')}
                   </span>
                 </div>
 
                 <div className="interval-item">
                   <div className="item-title-row">
                     <Activity size={11} className="gold-accent" />
-                    <span className="item-name">Event- & Weltenboss-Timer:</span>
+                    <span className="item-name">{t('settings.faqTimers')}</span>
                   </div>
                   <span className="item-desc">
-                    Laufen in <strong>Echtzeit (sekundengenau)</strong>. Basiert auf dem deterministischen 2-Stunden-Rotationszyklus von Tyria (völlig unabhängig von API-Latenzen).
+                    {t('settings.faqTimersDesc')}
                   </span>
                 </div>
 
                 <div className="interval-item">
                   <div className="item-title-row">
                     <ShieldCheck size={11} className="gold-accent" />
-                    <span className="item-name">Bilder & Item-Katalog:</span>
+                    <span className="item-name">{t('settings.faqImages')}</span>
                   </div>
                   <span className="item-desc">
-                    Statische Daten & Grafiken von <code>render.guildwars2.com</code> werden dauerhaft für <strong>14 Tage</strong> lokal gecacht und automatisch nachgeladen.
+                    {t('settings.faqImagesDesc')}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 2: Chat-Nachrichtenvorlage */}
+          {/* SECTION 3: Chat-Nachrichtenvorlage */}
           <div className="settings-card-panel">
             <div className="card-panel-header">
               <MessageSquare size={14} className="gold-accent" />
-              <span className="card-panel-title">Format der kopierten Chat-Nachricht</span>
+              <span className="card-panel-title">{t('settings.chatTemplate')}</span>
             </div>
             <div className="card-panel-desc">
-              Dieses deutsche Format wird bei Klick auf <strong>„Nachricht senden“</strong> direkt in den GW2-Kartenchat geschrieben:
+              {t('settings.chatTemplateDesc')}
             </div>
 
             <div className="template-cards-list">
-              {templateSamples.map((t) => (
+              {templateSamples.map((item) => (
                 <div
-                  key={t.type}
+                  key={item.type}
                   className={`template-tile ${
-                    settings.messageTemplate === t.type ? 'selected' : ''
+                    settings.messageTemplate === item.type ? 'selected' : ''
                   }`}
-                  onClick={() => handleTemplateChange(t.type)}
+                  onClick={() => handleTemplateChange(item.type)}
                 >
                   <input
                     type="radio"
                     name="messageTemplate"
                     className="template-radio-btn"
-                    checked={settings.messageTemplate === t.type}
-                    onChange={() => handleTemplateChange(t.type)}
+                    checked={settings.messageTemplate === item.type}
+                    onChange={() => handleTemplateChange(item.type)}
                   />
                   <div className="template-info">
-                    <div className="template-heading">{t.title}</div>
-                    <div className="template-sample-preview">{t.sample}</div>
+                    <div className="template-heading">{item.title}</div>
+                    <div className="template-sample-preview">{item.sample}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* SECTION 3: Transparenz & Darstellung */}
+          {/* SECTION 4: Transparenz & Darstellung */}
           <div className="settings-card-panel">
             <div className="card-panel-header">
               <Eye size={14} className="gold-accent" />
-              <span className="card-panel-title">Hintergrund-Deckkraft & Transparenz</span>
+              <span className="card-panel-title">{t('settings.opacity')}</span>
             </div>
             <div className="slider-control-row">
-              <span className="slider-bound">30% (Transparent)</span>
+              <span className="slider-bound">{t('settings.opacityTransparent')}</span>
               <input
                 type="range"
                 className="gw2-range-slider"
@@ -397,16 +469,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 value={settings.opacity}
                 onChange={handleOpacityChange}
               />
-              <span className="slider-bound">100% (Solide)</span>
+              <span className="slider-bound">{t('settings.opacitySolid')}</span>
               <span className="slider-current-badge">{Math.round(settings.opacity * 100)}%</span>
             </div>
           </div>
 
-          {/* SECTION 4: Audio & Signaltöne */}
+          {/* SECTION 5: Audio & Signaltöne */}
           <div className="settings-card-panel">
             <div className="card-panel-header">
               <Volume2 size={14} className="gold-accent" />
-              <span className="card-panel-title">Audio & Sound-Feedback</span>
+              <span className="card-panel-title">{t('settings.sound')}</span>
             </div>
             <div className="checkbox-setting-row">
               <input
@@ -417,25 +489,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => onUpdateSettings({ soundEnabled: e.target.checked })}
               />
               <label htmlFor="soundToggleModal" className="checkbox-label">
-                Akustisches Glockenspiel beim Senden von Wegmarken abspielen
+                {t('settings.soundDesc')}
               </label>
             </div>
           </div>
 
-          {/* SECTION 5: Positionierung & Hotkeys */}
+          {/* SECTION 6: Positionierung & Hotkeys */}
           <div className="settings-card-panel">
             <div className="card-panel-header">
               <Keyboard size={14} className="gold-accent" />
-              <span className="card-panel-title">Tastaturkürzel & Bildschirmposition</span>
+              <span className="card-panel-title">{t('settings.hotkeys')}</span>
             </div>
 
             <div className="hotkeys-grid">
               <div className="hotkey-row">
-                <span className="hotkey-label">Overlay schnell ein- / ausblenden:</span>
+                <span className="hotkey-label">{t('settings.hotkeyOverlay')}</span>
                 <span className="gw2-kbd-key">F9</span>
               </div>
               <div className="hotkey-row">
-                <span className="hotkey-label">Klick-Durchlässigkeit (Maus durchklicken):</span>
+                <span className="hotkey-label">{t('settings.hotkeyClickthrough')}</span>
                 <span className="gw2-kbd-key">F10</span>
               </div>
             </div>
@@ -445,10 +517,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   className="gw2-gw-btn"
                   onClick={handleResetPosition}
-                  title="Setzt das Overlay zurück unten links über den Spiel-Chat"
+                  title={t('settings.resetPos')}
                 >
                   <Compass size={12} />
-                  <span>Standardposition über Chat (Unten-Links) wiederherstellen</span>
+                  <span>{t('settings.resetPos')}</span>
                 </button>
               </div>
             )}
@@ -458,7 +530,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Modal Footer */}
         <div className="modal-solid-footer">
           <button className="gw2-gw-btn send-btn" onClick={onClose}>
-            <span>Fertig & Schließen</span>
+            <span>{t('settings.doneClose')}</span>
           </button>
         </div>
       </div>

@@ -7,7 +7,7 @@ import { AchievementsView } from './components/AchievementsView';
 import { MiniWidget } from './components/MiniWidget';
 import { SettingsModal } from './components/SettingsModal';
 import { Toast } from './components/Toast';
-import { getEventSchedule, formatGermanCallout } from './data/events';
+import { getEventSchedule, formatCallout } from './data/events';
 import { playCopyChime } from './data/audio';
 import { EventInstance, OverlaySettings, SortMode, OverlayTab } from './types';
 import {
@@ -21,8 +21,10 @@ import { DISCIPLINE_ICON_ITEM } from './components/common/labels';
 import { WaypointsView } from './components/waypoints/WaypointsView';
 import { CraftingView } from './components/crafting/CraftingView';
 import { LegendaryView } from './components/legendary/LegendaryView';
+import { useTranslation } from './i18n';
 
 const DEFAULT_SETTINGS: OverlaySettings = {
+  language: 'de',
   opacity: 0.96,
   compactView: false,
   soundEnabled: true,
@@ -36,6 +38,7 @@ const DEFAULT_SETTINGS: OverlaySettings = {
 };
 
 export const App: React.FC = () => {
+  const { t, lang, setLanguage } = useTranslation();
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -66,6 +69,13 @@ export const App: React.FC = () => {
     }
     return DEFAULT_SETTINGS;
   });
+
+  // Sync settings.language with i18n
+  useEffect(() => {
+    if (settings.language && settings.language !== lang) {
+      setLanguage(settings.language);
+    }
+  }, [settings.language, lang, setLanguage]);
 
   // Sync sortMode from settings if available
   useEffect(() => {
@@ -248,7 +258,7 @@ export const App: React.FC = () => {
 
   // Action 1: Nachricht senden (Sends waypoint + remaining time into GW2 chat)
   const handleSendMessage = (inst: EventInstance) => {
-    const textToCopy = formatGermanCallout(inst, settings.messageTemplate);
+    const textToCopy = formatCallout(inst, settings.messageTemplate, lang);
 
     // 1. Copy to clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -282,7 +292,7 @@ export const App: React.FC = () => {
     }, 2000);
 
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(`💬 Chat-Nachricht gesendet: ${textToCopy}`);
+    setToastMessage(lang === 'en' ? `💬 Chat message sent: ${textToCopy}` : `💬 Chat-Nachricht gesendet: ${textToCopy}`);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -317,7 +327,7 @@ export const App: React.FC = () => {
     }
 
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(`📍 Wegmarke ${waypointTag} gesendet! Klicke im Spiel-Chat zum Teleportieren!`);
+    setToastMessage(lang === 'en' ? `📍 Waypoint ${waypointTag} sent! Click in game chat to teleport!` : `📍 Wegmarke ${waypointTag} gesendet! Klicke im Spiel-Chat zum Teleportieren!`);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 4000);
   };
 
@@ -383,7 +393,7 @@ export const App: React.FC = () => {
                 <div className="gw2-event-scroll-container">
                   {processedInstances.length === 0 ? (
                     <div className="empty-state">
-                      <span>Keine Events gefunden für deine Auswahl.</span>
+                      <span>{t('events.empty')}</span>
                       <button
                         className="gw2-gw-btn"
                         onClick={() => {
@@ -391,15 +401,15 @@ export const App: React.FC = () => {
                           setActiveCategory('all');
                         }}
                       >
-                        Filter zurücksetzen
+                        {t('events.resetFilter')}
                       </button>
                     </div>
                   ) : sortMode === 'grouped' ? (
                     <>
-                      {/* Weltbosse Group */}
+                       {/* Weltbosse Group */}
                       {bossList.length > 0 && (
                         <div className="gw2-group-divider">
-                          <span className="group-title font-serif">Weltbosse (Core & Hardcore)</span>
+                          <span className="group-title font-serif">{t('events.groupBosses')}</span>
                           <span className="group-count font-mono">{bossList.length}</span>
                         </div>
                       )}
@@ -417,7 +427,7 @@ export const App: React.FC = () => {
                       {/* Meta-Events Group */}
                       {metaList.length > 0 && (
                         <div className="gw2-group-divider cyan">
-                          <span className="group-title font-serif">Meta-Events (Erweiterungen)</span>
+                          <span className="group-title font-serif">{t('events.groupMetas')}</span>
                           <span className="group-count font-mono">{metaList.length}</span>
                         </div>
                       )}
