@@ -118,19 +118,24 @@ Omnitria seamlessly integrates with the **official ArenaNet Guild Wars 2 API** (
 
 ---
 
-### 📋 Permissions & Scopes Breakdown
+### 📋 Permissions & Scopes Breakdown (ArenaNet Checkbox Matrix)
 
-ArenaNet allows you to customize exact permissions per key. Here is what Omnitria unlocks for each scope:
+When generating a key on [account.arena.net/applications](https://account.arena.net/applications), ArenaNet presents a checklist of permissions. Configure your key using the reference below:
 
-| Permission | Status | What it Unlocks in Omnitria | What Happens Without It |
+> 💡 **Quick Recommendation:** Check the **6 core boxes** (`account`, `progression`, `inventories`, `characters`, `unlocks`, `wallet`) — or simply click **"Select All"** for complete hassle-free overlay functionality.
+
+| ArenaNet Checkbox | Priority | What it Unlocks in Omnitria | What Happens if Missing |
 | :--- | :---: | :--- | :--- |
-| **`account`** | **Required** | Account display name (e.g. `Commander.1234`), age, world/server, commander tag status, Fractal level, and WvW rank. | Account is shown as unlinked; hero summary banner displays default state. |
-| **`progression`** | **Recommended** | **Live Achievement Progress:** Real-time completion bars, daily completionist tracker, mastery point counts, unlocked titles, and sub-objective checkmarks. | Personal achievement progress is displayed as 0 / grayed out. |
-| **`inventories`** | **Recommended** | **Material Storage, Bank & Shared Inventory:** Automatically deducts owned materials from crafting Bills of Materials (BOM) in Legendary Armory and Crafting Level Planner. | Crafting BOM displays total raw materials needed without deducting items you already have stored. |
-| **`characters`** | **Recommended** | **Character Crafting Levels:** Automatically detects active crafting discipline ranks (e.g. Weaponsmith 500, Chef 400) across all your characters. | Crafting discipline levels must be selected manually in the planner. |
-| **`unlocks`** | **Recommended** | **Known Recipes & Wardrobe:** Identifies already learned recipes and unlocked skins. Highlights undiscovered recipes in the Discovery Explorer. | All recipes appear unlearned; manual discovery checks required. |
-| **`wallet`** | *Optional* | Live balances for dungeon tokens, laurels, fractal relics, and seasonal currencies. | Currency balances not synced in footer summary. |
-| **`builds` / `pvp`** | *Optional* | Build templates and PvP statistics. | Not required for Omnitria core features. |
+| ☑️ **`account`** | 🔴 **MANDATORY** | Base key validation, account name (e.g. `Commander.1234`), account age, home world/server, commander tag status, Fractal level, and WvW rank. | **Key cannot be verified.** Omnitria remains in unlinked guest mode. |
+| ☑️ **`progression`** | 🟢 **ESSENTIAL** | **Live Achievement Tracking:** Real-time achievement progress bars, daily completionist tracker, mastery point counts, unlocked titles, and sub-objective checkmarks. | Personal achievement progress displays as 0 / grayed out. |
+| ☑️ **`inventories`** | 🟢 **ESSENTIAL** | **Material Storage, Bank & Shared Inventory:** Automatically deducts owned items from crafting Bills of Materials (BOM) in the Legendary Armory and Crafting Level Planner. | Crafting BOM displays total raw materials needed without deducting items already stored in your bank/material storage. |
+| ☑️ **`characters`** | 🟢 **ESSENTIAL** | **Character Crafting Levels:** Automatically detects active crafting discipline ranks (e.g. Weaponsmith 500, Chef 400) and character bag inventories. | Crafting discipline levels must be entered manually in the level planner. |
+| ☑️ **`unlocks`** | 🟢 **ESSENTIAL** | **Known Recipes & Wardrobe:** Identifies already learned recipes and unlocked skins. Automatically highlights undiscovered recipes in the Discovery Explorer. | All recipes appear unlearned; manual discovery checks required. |
+| ☑️ **`wallet`** | 🟡 **RECOMMENDED** | Live balances for account currencies (laurels, fractal relics, dungeon tokens, astral acclaim) in the footer dock. | Currencies are not displayed in the account summary. |
+| ⬜ `tradingpost` | ⚪ *Not Needed* | Omnitria fetches live Trading Post market prices from the public `/v2/commerce/prices` endpoint (no personal TP auth needed). | No impact. |
+| ⬜ `builds` | ⚪ *Not Needed* | Build templates are not currently utilized by Omnitria. | No impact. |
+| ⬜ `pvp` | ⚪ *Not Needed* | PvP statistics are not currently tracked by Omnitria. | No impact. |
+| ⬜ `guilds` | ⚪ *Not Needed* | Guild list is already included via the base `account` permission. | No impact. |
 
 ---
 
@@ -144,13 +149,21 @@ An API key is **completely optional**! You can use Omnitria right away without a
 
 ---
 
-### 🇩🇪 Kurzanleitung auf Deutsch (API-Schlüssel einrichten)
+### 🇩🇪 Kurzanleitung auf Deutsch (API-Schlüssel & Berechtigungen)
 
 > [!TIP]
-> 1. Gehe auf die offizielle ArenaNet-Seite: **[account.arena.net/applications](https://account.arena.net/applications)** und melde dich an.
-> 2. Klicke auf **„Neuer Schlüssel“**, vergib einen Namen (z. B. `Omnitria`) und wähle die empfohlenen Berechtigungen aus (`account`, `progression`, `inventories`, `characters`, `unlocks`).
-> 3. Klicke auf **„API-Schlüssel erstellen“** und kopiere den 72-stelligen Schlüssel.
-> 4. Klicke in Omnitria oben rechts auf das **Zahnrad (⚙️ / Einstellungen)**, füge den Schlüssel ein und klicke auf **„Speichern & Synchronisieren“**.
+> 1. Gehe auf die offizielle ArenaNet-Seite: **[account.arena.net/applications](https://account.arena.net/applications)** und melde dich mit deinem GW2-Account an.
+> 2. Klicke auf **„Neuer Schlüssel“** und gib einen Namen ein (z. B. `Omnitria`).
+> 3. **Berechtigungen ankreuzen:**
+>    - 🔴 **`account`** *(Zwingend erforderlich für die Schlüssel-Verbindung)*
+>    - 🟢 **`progression`** *(Echter Live-Erfolgsfortschritt & Teilziele)*
+>    - 🟢 **`inventories`** *(Automatischer Materialabzug aus Lager & Bank)*
+>    - 🟢 **`characters`** *(Automatische Erkennung deiner Handwerksstufen)*
+>    - 🟢 **`unlocks`** *(Bekannte Rezepte & Entdeckungs-Assistent)*
+>    - 🟡 **`wallet`** *(Account-Währungen)*
+>    *(Oder einfach **„Alle auswählen“** anklicken)*
+> 4. Klicke auf **„API-Schlüssel erstellen“** und kopiere den 72-stelligen Schlüssel.
+> 5. Klicke in Omnitria oben rechts auf das **Zahnrad (⚙️ / Einstellungen)**, füge den Schlüssel ein und klicke auf **„Speichern & Synchronisieren“**.
 > 
 > *Sicherheitshinweis:* Der Schlüssel ist **rein lesend** (kann weder Gold ausgeben noch Gegenstände löschen) und wird ausschließlich **lokal** auf deinem PC gespeichert.
 
