@@ -15,7 +15,7 @@ let currentLang: Language = (() => {
   } catch {
     /* ignore */
   }
-  return 'de';
+  return 'en';
 })();
 
 registerLanguageChangeHandler((newLang) => {

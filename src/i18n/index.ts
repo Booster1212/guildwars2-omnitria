@@ -10,7 +10,7 @@ let currentLang: Language = (() => {
   } catch {
     /* ignore */
   }
-  return 'de';
+  return 'en';
 })();
 
 function createEmitter() {

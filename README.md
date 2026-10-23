@@ -1,143 +1,163 @@
 # ✨ Omnitria • Guild Wars 2 In-Game Overlay
 
-**Omnitria** ist ein professionelles, immersives In-Game-Overlay für **Guild Wars 2**, das wahlweise kompakt direkt über dem Spielchat schwebt oder als vollständige Tafel genutzt werden kann. Gestaltet im authentischen Guild-Wars-2-Interface-Stil (dunkler Schiefer, antike Bronze/Gold-Rahmen, GW2-Raritätsfarben und offizielle ArenaNet-Icons).
+**Omnitria** is a high-performance, immersive in-game companion and overlay for **Guild Wars 2**. Designed to sit seamlessly above your in-game chat box as a compact mini-HUD or expand into a full-screen Hero Board. Built in the authentic Guild Wars 2 visual style (dark slate, antique bronze/gold borders, GW2 rarity colors, and official ArenaNet artwork).
+
+Omnitria comes with full bilingual support (**English** by default, with instant 1-click switching to **German**).
 
 ---
 
-## 🧭 Hauptbereiche
+## 📸 Screenshots
 
-### 1. Events & Weltbosse (`Events`)
-- **Live-Timer:** Echtzeit-Countdown für alle Weltbosse und Meta-Events aller Erweiterungen (*Core, HoT, PoF, EoD, SotO, Janthir*).
-- **1-Klick-Chataktionen:** Wegmarke und formatierte Restzeit-Nachricht direkt in den GW2-Kartenchat senden.
-- **Wegmarken-Schnellreise:** Wegmarken-Code im Spielchat aufrufen zum schnellen Teleportieren.
-- **Taktiken & Beute:** Integrierte Kurz-Leitfäden für Bosse und Beute-Highlights.
+> [!TIP]
+> Place your in-game screenshots inside `docs/screenshots/` and update the links below to showcase Omnitria in action!
 
-### 2. Wegmarken-Verzeichnis (`Wegmarken`)
-- Durchsuchbare Datenbank aller wichtigen Event-Wegmarken Tyrias nach Gebiet und Kategorie.
-- Ein-Klick-Kopierfunktion in die Zwischenablage oder direkter Chat-Post.
-
-### 3. Heldin • Erfolge (`Erfolge`)
-- **GW2-Heldenmenü-Struktur:**
-  - `⭐ Verfolgt (Watchlist)`: Individuell angepinnte Erfolge mit Stern (dauerhaft lokal gespeichert).
-  - `Täglich`: Tägliche Aufgaben (*Täglicher Komplettierer, Täglicher Weltenboss-Jäger, Tägliche Fraktale, Forstwirt, WvW*).
-  - `Weltenbosse`: Alle Boss- und Meta-Event-Erfolge (*Tequatl, Dreifacher Ärger, Zerschmetterer, Jormag, Tarir, Chak-Gerent, Soo-Won*).
-  - `Erkundung`: Regions-Erkundungen (*Ascalon, Kryta, Maguuma, Zittergipfel, Orr*) und Sprungrätsel.
-  - `Fraktale & Raids`: Fraktale der Nebel (Stufe 1–100, CMs), Schlachtzug *Tal der Geister*, Angriffsmissionen.
-  - `Sammlungen`: Legendäre Vorstufen (*Düsterkeit, Bifröst*) und seltene Kuriositäten.
-- **Teilziel-Checklisten:** Ausklappbare Unteraufgaben mit Checkboxen zum Nachschlagen und Abhaken.
-- **Belohnungen:** Titel, farbcodierte Beherrschungspunkte (*Tyria, Maguuma, Wüste, Cantha*) und Gegenstandstruhen.
-- **Live-Boss-Integration:** Ist ein Erfolg an ein anstehendes Event gekoppelt, zeigt die Karte den Live-Status mit Schnellbuttons für Chat und Wegmarke an.
-
-### 4. Berufe & Handwerk (`Berufe`)
-- Alle 8 Handwerksdisziplinen (*Rüstungsschmied, Waffenschmied, Konstrukteur, Juwelier, Lederer, Schneider, Koch, Waidmann*).
-- **Automatische Bildanzeige:** Offizielle Disziplin-Embleme und hochauflösende ArenaNet-Grafiken.
-- **Automatischer Account-Abgleich:** Höchster Charakter-Rang des Accounts oder flexibler manueller Startrang.
-- **Interaktiver Levelplaner:**
-  - Wählbare Zielstufe (bis Rang 400 bzw. 500).
-  - Berechnung der günstigsten Herstellungsfolge auf Basis des GW2-Wiki-XP-Modells.
-  - Aggregierte Einkaufsliste mit Gegenüberstellung von Gesamtbedarf und vorhandenem Lagerbestand (`inventories`).
-  - Schrittweises Abhaken mit lokaler Persistenz.
-
-### 5. Legendäre Waffen (`Legendär`)
-- Vollständiger Katalog aller Generationen (*Gen 1, Gen 2, Gen 3 / Aurene, Gen 4 / Janthir*).
-- **Automatische Bildanzeige:** Alle Waffen- und Materialgrafiken werden automatisch vom ArenaNet-Render-CDN geladen.
-- **Hierarchischer Komponenten-Baum:**
-  - Aufklappbare Rezepturketten der Mystischen Schmiede.
-  - Umschalten zwischen *„Herstellen“* und *„Kaufen“* für handelbare Zwischenstufen.
-- **Materialien & Stückliste (BOM):**
-  - Aggregierte Mengen über alle Äste hinweg (keine Doppelzählung).
-  - Live-Preise der Handelsgesellschaft (`/v2/commerce/prices`) und Zukaufsummen.
-  - Detaillierte Herkunftsnachweise (Sammeln, Beute, Händler, Schmiede).
-- **Vorläufer-Sammlungen:**
-  - Automatischer Abgleich mit den offiziellen Sammlungsstufen aus der API.
+### 🏰 Full Hero Board & World Boss Timers
+<!-- Add screenshot: Full-screen board displaying the live event schedule and countdowns -->
+![Full Hero Board](docs/screenshots/hero-board.png)
+*Live event timers, active world boss meta countdowns, and quick chat broadcast actions.*
 
 ---
 
-## ⏱️ Wie oft aktualisiert die Guild Wars 2 API?
+### 💬 Compact Mini-HUD (Over-Chat Mode)
+<!-- Add screenshot: Compact widget docked over the in-game chat -->
+![Compact Mini-HUD](docs/screenshots/mini-hud.png)
+*Unobtrusive in-game widget hovering directly above the Guild Wars 2 chat box.*
 
-| Datenbereich | ArenaNet Server-Cache | Verhalten im Overlay |
+---
+
+### 🔨 Crafting Level Planner & Discovery Assistant
+<!-- Add screenshot: Crafting planner showing level progression and discovery combinations -->
+![Crafting Level Planner](docs/screenshots/crafting-planner.png)
+*Step-by-step 0–500 discipline leveling guide with automatic discovery recipe combinations.*
+
+---
+
+### ⚔️ Legendary Armory & Mystic Forge Recipe Tree
+<!-- Add screenshot: Legendary weapon component breakdown and material requirements -->
+![Legendary Armory](docs/screenshots/legendary-armory.png)
+*Interactive Mystic Forge crafting trees, precursor collections, and live Trading Post material costs.*
+
+---
+
+## 🧭 Core Modules
+
+### 1. Event Timers & World Bosses (`Events`)
+- **Real-Time Timers:** Precise countdowns for all World Bosses and Meta-Events across all Guild Wars 2 expansions:
+  - *Core Tyria, Heart of Thorns (HoT), Path of Fire (PoF), End of Dragons (EoD), Secrets of the Obscure (SotO), Janthir Wilds, and Visions of Eternity*.
+- **1-Click Game Chat Callouts:** Broadcast waypoint chat codes and remaining event countdowns directly into map chat (`/m`).
+- **Waypoint Fast Travel:** Click to copy waypoint codes into your clipboard for immediate teleportation in-game.
+- **Tactics & Notable Drops:** Built-in cheat sheets with boss mechanics, defiance bar requirements, and loot highlights.
+
+### 2. Waypoint Directory (`Waypoints`)
+- Searchable catalog of key event waypoints across Tyria, organized by zone and campaign.
+- Instant 1-click clipboard copy or direct chat broadcast.
+
+### 3. Hero Panel & Achievements (`Achievements`)
+- **Authentic Hero Panel Layout:**
+  - `⭐ Watchlist`: Pin individual achievements to your custom persistent watchlist.
+  - `Daily`: Daily task tracker (*Daily Completionist, World Boss Hunter, Daily Fractals, Lumberer, WvW*).
+  - `World Bosses`: All boss and meta-event achievements (*Tequatl, Triple Trouble, The Shatterer, Claw of Jormag, Tarir, Chak Gerent, Soo-Won*).
+  - `Exploration`: Regional completion (*Ascalon, Kryta, Maguuma, Shiverpeaks, Orr*) and jumping puzzles.
+  - `Fractals & Raids`: Fractals of the Mists (Tiers 1–4, Challenge Modes), Raids (*Spirit Vale*), and Strike Missions.
+  - `Collections`: Legendary precursors and rare curiosities.
+- **Interactive Checklists:** Expandable sub-objectives with checkboxes to track your progress.
+- **Reward Badges:** Titles, color-coded Mastery Points (*Tyria, Maguuma, Desert, Cantha*), and item chests.
+- **Live Event Linking:** Achievements tied to active or upcoming events display live event status and fast-travel buttons.
+
+### 4. Crafting & Disciplines (`Crafting`)
+- Covers all 8 crafting disciplines (*Armorsmith, Weaponsmith, Artificer, Jeweler, Leatherworker, Tailor, Chef, Huntsman*).
+- **Official Artwork:** High-resolution discipline emblems and official ArenaNet item icons rendered directly from the CDN.
+- **Account Sync:** Automatically syncs your account's character crafting levels via official GW2 API keys.
+- **Interactive Level Planner:**
+  - Custom target ranks (up to 400 or 500).
+  - Optimal lowest-cost routes calculated using the GW2-Wiki XP progression algorithm.
+  - **Embedded Discovery Helper:** When leveling requires discovery, the exact ingredients and combination instructions are displayed directly on the step card.
+  - Material Bill of Materials (BOM) with automatic deduction of items stored in your material storage and bank.
+- **Discovery Recipe Explorer:**
+  - Dedicated search and filter tool for undiscovered recipes.
+  - Filter by discipline, rank tier, status (discovered / undiscovered), and search across item names, ingredients, or localized item types.
+
+### 5. Legendary Armory (`Legendary`)
+- Complete database across all generations (*Gen 1, Gen 2, Gen 3 / Aurene variants, Gen 4 / Janthir*).
+- **Hierarchical Mystic Forge Tree:**
+  - Expandable node tree detailing every tier of crafting.
+  - Toggle between *"Craft"* and *"Buy"* for tradeable intermediate components.
+- **Bill of Materials (BOM):**
+  - Aggregated material quantities across all branches without duplicate counting.
+  - Live Trading Post prices (`/v2/commerce/prices`) with total gold, silver, and copper calculations.
+  - Item acquisition origins (Gathering, Loot, Karma Vendors, Mystic Forge).
+- **Precursor Collections:**
+  - Step-by-step progress tracking for precursor achievement tiers.
+
+---
+
+## ⏱️ Guild Wars 2 API Refresh Rates
+
+| Data Category | ArenaNet Server Cache | In-App Overlay Behavior |
 | :--- | :--- | :--- |
-| **Event- & Weltenbosse** | *Echtzeit* | **Sekundengenau** berechnet nach dem festen 2-Stunden-Rotationszyklus von Tyria. |
-| **Handelsposten (TP-Preise)** | ca. **1–5 Minuten** (`max-age: 300s`) | Abruf bei Bedarf, lokale Pufferung für **15 Minuten** (schont das Rate-Limit). |
-| **Account-Fortschritt & Erfolge** | **5 Minuten** | Automatischer Abgleich bei App-Start und alle **15 Minuten** im Hintergrund (oder sofort per Klick auf *„Synchronisieren“*). |
-| **Bank, Materiallager & Inventar** | **5 Minuten** | Automatische Synchronisation alle **15 Minuten** oder manuell. |
-| **Item-Katalog & Icons** | Statisch | Dauerhafte Speicherung für **14 Tage** im lokalen Cache; Bilder werden direkt von `render.guildwars2.com` gestreamt. |
+| **Event & World Boss Timers** | *Real-Time* | **Calculated per second** using Tyria's fixed 2-hour rotation schedule. |
+| **Trading Post Prices** | ~**1–5 minutes** (`max-age: 300s`) | Fetched on demand, cached locally for **15 minutes** to prevent rate-limit throttling. |
+| **Account Progress & Achievements** | **5 minutes** | Synced at startup and refreshed every **15 minutes** in the background (or instantly via *"Sync Now"*). |
+| **Bank, Material Storage & Inventory**| **5 minutes** | Automatic background sync every **15 minutes** or on demand. |
+| **Item Catalog & Icons** | Static | Permanently cached locally for **14 days**; icons streamed dynamically from `render.guildwars2.com`. |
 
-*Hinweis:* Das offizielle Rate-Limit der ArenaNet-API beträgt **600 Anfragen / Minute**. Das Overlay nutzt automatisches Microtask-Batching und begrenzt gleichzeitige Anfragen auf maximal 4, sodass das Limit niemals überschritten wird.
+*Rate-Limit Protection:* ArenaNet enforces a rate limit of **600 requests / minute**. Omnitria utilizes an asynchronous microtask queue capped at 4 concurrent requests to ensure safe and reliable API communication.
 
 ---
 
-## ⚡ Schnellstart & Installation
+## 🎮 Controls & Shortcuts
 
-### Voraussetzungen
+- **`[F9]`**: Quickly toggle overlay visibility on/off.
+- **`[F10]`**: Toggle mouse Click-Through mode (allows clicks to pass directly into Guild Wars 2).
+- **`🧭 Compass Icon`** (Title Bar): Automatically positions and docks the window directly above your in-game chat box (bottom-left).
+- **Language Switcher (`🇬🇧 EN` / `🇩🇪 DE`)**: Instantly toggle between English and German anywhere in the interface.
+- **System Tray Icon**: Right-click the golden dragon in your Windows taskbar tray for quick actions, window modes, and quit.
+
+---
+
+## ⚡ Quick Start & Launching
+
+### System Requirements
 - Windows 10 / 11
-- Node.js (v18 oder neuer) für Entwicklung
-- Guild Wars 2 (im Fenstermodus oder Randlos-Fenstermodus)
+- Guild Wars 2 running in **Windowed Fullscreen** or **Windowed** mode
+- Node.js (v18 or newer) *for development and compiling*
 
-### Im Spiel starten (lautlos im Hintergrund):
-Doppelklicke auf:
-```bat
-GW2-Overlay-Silent.vbs
-```
-*(Das Overlay startet direkt als transparente Hintergrundanwendung über Guild Wars 2).*
+### Launch Options
 
-Alternativ über die Standard-Startdatei:
-```bat
-start-overlay.bat
-```
+1. **Silent Background Launch (Recommended):**
+   Double-click:
+   ```bat
+   GW2-Overlay-Silent.vbs
+   ```
+   *Launches Omnitria silently in the background without opening a terminal window.*
 
----
-
-## 🎮 Tastaturkürzel & Steuerung
-
-- **`[F9]`**: Overlay blitzschnell ein- oder ausblenden.
-- **`[F10]`**: Maus-Durchklickmodus (*Click-Through*) aktivieren/deaktivieren (Eingaben gehen direkt ins Spiel).
-- **Kompass-Symbol** in der Titelleiste: Positioniert das Fenster exakt über dem Standard-Chatfenster unten links.
-- **System-Tray**: Rechtsklick auf den goldenen Drachen in der Windows-Taskleiste für Schnellaktionen und Moduswechsel.
+2. **Standard Launcher:**
+   Double-click:
+   ```bat
+   start-overlay.bat
+   ```
 
 ---
 
-## 🐙 GitHub Repository vorbereiten
-
-Um das Projekt auf GitHub zu veröffentlichen:
+## 🛠️ Development & Building
 
 ```bash
-# 1. Lokales Git-Repository initialisieren (bereits vorkonfiguriert)
-git init
-git branch -M main
-
-# 2. Dateien zum Commit hinzufügen
-git add .
-git commit -m "Initial commit: Guild Wars 2 Event Overlay & Hero Panel"
-
-# 3. Mit deinem GitHub-Repository verknüpfen
-git remote add origin https://github.com/DEIN_BENUTZERNAME/GW2-Overlay.git
-
-# 4. Pushen
-git push -u origin main
-```
-
----
-
-## 🛠️ Entwicklung & Qualitätssicherung
-
-```bash
-# Abhängigkeiten installieren
+# 1. Install dependencies
 npm install
 
-# TypeScript-Typprüfung
+# 2. Run TypeScript type checks
 npm run typecheck
 
-# Domänen- & Berechnungs-Tests ausführen (14/14 Tests)
+# 3. Run automated domain & calculation tests (18 tests)
 npm test
 
-# Produktions-Build erstellen
+# 4. Build production bundle
 npm run build
 ```
 
-Ausführliche Details zu Architektur, Datenquellen und Persistenz finden sich in [docs/DATENQUELLEN.md](docs/DATENQUELLEN.md).
+For comprehensive details on architecture, data sources, and caching mechanisms, see [docs/DATENQUELLEN.md](docs/DATENQUELLEN.md).
 
 ---
 
-## 📜 Lizenz & ArenaNet-Hinweis
-Guild Wars 2 und ArenaNet sind eingetragene Warenzeichen der NCsoft Corporation. Dieses Projekt ist ein Fan-Projekt und steht in keiner offiziellen Verbindung zu ArenaNet oder NCsoft. Alle Bildrechte an Spielgrafiken liegen bei ArenaNet / NCsoft.
+## 📜 Legal & ArenaNet Notice
+Guild Wars 2, ArenaNet, and all associated logos and designs are trademarks or registered trademarks of NCsoft Corporation. Omnitria is a fan-made project and is not affiliated with or endorsed by ArenaNet or NCsoft. All in-game art, icons, and item assets are the property of ArenaNet and NCsoft.

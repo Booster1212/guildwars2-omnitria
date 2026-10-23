@@ -880,7 +880,7 @@ export function formatLocalTime(date: Date): string {
 export function formatCallout(
   inst: EventInstance,
   template: MessageTemplateType = 'standard',
-  lang: 'de' | 'en' = 'de'
+  lang: 'de' | 'en' = 'en'
 ): string {
   const isEn = lang === 'en';
   const name = isEn ? (inst.event.nameEn || inst.event.name) : inst.event.name;

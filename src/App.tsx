@@ -24,7 +24,7 @@ import { LegendaryView } from './components/legendary/LegendaryView';
 import { useTranslation } from './i18n';
 
 const DEFAULT_SETTINGS: OverlaySettings = {
-  language: 'de',
+  language: 'en',
   opacity: 0.96,
   compactView: false,
   soundEnabled: true,

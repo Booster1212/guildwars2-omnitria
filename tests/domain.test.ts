@@ -276,6 +276,20 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
     getDiscoveryGuide,
   } = await import('../src/components/common/labels.ts');
 
+  // 0. Default language check
+  assert.equal(getLanguage(), 'en', 'Default language after start is English');
+  const sampleEvent = EVENTS.find((e) => e.id === 'tequatl')!;
+  const inst = {
+    event: sampleEvent,
+    startTime: new Date('2026-10-23T12:00:00Z'),
+    endTime: new Date('2026-10-23T12:15:00Z'),
+    isActive: false,
+    startsInSeconds: 300,
+    endsInSeconds: 1200,
+  };
+  const defaultCallout = formatCallout(inst, 'standard');
+  assert.ok(defaultCallout.includes('starts in'), 'Standard formatCallout ist Englisch');
+
   // 1. Language switching
   setLanguage('de');
   assert.equal(getLanguage(), 'de');
@@ -318,16 +332,6 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
   assert.ok(enGuide.primary.includes('Blade'));
 
   // 4. Bilingual Callout generation
-  const sampleEvent = EVENTS.find((e) => e.id === 'tequatl')!;
-  const inst = {
-    event: sampleEvent,
-    startTime: new Date('2026-10-23T12:00:00Z'),
-    endTime: new Date('2026-10-23T12:15:00Z'),
-    isActive: false,
-    startsInSeconds: 300,
-    endsInSeconds: 1200,
-  };
-
   const deCallout = formatCallout(inst, 'standard', 'de');
   const enCallout = formatCallout(inst, 'standard', 'en');
 
@@ -335,8 +339,8 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
   assert.ok(enCallout.includes('starts in'), 'Englischer Callout enthält "starts in"');
   assert.ok(enCallout.includes(sampleEvent.nameEn), 'Englischer Callout enthält englischen Namen');
 
-  // Reset back to de
-  setLanguage('de');
+  // Reset back to en
+  setLanguage('en');
 });
 
 test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierung', async () => {
@@ -486,6 +490,6 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   assert.ok(t('crafting.discoveryCombineInstruction').includes('Discovery'));
   assert.ok(t('crafting.searchNoResultsInTier', { tier: 'Tier 1' }).includes('Tier 1'));
   assert.ok(t('crafting.searchShowAllTiers', { count: 5 }).includes('5'));
-  setLanguage('de');
+  setLanguage('en');
 });
 
