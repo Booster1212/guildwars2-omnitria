@@ -91,6 +91,71 @@ Omnitria comes with full bilingual support (**English** by default, with instant
 
 ---
 
+## 🔑 Guild Wars 2 API Key Guide (Official Account Integration)
+
+Omnitria seamlessly integrates with the **official ArenaNet Guild Wars 2 API** (`api.guildwars2.com/v2`). Connecting your personal API key brings your in-game character data directly into the overlay — transforming generic guides into personalized, real-time trackers.
+
+---
+
+### 🛡️ Security & Privacy (100% Safe & Read-Only)
+
+> [!IMPORTANT]
+> - **Strictly Read-Only:** Guild Wars 2 API keys **cannot** modify your account in any way. Third-party tools cannot spend gold, delete characters, trade items, or alter account credentials.
+> - **Stored Locally:** Your key is stored exclusively on your own computer in local application storage (`localStorage`).
+> - **Direct Connection:** Omnitria communicates **only** with official ArenaNet servers (`https://api.guildwars2.com/v2/`) via encrypted HTTPS. Your key and account data are **never** transmitted to any third-party server or external analytics.
+> - **Revoke Anytime:** You can delete or modify your key at any time directly through your official ArenaNet account dashboard or by clicking *"Clear Key"* in Omnitria Settings.
+
+---
+
+### 🚀 Step-by-Step: How to Generate Your API Key
+
+1. **Log in to ArenaNet:** Open the official [ArenaNet Applications Page](https://account.arena.net/applications).
+2. **Create Key:** Click the **"New Key"** button (or *"Neuer Schlüssel"* in German).
+3. **Choose Name:** Enter a recognizable name (e.g. `Omnitria Overlay`).
+4. **Select Permissions (Scopes):** Select the recommended permissions below (or click *"Select All"* for full functionality).
+5. **Generate & Copy:** Click **"Create API Key"**, then copy the generated 72-character alphanumeric key.
+6. **Paste in Omnitria:** In Omnitria, click the **Settings (⚙️)** icon in the top header (or click *"Connect Key"* in Achievements/Crafting), paste your key into the input field, and click **Save & Sync**.
+
+---
+
+### 📋 Permissions & Scopes Breakdown
+
+ArenaNet allows you to customize exact permissions per key. Here is what Omnitria unlocks for each scope:
+
+| Permission | Status | What it Unlocks in Omnitria | What Happens Without It |
+| :--- | :---: | :--- | :--- |
+| **`account`** | **Required** | Account display name (e.g. `Commander.1234`), age, world/server, commander tag status, Fractal level, and WvW rank. | Account is shown as unlinked; hero summary banner displays default state. |
+| **`progression`** | **Recommended** | **Live Achievement Progress:** Real-time completion bars, daily completionist tracker, mastery point counts, unlocked titles, and sub-objective checkmarks. | Personal achievement progress is displayed as 0 / grayed out. |
+| **`inventories`** | **Recommended** | **Material Storage, Bank & Shared Inventory:** Automatically deducts owned materials from crafting Bills of Materials (BOM) in Legendary Armory and Crafting Level Planner. | Crafting BOM displays total raw materials needed without deducting items you already have stored. |
+| **`characters`** | **Recommended** | **Character Crafting Levels:** Automatically detects active crafting discipline ranks (e.g. Weaponsmith 500, Chef 400) across all your characters. | Crafting discipline levels must be selected manually in the planner. |
+| **`unlocks`** | **Recommended** | **Known Recipes & Wardrobe:** Identifies already learned recipes and unlocked skins. Highlights undiscovered recipes in the Discovery Explorer. | All recipes appear unlearned; manual discovery checks required. |
+| **`wallet`** | *Optional* | Live balances for dungeon tokens, laurels, fractal relics, and seasonal currencies. | Currency balances not synced in footer summary. |
+| **`builds` / `pvp`** | *Optional* | Build templates and PvP statistics. | Not required for Omnitria core features. |
+
+---
+
+### ❓ Using Omnitria Without an API Key
+
+An API key is **completely optional**! You can use Omnitria right away without an account:
+- 🕒 **Event Timers & World Bosses:** 100% operational with live countdowns and chat callouts.
+- 🗺️ **Waypoint Directory:** 100% searchable with instant 1-click clipboard copy.
+- 📖 **Database & Leveling Guides:** All 0–500 crafting routes and Legendary Mystic Forge trees remain fully accessible with manual discipline selection.
+- 🏆 **Achievements View:** Displays full catalog, requirements, rewards, and event linkages with progress shown as 0 / unlinked until an API key is connected.
+
+---
+
+### 🇩🇪 Kurzanleitung auf Deutsch (API-Schlüssel einrichten)
+
+> [!TIP]
+> 1. Gehe auf die offizielle ArenaNet-Seite: **[account.arena.net/applications](https://account.arena.net/applications)** und melde dich an.
+> 2. Klicke auf **„Neuer Schlüssel“**, vergib einen Namen (z. B. `Omnitria`) und wähle die empfohlenen Berechtigungen aus (`account`, `progression`, `inventories`, `characters`, `unlocks`).
+> 3. Klicke auf **„API-Schlüssel erstellen“** und kopiere den 72-stelligen Schlüssel.
+> 4. Klicke in Omnitria oben rechts auf das **Zahnrad (⚙️ / Einstellungen)**, füge den Schlüssel ein und klicke auf **„Speichern & Synchronisieren“**.
+> 
+> *Sicherheitshinweis:* Der Schlüssel ist **rein lesend** (kann weder Gold ausgeben noch Gegenstände löschen) und wird ausschließlich **lokal** auf deinem PC gespeichert.
+
+---
+
 ## ⏱️ Guild Wars 2 API Refresh Rates
 
 | Data Category | ArenaNet Server Cache | In-App Overlay Behavior |
