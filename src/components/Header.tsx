@@ -7,6 +7,7 @@ import {
   Maximize2,
   Minus,
   Compass,
+  Globe,
 } from 'lucide-react';
 import type { OverlaySettings, OverlayTab } from '../types';
 import { BrandMark } from './common/Glyphs';
@@ -84,17 +85,19 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="gw2-title-text-wrap">
             <span className="gw2-hero-title font-serif">Omnitria</span>
-            <span className="gw2-tab-subtitle dim font-serif">• {getSubTitle()}</span>
+            {!settings.widgetMode && (
+              <span className="gw2-tab-subtitle dim font-serif">• {getSubTitle()}</span>
+            )}
 
             {accountName ? (
               <span
-                className="gw2-account-badge"
+                className={`gw2-account-badge ${settings.widgetMode ? 'compact' : ''}`}
                 title={`${lang === 'en' ? 'Connected to GW2 Account' : 'Verbunden mit GW2-Account'} ${accountName}${
                   account.data?.permissions ? ` (${lang === 'en' ? 'Permissions' : 'Berechtigungen'}: ${account.data.permissions.join(', ')})` : ''
                 }`}
               >
                 <span className="status-dot green" />
-                {accountName}
+                <span className="account-text">{accountName}</span>
               </span>
             ) : (
               <button
@@ -121,7 +124,8 @@ export const Header: React.FC<HeaderProps> = ({
               onUpdateSettings({ language: next });
             }}
           >
-            <span className="lang-code font-bold">{lang === 'de' ? '🇩🇪 DE' : '🇬🇧 EN'}</span>
+            <Globe size={11} className="lang-globe-icon" />
+            <span className="lang-code font-bold">{lang === 'de' ? 'DE' : 'EN'}</span>
           </button>
 
           {/* Dock Reset Button (Position above chat) */}

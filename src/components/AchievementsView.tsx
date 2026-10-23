@@ -369,11 +369,21 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                     {/* Progress Bar Row */}
                     {item.progressMax !== undefined && (
                       <div className="achieve-pbar-container">
+                        <div className="achieve-pbar-header">
+                          <span className={`achieve-pbar-status-text ${isDone ? 'done-gold' : ''}`}>
+                            {isDone
+                              ? (lang === 'en' ? 'Completed' : 'Abgeschlossen')
+                              : (lang === 'en' ? 'In Progress' : 'In Arbeit')}
+                          </span>
+                          <span className="achieve-pbar-numbers font-mono">
+                            <span className="achieve-pbar-cur">{cur}</span> / <span className="achieve-pbar-max">{max}</span>
+                            <span className="achieve-pbar-pct"> ({Math.round(frac * 100)}%)</span>
+                          </span>
+                        </div>
                         <ProgressBar
                           value={frac}
                           tone={isDone ? 'gold' : item.isFeatured ? 'gold' : 'green'}
                           slim
-                          label={`${cur} / ${max} (${Math.round(frac * 100)}%)`}
                         />
                       </div>
                     )}

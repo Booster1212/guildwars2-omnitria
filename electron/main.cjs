@@ -120,9 +120,9 @@ function createWindow() {
     savedBounds.height = fs2.height;
   }
 
-  // HUD: 380px width fits GW2 chat box width cleanly
-  const defaultWidth = isMini ? 380 : getFullSize().width;
-  const defaultHeight = isMini ? 245 : getFullSize().height;
+  // HUD: 430px width fits GW2 chat box cleanly, 315px height fits all 3 cards and footer with breathing room
+  const defaultWidth = isMini ? 430 : getFullSize().width;
+  const defaultHeight = isMini ? 315 : getFullSize().height;
   const defaultPos = getChatAnchoredPosition(defaultWidth, defaultHeight);
   log('Window geometry:', { width: defaultWidth, height: defaultHeight, pos: defaultPos });
 
@@ -265,8 +265,8 @@ function setWindowMode(mode) {
   const currentBounds = mainWindow.getBounds();
 
   if (mode === 'mini') {
-    const targetWidth = 380;
-    const targetHeight = 255;
+    const targetWidth = 430;
+    const targetHeight = 315;
     const newY = currentBounds.y + (currentBounds.height - targetHeight);
     mainWindow.setBounds({
       x: currentBounds.x,
