@@ -128,7 +128,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     if (options.craftIntermediates && depth < 3 && !stack.has(itemId)) {
       stack.add(itemId);
       for (const r of recipesByOutput.get(itemId) ?? []) {
-        if (!r.disciplines.includes(discipline) || r.rating > rank || !isLearned(r)) continue;
+        if (!r.disciplines.includes(discipline) || r.rating > rank || !isUsable(r)) continue;
         let sum = 0;
         let ok = true;
         for (const ing of r.ingredients) {

@@ -1,67 +1,68 @@
-# Datenquellen, Architektur & Grenzen der Daten
+# Data Sources, Architecture & Data Limitations
 
-Dieses Dokument beschreibt die Architektur der Datenbeschaffung, die Klassifikation der Datenquellen sowie bekannte Grenzen und Annahmen der Anwendung **Omnitria**.
+This document describes the data acquisition architecture, data source classification, and known limitations and assumptions of the **Omnitria** application.
 
 ---
 
-## 1. Datenklassifikation
+## 1. Data Classification
 
-In der Anwendung werden alle Daten streng in fünf Klassen unterteilt und in der Benutzeroberfläche durch entsprechende Abzeichen (`API`, `Konto`, `Community`, `Berechnet`, `Unbekannt`) transparent gekennzeichnet:
+All data in the application is strictly partitioned into five classes and transparently indicated in the user interface via corresponding badges (`API`, `Account`, `Community`, `Calculated`, `Unknown`):
 
-| Klasse | Kennzeichnung in UI | Quelle | Beschreibung & Verwendung |
+| Class | UI Badge | Source | Description & Usage |
 |---|---|---|---|
-| **Offiziell** | `API` | Offizielle ArenaNet API (`api.guildwars2.com/v2`) | Gegenstände, Namen, Beschreibungen, Symbole, Waffentypen, offizielle Handwerksrezepte und Erfolgskategorien. |
-| **Persönlich** | `Konto` | API-Endpunkte unter `/v2/account/*` | Materiallager, Bankfächer, geteiltes Inventar, Charaktertaschen, Handwerksränge und Erfolgsfortschritt. |
-| **Markt** | `API` | `/v2/commerce/prices` | Aktuelle Sofortkauf- und Kaufgesuchs-Preise der Schwarzlöwen-Handelsgesellschaft. |
-| **Community** | `Community` | Vendorter Datensatz [`crafty_legend`](https://github.com/PieOrCake/crafty_legend) (MIT-Lizenz) | Rezepte der **Mystischen Schmiede** und Herkunftskategorien (Sammeln, Beute, Händler). |
-| **Berechnet** | `Berechnet` | Domänen-Logik (`src/domain/`) | Netto-Bedarfe, aggregierte Stücklisten (BOM), Levelrouten, Kostensummen und Fortschrittsberechnungen. |
+| **Official** | `API` | Official ArenaNet API (`api.guildwars2.com/v2`) | Items, names, descriptions, icons, weapon types, official crafting recipes, and achievement categories. |
+| **Personal** | `Account` | API endpoints under `/v2/account/*` | Material storage, bank tabs, shared inventory, character bags, crafting ranks, and achievement progression. |
+| **Market** | `API` | `/v2/commerce/prices` | Current instant-buy (sell price) and buy-order (buy price) prices from the Black Lion Trading Post. |
+| **Community** | `Community` | Vendored dataset [`crafty_legend`](https://github.com/PieOrCake/crafty_legend) (MIT License) | **Mystic Forge** recipes and item acquisition origin categories (gathering, drops, vendors). |
+| **Calculated** | `Calculated` | Domain engine (`src/domain/`) | Net demand, aggregated Bills of Materials (BOM), leveling routes, cost totals, and progress calculations. |
 
 ---
 
-## 2. API-Endpunkte und erforderliche Berechtigungen
+## 2. API Endpoints and Required Permissions
 
-| Feature | API-Endpunkt | Erforderliche Berechtigung | Verhalten bei Fehlen |
+| Feature | API Endpoint | Required Scope | Fallback Behavior if Missing |
 |---|---|---|---|
-| Basis-Account | `/v2/account` | `account` | Zeigt Standardansicht ohne Account-Bindung |
-| Erfolge | `/v2/account/achievements` | `progression` | Keine persönlichen Erfolgsbalken |
-| Materiallager | `/v2/account/materials` | `inventories` | Kein Bestandsabzug bei Basismaterialien |
-| Bank | `/v2/account/bank` | `inventories` | Kein Bestandsabzug bei Bankfächern |
-| Geteiltes Inventar | `/v2/account/inventory` | `inventories` | Kein Bestandsabzug bei geteilten Plätzen |
-| Charaktere & Taschen | `/v2/characters?ids=all` | `characters` (+ `inventories` für Taschen) | Handwerksränge müssen manuell gewählt werden |
-| Geldbörse | `/v2/account/wallet` | `wallet` | Währungsabgleich nicht aktiv |
-| Bekannte Rezepte | `/v2/account/recipes` | `unlocks` | Nur `AutoLearned`-Rezepte im Planer aktiv |
-| Legendäre Rüstkammer | `/v2/account/legendaryarmory` | `unlocks` | Bereits freigeschaltete Waffen werden nicht automatisch erkannt |
+| Base Account | `/v2/account` | `account` | Displays standard view without account binding |
+| Achievements | `/v2/account/achievements` | `progression` | No personal achievement progression bars |
+| Material Storage | `/v2/account/materials` | `inventories` | No inventory deduction for base materials |
+| Bank | `/v2/account/bank` | `inventories` | No inventory deduction for bank tabs |
+| Shared Inventory | `/v2/account/inventory` | `inventories` | No inventory deduction for shared inventory slots |
+| Characters & Bags | `/v2/characters?ids=all` | `characters` (+ `inventories` for bags) | Crafting ranks must be selected manually |
+| Wallet | `/v2/account/wallet` | `wallet` | In-game currency balance comparison disabled |
+| Known Recipes | `/v2/account/recipes` | `unlocks` | Only `AutoLearned` recipes active in the planner |
+| Legendary Armory | `/v2/account/legendaryarmory` | `unlocks` | Unlocked legendary weapons are not automatically recognized |
 
 ---
 
-## 3. Bekannte Grenzen und Einschränkungen
+## 3. Known Limitations and Constraints
 
-### 3.1 Keine Mystische-Schmiede-Rezepte in der API
-Die ArenaNet-API bietet **keinen Endpunkt für Rezepte der Mystischen Schmiede** (`/v2/recipes/search?output=…` liefert für legendäre Waffen leere Ergebnisse).
-- **Lösung:** Verwendung des unabhängig geprüften Open-Source-Datensatzes von PieOrCake (Commit `8b674229`).
-- **Transparenz:** Waffen ohne erfasstes Rezept (z. B. neuere Waffen wie *Ancora Pax* oder *Ancora Bellum*) werden in der Benutzeroberfläche ausdrücklich als *„Unvollständig / Rezept noch nicht erfasst“* markiert, anstatt Spekulationen anzustellen.
+### 3.1 No Mystic Forge Recipes in the Official API
+The official ArenaNet API **does not provide an endpoint for Mystic Forge recipes** (`/v2/recipes/search?output=…` returns empty results for legendary weapons).
+- **Solution:** Omnitria utilizes the independently verified open-source dataset by PieOrCake (commit `8b674229`).
+- **Transparency:** Weapons without a recorded recipe in the dataset (e.g. newer weapons such as *Ancora Pax* or *Ancora Bellum*) are explicitly marked in the UI as *“Incomplete / Recipe not yet recorded”*, avoiding guesswork or synthetic data.
 
-### 3.2 Keine Handwerks-XP in der API
-Die GW2-API liefert weder den aktuellen XP-Punktestand innerhalb eines Handwerksranges noch die XP-Punkte pro Rezept.
-- **Lösung:** Approximation über das etablierte Community-Modell des offiziellen GW2-Wikis (`ranksPerCraft = multiplier * (1 - (rank - minRating) / span)`).
-- **Kennzeichnung:** Alle Schrittanzahlen und Gesamtkosten im Levelplaner sind explizit mit dem Hinweis *„Schätzung“* versehen.
+### 3.2 No Crafting Experience (XP) in the Official API
+The GW2 API exposes neither the current XP within a crafting discipline rank nor the XP granted per recipe.
+- **Solution:** Approximation using the established community model from the official GW2 Wiki (`ranksPerCraft = multiplier * (1 - (rank - minRating) / span)`).
+- **Labeling:** All craft counts, step groupings, and cost summaries in the level planner are explicitly marked with an *“Estimate”* notice banner.
 
-### 3.3 Zufallsrezepte (Mystische Kleeblätter)
-Das 10er-Rezept für Mystische Kleeblätter in der Mystischen Schmiede besitzt eine Zufallschance:
-- **Lösung:** Der Erwartungswert wird mit einer durchschnittlichen Erfolgsquote von **31 %** (`yield = 0.31`) berechnet. Alle abgeleiteten Materialmengen und Kosten werden als Schätzwerte gekennzeichnet.
+### 3.3 Random Output Recipes (Mystic Clovers)
+The Mystic Clover recipe in the Mystic Forge involves a probability roll:
+- **Solution:** Expected value calculation uses the established average success rate of **31%** (`yield = 0.31`). All derived material quantities and costs are labeled as estimated quantities.
 
-### 3.4 Wiki-Status
-Das offizielle englische Guild Wars 2 Wiki befand sich während der Entwicklung im Wartungsmodus. Relevante Links verweisen auf das deutsche Guild Wars 2 Wiki (`wiki-de.guildwars2.com`) über die gesicherte Electron-IPC-Schnittstelle.
+### 3.4 Wiki Integration
+External references point to official Guild Wars 2 Wiki entries via secured Electron IPC links that open in the user's default browser.
 
 ---
 
-## 4. Persistenz und Caching
+## 4. Persistence and Caching
 
-1. **Persönlicher Fortschritt (`progressStore.ts`):**
-   - Versioniertes Schema (`gw2_overlay_progress_v1`).
-   - Primär: `localStorage` mit Versionsprüfung und automatischem Backup bei unbekannten Versionen.
-   - Sekundär (in Electron): Automatische Spiegelung in eine atomar geschriebene JSON-Datei im `userData`-Verzeichnis über IPC (`store-read` / `store-write`). Der neuere Zeitstempel (`savedAt`) gewinnt beim Start.
+1. **Personal Progression (`progressStore.ts`):**
+   - Versioned schema (`gw2_overlay_progress_v1`).
+   - Primary: `localStorage` with version sanitization and automated backup for unknown/newer versions.
+   - Secondary (in Electron): Automatic mirroring to an atomically written JSON file in the Electron `userData` directory via IPC (`store-read` / `store-write`).
+   - Clean startup: Step completion checkmarks reset to `0` on restart, and discovery/intermediate options remain inactive by default to avoid route conflicts.
 
-2. **Statische Spieldaten (Cache):**
-   - Rezepte (`recipes:v1`) und Item-Metadaten (`items:de:v1`) werden komprimiert in der **IndexedDB** gehalten (Gültigkeit 14 Tage bzw. bis zur nächsten Spielversion `/v2/build`).
-   - Marktpreise (`commerce/prices`) besitzen einen 5-Minuten-Kurzzeit-Cache.
+2. **Static Game Data Caching:**
+   - Recipes (`recipes:v1`) and item metadata (`items:de:v1` / `items:en:v1`) are cached in compressed form within **IndexedDB** (TTL of 14 days or until a new game build `/v2/build` is detected).
+   - Market prices (`commerce/prices`) utilize a 5-minute in-memory cache to respect API rate limits.

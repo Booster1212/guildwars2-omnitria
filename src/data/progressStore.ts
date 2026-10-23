@@ -9,7 +9,7 @@
  * Schema ist versioniert; unbekannte/neuere Versionen werden gesichert statt überschrieben.
  */
 import { useSyncExternalStore } from 'react';
-import { createEmitter } from './gw2/cache';
+import { createEmitter } from './gw2/cache.ts';
 
 const KEY = 'gw2_overlay_progress_v1';
 const BACKUP_KEY = 'gw2_overlay_progress_backup';
@@ -46,7 +46,7 @@ export const DEFAULT_CRAFTING: CraftingProgress = {
   start: null,
   doneSteps: [],
   allowDiscovery: false,
-  craftIntermediates: true,
+  craftIntermediates: false,
 };
 
 const emptyLegendary = (): LegendaryProgress => ({ doneNodes: [], doneMaterials: [], buyItems: [] });
@@ -60,7 +60,9 @@ interface ElectronStore {
   writeStore?: (name: string, json: string) => void;
 }
 const electron = (): ElectronStore | undefined =>
-  (window as unknown as { electronAPI?: ElectronStore }).electronAPI;
+  typeof window !== 'undefined'
+    ? (window as unknown as { electronAPI?: ElectronStore }).electronAPI
+    : undefined;
 
 function sanitize(raw: unknown): ProgressState | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -76,7 +78,12 @@ function sanitize(raw: unknown): ProgressState | null {
   }
   if (o.crafting && typeof o.crafting === 'object') {
     for (const [k, v] of Object.entries(o.crafting)) {
-      s.crafting[k] = { ...DEFAULT_CRAFTING, ...(v as Partial<CraftingProgress>) };
+      s.crafting[k] = {
+        ...DEFAULT_CRAFTING,
+        ...(v as Partial<CraftingProgress>),
+        allowDiscovery: false,
+        craftIntermediates: false,
+      };
     }
   }
   return s;
@@ -84,12 +91,59 @@ function sanitize(raw: unknown): ProgressState | null {
 
 function loadLocal(): ProgressState {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return fresh();
-    const parsed = JSON.parse(raw);
-    const s = sanitize(parsed);
-    if (s) return s;
-    localStorage.setItem(BACKUP_KEY, raw); // unbekannte Version -> sichern
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
+    const parsed = raw ? JSON.parse(raw) : null;
+    const s = (parsed ? sanitize(parsed) : null) ?? fresh();
+
+    // Bei Neustart: Alle Haken (doneSteps) auf 0 setzen
+    // UND beide Optionen (Zwischenschritte/Entdeckungen) nicht aktiv halten
+    for (const discipline of Object.keys(s.crafting)) {
+      s.crafting[discipline].doneSteps = [];
+      s.crafting[discipline].allowDiscovery = false;
+      s.crafting[discipline].craftIntermediates = false;
+    }
+
+    // Level von dem jeweiligen Beruf direkt aus den gespeicherten Accountdaten ziehen
+    try {
+      const rawAccount = typeof localStorage !== 'undefined' ? localStorage.getItem('gw2_overlay_account_data_v1') : null;
+      if (rawAccount) {
+        const acc = JSON.parse(rawAccount);
+        if (acc && acc.crafting && typeof acc.crafting === 'object') {
+          for (const [disc, info] of Object.entries(acc.crafting)) {
+            const rating = (info as { rating?: number })?.rating;
+            if (typeof rating === 'number') {
+              if (!s.crafting[disc]) {
+                const target = disc === 'Jeweler' ? 400 : (rating >= 400 ? 500 : 400);
+                s.crafting[disc] = { ...DEFAULT_CRAFTING, start: rating, target, doneSteps: [], allowDiscovery: false, craftIntermediates: false };
+              } else {
+                s.crafting[disc].start = rating;
+                s.crafting[disc].doneSteps = [];
+                s.crafting[disc].allowDiscovery = false;
+                s.crafting[disc].craftIntermediates = false;
+                if (s.crafting[disc].target <= rating) {
+                  s.crafting[disc].target = disc === 'Jeweler'
+                    ? Math.max(400, rating)
+                    : (rating >= 400 ? 500 : Math.min(500, Math.max(rating + 25, 400)));
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Account-Crafting-Level konnte bei Neustart nicht ausgelesen werden', e);
+    }
+
+    // Aktualisiere den localStorage bei Neustart
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(KEY, JSON.stringify(s));
+      }
+    } catch {
+      /* ignorieren */
+    }
+
+    return s;
   } catch (e) {
     console.error('Fortschritt konnte nicht geladen werden', e);
   }
@@ -101,7 +155,16 @@ let state: ProgressState = loadLocal();
 let mirrorTimer: ReturnType<typeof setTimeout> | null = null;
 
 function persist() {
-  state = { ...state, savedAt: Date.now() };
+  // Optionen niemals aktiv im LocalStore persistieren
+  const sanitizedCrafting: Record<string, CraftingProgress> = {};
+  for (const [disc, cp] of Object.entries(state.crafting)) {
+    sanitizedCrafting[disc] = {
+      ...cp,
+      allowDiscovery: false,
+      craftIntermediates: false,
+    };
+  }
+  state = { ...state, crafting: sanitizedCrafting, savedAt: Date.now() };
   const json = JSON.stringify(state);
   try {
     localStorage.setItem(KEY, json);
@@ -128,6 +191,11 @@ void (async () => {
     }
     const mirror = sanitize(JSON.parse(json));
     if (mirror && mirror.savedAt > state.savedAt) {
+      for (const discipline of Object.keys(mirror.crafting)) {
+        mirror.crafting[discipline].doneSteps = [];
+        mirror.crafting[discipline].allowDiscovery = false;
+        mirror.crafting[discipline].craftIntermediates = false;
+      }
       state = mirror;
       try {
         localStorage.setItem(KEY, JSON.stringify(state));
@@ -194,6 +262,43 @@ export const progressActions = {
     update((s) => {
       const cur = s.crafting[discipline] ?? DEFAULT_CRAFTING;
       return { ...s, crafting: { ...s.crafting, [discipline]: { ...cur, doneSteps: toggle(cur.doneSteps, key) } } };
+    });
+  },
+  resetDisciplineCheckmarks(discipline: string) {
+    update((s) => {
+      const cur = s.crafting[discipline] ?? DEFAULT_CRAFTING;
+      return { ...s, crafting: { ...s.crafting, [discipline]: { ...cur, doneSteps: [] } } };
+    });
+  },
+  resetAllCraftingCheckmarks() {
+    update((s) => {
+      const nextCrafting: Record<string, CraftingProgress> = {};
+      for (const [k, v] of Object.entries(s.crafting)) {
+        nextCrafting[k] = { ...v, doneSteps: [] };
+      }
+      return { ...s, crafting: nextCrafting };
+    });
+  },
+  syncAccountRatings(craftingRatings: Record<string, { rating: number; character: string }> | null) {
+    if (!craftingRatings) return;
+    update((s) => {
+      const nextCrafting = { ...s.crafting };
+      for (const [disc, info] of Object.entries(craftingRatings)) {
+        const cur = nextCrafting[disc] ?? DEFAULT_CRAFTING;
+        let target = cur.target;
+        if (target <= info.rating) {
+          target = disc === 'Jeweler'
+            ? Math.max(400, info.rating)
+            : (info.rating >= 400 ? 500 : Math.min(500, Math.max(info.rating + 25, 400)));
+        }
+        nextCrafting[disc] = {
+          ...cur,
+          start: info.rating,
+          target,
+          doneSteps: [],
+        };
+      }
+      return { ...s, crafting: nextCrafting };
     });
   },
 };

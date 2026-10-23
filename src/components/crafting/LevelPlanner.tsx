@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import type { DisciplineId } from '../../domain/types';
 import { planLevelRoute, collectPlannerItemIds } from '../../domain/levelPlanner';
+import {
+  calculateCraftingPlan,
+  createDisciplineRecipeProvider,
+  collectPlanItemIds,
+  type CraftingStrategy,
+  type ItemProcurement,
+  type TargetCraftItem,
+} from '../../domain/craftingCalculator';
 import { useRecipeDb } from '../../data/gw2/recipes';
 import { usePrices } from '../../data/gw2/prices';
 import { useAccountState } from '../../data/gw2/account';
@@ -8,8 +16,19 @@ import { useProgress, progressActions } from '../../data/progressStore';
 import { getItem, useItems } from '../../data/gw2/items';
 import { fmtInt } from '../common/labels';
 import { Coin, ItemIcon, Notice, Check, ProgressBar } from '../common/ui';
-import { ChevronRight, Sliders, ShoppingBag, Layers, Sparkles } from 'lucide-react';
+import {
+  ChevronRight,
+  Sliders,
+  ShoppingBag,
+  Layers,
+  Sparkles,
+  GitFork,
+  Hammer,
+  RotateCcw,
+} from 'lucide-react';
 import { useTranslation } from '../../i18n';
+import { MaterialDemandTable } from './MaterialDemandTable';
+import { CraftingTreeView } from './CraftingTreeView';
 
 interface LevelPlannerProps {
   discipline: DisciplineId;
@@ -26,39 +45,95 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   const discProgress = progress.crafting[discipline];
   const charRating = account.data?.crafting?.[discipline]?.rating;
 
-  // Initial and effective ranks
-  const effectiveStart = discProgress?.start ?? charRating ?? 0;
-  const targetRank = discProgress?.target ?? (discipline === 'Jeweler' ? 400 : Math.min(500, maxRank));
+  // Level direkt von dem jeweiligen Beruf ziehen
+  const effectiveStart = charRating !== undefined ? charRating : (discProgress?.start ?? 0);
+  const rawTarget = discProgress?.target ?? (discipline === 'Jeweler' ? 400 : Math.min(500, maxRank));
+  const initialTarget = effectiveStart >= rawTarget && effectiveStart < maxRank
+    ? Math.min(maxRank, Math.max(effectiveStart + 25, rawTarget))
+    : rawTarget;
 
   const [fromRank, setFromRank] = useState<number>(effectiveStart);
-  const [toRank, setToRank] = useState<number>(targetRank);
-  const [allowDiscovery, setAllowDiscovery] = useState<boolean>(discProgress?.allowDiscovery ?? false);
-  const [craftIntermediates, setCraftIntermediates] = useState<boolean>(discProgress?.craftIntermediates ?? true);
-  const [activeTab, setActiveTab] = useState<'steps' | 'shopping' | 'intermediates'>('steps');
+  const [toRank, setToRank] = useState<number>(initialTarget);
+  // Entdeckungs- und Zwischenschritt-Optionen standardmäßig inaktiv halten
+  const [allowDiscovery, setAllowDiscovery] = useState<boolean>(false);
+  const [craftIntermediates, setCraftIntermediates] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'steps' | 'materials' | 'tree' | 'intermediates' | 'shopping'>('steps');
+
+  // Strategie für Eigenherstellung vs. Einkauf: Standard all_buy (keine Zwischenschritte)
+  const [strategy, setStrategy] = useState<CraftingStrategy>('all_buy');
+  const [itemOverrides, setItemOverrides] = useState<Map<number, ItemProcurement>>(new Map());
+  const [onlyOpenSteps, setOnlyOpenSteps] = useState<boolean>(false);
+
+  // Ziehe das Level direkt vom jeweiligen Beruf bei Disziplinwechsel oder neuem Rating
+  React.useEffect(() => {
+    const start = charRating !== undefined ? charRating : (discProgress?.start ?? 0);
+    setFromRank(start);
+    setToRank((currentTo) => {
+      if (start >= currentTo && start < maxRank) {
+        const next = Math.min(maxRank, Math.max(start + 25, currentTo < 400 ? 400 : 500));
+        progressActions.setCrafting(discipline, { target: next });
+        return next;
+      }
+      return currentTo;
+    });
+  }, [discipline, charRating, maxRank]);
 
   // Keep progress store updated when options change
   const handleStartChange = (val: number) => {
     const num = Math.max(0, Math.min(maxRank, val));
     setFromRank(num);
     progressActions.setCrafting(discipline, { start: num });
+    if (toRank <= num && num < maxRank) {
+      const nextTo = Math.min(maxRank, num + 25);
+      setToRank(nextTo);
+      progressActions.setCrafting(discipline, { target: nextTo });
+    }
   };
 
   const handleTargetChange = (val: number) => {
-    const num = Math.max(fromRank, Math.min(maxRank, val));
+    const minAllowed = fromRank < maxRank ? fromRank + 1 : maxRank;
+    const num = Math.max(minAllowed, Math.min(maxRank, val));
     setToRank(num);
     progressActions.setCrafting(discipline, { target: num });
   };
 
   const handleToggleDiscovery = () => {
-    const next = !allowDiscovery;
-    setAllowDiscovery(next);
-    progressActions.setCrafting(discipline, { allowDiscovery: next });
+    setAllowDiscovery((prev) => !prev);
   };
 
   const handleToggleIntermediates = () => {
     const next = !craftIntermediates;
     setCraftIntermediates(next);
-    progressActions.setCrafting(discipline, { craftIntermediates: next });
+    setStrategy(next ? 'all_craft' : 'all_buy');
+    setItemOverrides(new Map());
+  };
+
+  const handleSetStrategy = (strat: CraftingStrategy) => {
+    setStrategy(strat);
+    if (strat !== 'custom') {
+      setItemOverrides(new Map());
+      setCraftIntermediates(strat === 'all_craft');
+    }
+  };
+
+  const handleToggleProcurement = (itemId: number) => {
+    setItemOverrides((prev) => {
+      const next = new Map(prev);
+      const current = next.get(itemId);
+      if (current === 'buy') {
+        next.set(itemId, 'craft');
+      } else if (current === 'craft') {
+        next.set(itemId, 'buy');
+      } else {
+        if (strategy === 'all_buy') {
+          next.set(itemId, 'craft');
+        } else {
+          next.set(itemId, 'buy');
+        }
+      }
+      return next;
+    });
+    setStrategy('custom');
   };
 
   // Collect candidate items for price queries
@@ -98,29 +173,70 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     account.knownRecipeSet,
   ]);
 
-  // Ensure item details are loaded for plan items
-  const allNeededItemIds = useMemo(() => {
+  const doneSteps = discProgress?.doneSteps ?? [];
+
+  // Berechnungsziele für die rekursive Materialauflösung
+  const calculationTargets: TargetCraftItem[] = useMemo(() => {
     if (!plan) return [];
-    const ids = new Set<number>();
-    plan.steps.forEach((st) => {
-      ids.add(st.recipe.outputId);
-      st.ingredients.forEach((i) => ids.add(i.itemId));
-      st.recipe.ingredients.forEach((i) => ids.add(i.itemId));
+    return plan.steps
+      .filter((st) => {
+        if (!onlyOpenSteps) return true;
+        const isMarkedDone = doneSteps.includes(st.key);
+        return !isMarkedDone;
+      })
+      .map((st) => ({
+        itemId: st.recipe.outputId,
+        count: st.crafts,
+        recipe: st.recipe,
+        stepKey: st.key,
+        label: `Rang ${st.fromRank}–${st.toRank}`,
+      }));
+  }, [plan, onlyOpenSteps, doneSteps]);
+
+  // Disziplin-spezifischer Rezept-Provider
+  const recipeProvider = useMemo(() => {
+    if (recipeDb.status !== 'ready') return { recipeFor: () => undefined };
+    return createDisciplineRecipeProvider(recipeDb.byOutput, discipline, {
+      allowDiscovery,
+      knownRecipeIds: account.knownRecipeSet,
+      maxRating: toRank,
     });
-    for (const [id] of plan.purchases) ids.add(id);
-    plan.intermediates.forEach((im) => ids.add(im.recipe.outputId));
+  }, [recipeDb.byOutput, recipeDb.status, discipline, allowDiscovery, account.knownRecipeSet, toRank]);
+
+  // Vollständige rekursive Materialbedarfsberechnung
+  const craftingPlanResult = useMemo(() => {
+    if (!calculationTargets.length || recipeDb.status !== 'ready') return null;
+    return calculateCraftingPlan(calculationTargets, recipeProvider, {
+      strategy,
+      itemOverrides,
+      stock: account.stockMap,
+      prices: prices.map,
+    });
+  }, [calculationTargets, recipeProvider, strategy, itemOverrides, account.stockMap, prices.map, recipeDb.status]);
+
+  // Ensure item details are loaded for plan items & recursive material tree
+  const allNeededItemIds = useMemo(() => {
+    const ids = new Set<number>();
+    if (plan) {
+      plan.steps.forEach((st) => {
+        ids.add(st.recipe.outputId);
+        st.ingredients.forEach((i) => ids.add(i.itemId));
+        st.recipe.ingredients.forEach((i) => ids.add(i.itemId));
+      });
+      for (const [id] of plan.purchases) ids.add(id);
+      plan.intermediates.forEach((im) => ids.add(im.recipe.outputId));
+    }
+    if (craftingPlanResult) {
+      collectPlanItemIds(craftingPlanResult).forEach((id) => ids.add(id));
+    }
     return Array.from(ids);
-  }, [plan]);
+  }, [plan, craftingPlanResult]);
   useItems(allNeededItemIds);
 
-  const doneSteps = discProgress?.doneSteps ?? [];
   const completedStepsCount = useMemo(() => {
     if (!plan) return 0;
-    return plan.steps.filter((st) => {
-      if (charRating && charRating >= st.toRank) return true;
-      return doneSteps.includes(st.key);
-    }).length;
-  }, [plan, charRating, doneSteps]);
+    return plan.steps.filter((st) => doneSteps.includes(st.key)).length;
+  }, [plan, doneSteps]);
 
   const progressFrac = plan && plan.steps.length > 0 ? completedStepsCount / plan.steps.length : 0;
 
@@ -128,7 +244,9 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     return (
       <div className="planner-loading-state">
         <div className="spinner" />
-        <span className="font-serif">{lang === 'en' ? 'Loading official GW2 API recipe database…' : 'Lade offizielle Rezeptdatenbank der GW2-API …'}</span>
+        <span className="font-serif">
+          {lang === 'en' ? 'Loading official GW2 API recipe database…' : 'Lade offizielle Rezeptdatenbank der GW2-API …'}
+        </span>
         <span className="dim">
           {recipeDb.progress.total > 0
             ? lang === 'en'
@@ -151,6 +269,9 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     );
   }
 
+  const displayCost = craftingPlanResult ? craftingPlanResult.totals.totalCost : (plan?.totalCost ?? 0);
+  const displayCrafts = craftingPlanResult ? craftingPlanResult.totals.totalCraftRuns : (plan?.totalCrafts ?? 0);
+
   return (
     <div className="level-planner-wrap">
       {/* Disclaimer Banner: Community XP Model */}
@@ -159,6 +280,24 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           ? 'The official GW2 API provides neither per-recipe XP values nor current XP within a rank. Calculated step counts are based on the standard GW2 Wiki formula and represent a conservative cost estimate.'
           : 'Die offizielle GW2-API stellt weder Erfahrungswerte je Rezept noch den aktuellen XP-Fortschritt innerhalb eines Ranges bereit. Die berechneten Schrittanzahlen beruhen auf der etablierten GW2-Wiki-XP-Formel und stellen eine konservative Kostenschätzung dar.'}
       </Notice>
+
+      {/* Max Rank Notice if character already maxed */}
+      {fromRank >= maxRank && (
+        <Notice tone="info" title={lang === 'en' ? 'Max Rank Reached' : 'Maximalstufe bereits erreicht'}>
+          {lang === 'en'
+            ? `Your character has already reached the maximum rank for this profession (${fromRank}/${maxRank}). Set the start rank to 0 if you wish to view the complete leveling guide.`
+            : `Dein Charakter hat die Maximalstufe für diesen Beruf bereits erreicht (${fromRank}/${maxRank}). Setze den Startrang auf 0, wenn du die vollständige Levelroute einsehen möchtest.`}
+          <div style={{ marginTop: '8px' }}>
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() => handleStartChange(0)}
+            >
+              {lang === 'en' ? 'Show route from Rank 0' : 'Route ab Rang 0 anzeigen'}
+            </button>
+          </div>
+        </Notice>
+      )}
 
       {/* Configuration Controls Bar */}
       <div className="planner-controls-panel">
@@ -169,7 +308,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               type="number"
               className="gw2-num-input"
               min={0}
-              max={maxRank - 1}
+              max={maxRank}
               value={fromRank}
               onChange={(e) => handleStartChange(Number(e.target.value))}
             />
@@ -189,7 +328,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             <input
               type="number"
               className="gw2-num-input"
-              min={fromRank + 1}
+              min={fromRank < maxRank ? fromRank + 1 : maxRank}
               max={maxRank}
               value={toRank}
               onChange={(e) => handleTargetChange(Number(e.target.value))}
@@ -236,13 +375,13 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             <div className="stat-box">
               <span className="stat-label">{t('crafting.totalCost')}</span>
               <span className="stat-value">
-                <Coin copper={plan.totalCost} />
+                <Coin copper={displayCost} />
               </span>
             </div>
             <div className="stat-box">
               <span className="stat-label">{lang === 'en' ? 'Crafts:' : 'Herstellungen:'}</span>
               <span className="stat-value font-mono">
-                {plan.totalCrafts} ({plan.steps.length} {lang === 'en' ? 'steps' : 'Schritte'})
+                {displayCrafts} ({plan.steps.length} {lang === 'en' ? 'steps' : 'Schritte'})
               </span>
             </div>
             <div className="stat-box">
@@ -250,12 +389,24 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               <span className="stat-value font-mono">
                 {completedStepsCount} / {plan.steps.length} {lang === 'en' ? 'done' : 'erledigt'}
               </span>
+              {completedStepsCount > 0 && (
+                <button
+                  type="button"
+                  className="btn-tiny"
+                  onClick={() => progressActions.resetDisciplineCheckmarks(discipline)}
+                  title={lang === 'en' ? 'Reset all checkmarks to 0' : 'Alle Haken auf 0 zurücksetzen'}
+                  style={{ marginLeft: '6px' }}
+                >
+                  <RotateCcw size={10} className="mr-1 inline" />
+                  {lang === 'en' ? 'Reset (0)' : 'Haken auf 0'}
+                </button>
+              )}
             </div>
-            {plan.unpricedItems.length > 0 && (
+            {craftingPlanResult && craftingPlanResult.totals.unpricedCount > 0 && (
               <div className="stat-box warn">
                 <span className="stat-label">{lang === 'en' ? 'Unpriced:' : 'Ohne Preis:'}</span>
                 <span className="stat-value dim">
-                  {plan.unpricedItems.length} {lang === 'en' ? 'items (Vendor/Bound)' : 'Posten (Händler/Gebunden)'}
+                  {craftingPlanResult.totals.unpricedCount} {lang === 'en' ? 'items (Vendor/Bound)' : 'Posten (Händler/Gebunden)'}
                 </span>
               </div>
             )}
@@ -278,7 +429,60 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </Notice>
       )}
 
-      {/* Subtabs: Schritte / Einkaufsliste / Zwischenprodukte */}
+      {/* Strategie-Leiste: Eigenherstellung vs. Fertig kaufen */}
+      <div className="planner-strategy-bar">
+        <div className="strategy-row">
+          <div className="strategy-label-group">
+            <span className="strategy-title">{t('crafting.strategyTitle')}</span>
+            <div className="strategy-buttons">
+              <button
+                type="button"
+                className={`strategy-btn ${strategy === 'all_craft' ? 'active' : ''}`}
+                onClick={() => handleSetStrategy('all_craft')}
+                title={t('crafting.strategyCraftAllHint')}
+              >
+                <Hammer size={12} />
+                <span>{t('crafting.strategyCraftAll')}</span>
+              </button>
+              <button
+                type="button"
+                className={`strategy-btn ${strategy === 'all_buy' ? 'active' : ''}`}
+                onClick={() => handleSetStrategy('all_buy')}
+                title={t('crafting.strategyBuyAllHint')}
+              >
+                <ShoppingBag size={12} />
+                <span>{t('crafting.strategyBuyAll')}</span>
+              </button>
+              <button
+                type="button"
+                className={`strategy-btn ${strategy === 'custom' ? 'active' : ''}`}
+                onClick={() => setStrategy('custom')}
+                title={t('crafting.strategyCustomHint')}
+              >
+                <Sliders size={12} />
+                <span>{t('crafting.strategyCustom', { count: itemOverrides.size })}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="strategy-scope-toggle">
+            <Check
+              checked={onlyOpenSteps}
+              onChange={() => setOnlyOpenSteps(!onlyOpenSteps)}
+              label={t('crafting.onlyOpenSteps')}
+              title="Only accounts for remaining uncompleted steps in material demand"
+            />
+          </div>
+        </div>
+
+        <div className="strategy-hint">
+          {strategy === 'all_craft' && t('crafting.strategyCraftAllHint')}
+          {strategy === 'all_buy' && t('crafting.strategyBuyAllHint')}
+          {strategy === 'custom' && t('crafting.strategyCustomHint')}
+        </div>
+      </div>
+
+      {/* Subtabs: Schritte / Gesamter Materialbedarf / Herstellungskette / Einkaufsliste / Zwischenprodukte */}
       <div className="planner-subtabs-row">
         <div className="subtabs-group">
           <button
@@ -287,6 +491,20 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           >
             <Sliders size={13} />
             <span>{t('crafting.stepsTab')} ({plan?.steps.length ?? 0})</span>
+          </button>
+          <button
+            className={`subtab-btn ${activeTab === 'materials' ? 'active' : ''}`}
+            onClick={() => setActiveTab('materials')}
+          >
+            <Layers size={13} />
+            <span>{t('crafting.materialsTab')} ({craftingPlanResult?.materials.length ?? 0})</span>
+          </button>
+          <button
+            className={`subtab-btn ${activeTab === 'tree' ? 'active' : ''}`}
+            onClick={() => setActiveTab('tree')}
+          >
+            <GitFork size={13} />
+            <span>{t('crafting.treeTab')}</span>
           </button>
           <button
             className={`subtab-btn ${activeTab === 'shopping' ? 'active' : ''}`}
@@ -299,7 +517,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             className={`subtab-btn ${activeTab === 'intermediates' ? 'active' : ''}`}
             onClick={() => setActiveTab('intermediates')}
           >
-            <Layers size={13} />
+            <Sparkles size={13} />
             <span>{t('crafting.intermediatesTab')} ({plan?.intermediates.length ?? 0})</span>
           </button>
         </div>
@@ -313,8 +531,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           ) : (
             plan.steps.map((st) => {
               const outItem = getItem(st.recipe.outputId);
-              const isAutoDone = charRating !== undefined && charRating >= st.toRank;
-              const isMarkedDone = doneSteps.includes(st.key) || isAutoDone;
+              const isMarkedDone = doneSteps.includes(st.key);
 
               return (
                 <div key={st.key} className={`planner-step-card ${isMarkedDone ? 'step-done' : ''}`}>
@@ -322,8 +539,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                     <Check
                       checked={isMarkedDone}
                       onChange={() => progressActions.toggleStepDone(discipline, st.key)}
-                      disabled={isAutoDone}
-                      title={isAutoDone ? 'Auto done' : 'Toggle step done'}
+                      title={lang === 'en' ? 'Toggle step done' : 'Schritt als erledigt markieren'}
                     />
                   </div>
 
@@ -449,7 +665,28 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       )}
 
-      {/* Tab 2: Einkaufsliste */}
+      {/* Tab 2: Gesamter Materialbedarf (Vollständig rekursiv aufgelöst) */}
+      {activeTab === 'materials' && (
+        <MaterialDemandTable
+          materials={craftingPlanResult?.materials ?? []}
+          onOpenItem={onOpenItem}
+          onToggleProcurement={handleToggleProcurement}
+          itemOverrides={itemOverrides}
+          hasStockData={account.hasStockData}
+        />
+      )}
+
+      {/* Tab 3: Herstellungskette (Hierarchische aufklappbare Baumstruktur) */}
+      {activeTab === 'tree' && (
+        <CraftingTreeView
+          trees={craftingPlanResult?.trees ?? []}
+          onOpenItem={onOpenItem}
+          onToggleProcurement={handleToggleProcurement}
+          hasStockData={account.hasStockData}
+        />
+      )}
+
+      {/* Tab 4: Einkaufsliste (Kompakte Liste) */}
       {activeTab === 'shopping' && plan && (
         <div className="planner-shopping-wrap">
           <table className="gw2-dense-table shopping-table">
@@ -500,7 +737,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       )}
 
-      {/* Tab 3: Zwischenprodukte */}
+      {/* Tab 5: Zwischenprodukte */}
       {activeTab === 'intermediates' && plan && (
         <div className="planner-intermediates-wrap">
           {plan.intermediates.length === 0 ? (

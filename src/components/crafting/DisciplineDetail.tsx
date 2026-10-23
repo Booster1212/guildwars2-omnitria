@@ -103,7 +103,7 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
       {/* Tab Content */}
       <div className="detail-content-area">
         {activeTab === 'planner' && (
-          <LevelPlanner discipline={discipline} maxRank={maxRank} onOpenItem={onOpenItem} />
+          <LevelPlanner key={discipline} discipline={discipline} maxRank={maxRank} onOpenItem={onOpenItem} />
         )}
         {activeTab === 'discovery' && (
           <DiscoveryView

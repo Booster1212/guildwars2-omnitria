@@ -15,6 +15,7 @@
 import { useSyncExternalStore } from 'react';
 import { apiGet, buildUrl, describeApiError } from './client';
 import { createEmitter } from './cache';
+import { progressActions } from '../progressStore';
 
 const STORAGE_KEY = 'gw2_overlay_account_data_v1';
 
@@ -238,6 +239,9 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (crafting) {
+      progressActions.syncAccountRatings(crafting);
+    }
   } catch (e) {
     console.error('Account-Cache konnte nicht gespeichert werden', e);
   }
