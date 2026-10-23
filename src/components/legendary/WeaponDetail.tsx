@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { LegendaryModel, LegendaryWeapon } from '../../domain/legendary';
-import { GENERATION_LABEL, WEAPON_TYPE_DE, weaponSlot, SLOT_LABEL } from '../../domain/legendary';
+import { getGenerationLabel, getSlotLabel, WEAPON_TYPE_DE, weaponSlot } from '../../domain/legendary';
 import { buildTree } from '../../domain/recipeTree';
 import { estimateCosts } from '../../domain/costs';
 import { getItem, useItems } from '../../data/gw2/items';
@@ -64,21 +64,11 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
   const prices = usePrices(allTreeItemIds);
 
   const item = getItem(weapon.id);
-  const genInfo = GENERATION_LABEL[weapon.generation] ?? { short: `Gen ${weapon.generation}`, long: '' };
+  const genInfo = getGenerationLabel(weapon.generation, lang);
   const rawType = item?.weaponType ?? weapon.type;
   const typeLabel = lang === 'en' ? rawType : (WEAPON_TYPE_DE[rawType] ?? rawType);
   const slot = weaponSlot(weapon, item);
-  const slotLabel = slot
-    ? lang === 'en'
-      ? slot === 'oneHand'
-        ? 'One-Handed'
-        : slot === 'twoHand'
-        ? 'Two-Handed'
-        : slot === 'offHand'
-        ? 'Off-Hand'
-        : 'Aquatic'
-      : SLOT_LABEL[slot]
-    : '';
+  const slotLabel = slot ? getSlotLabel(slot, lang) : '';
 
   return (
     <div className="gw2-detail-panel weapon-detail-panel">

@@ -8,12 +8,14 @@ import { useItems } from '../../data/gw2/items';
 import { WeaponList } from './WeaponList';
 import { WeaponDetail } from './WeaponDetail';
 import { MaterialDetail } from '../material/MaterialDetail';
+import { useTranslation } from '../../i18n';
 
 interface LegendaryViewProps {
   userAchievements: Map<number, Gw2AccountAchievement>;
 }
 
 export const LegendaryView: React.FC<LegendaryViewProps> = ({ userAchievements }) => {
+  const { lang } = useTranslation();
   const model = useLegendaryModel();
   const account = useAccountState();
   const progress = useProgress();
@@ -88,7 +90,7 @@ export const LegendaryView: React.FC<LegendaryViewProps> = ({ userAchievements }
             onOpenItem={handleOpenItem}
           />
         ) : (
-          <div className="empty-panel">Keine Waffe ausgewählt.</div>
+          <div className="empty-panel">{lang === 'en' ? 'No weapon selected.' : 'Keine Waffe ausgewählt.'}</div>
         )}
       </div>
 

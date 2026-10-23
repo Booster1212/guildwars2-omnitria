@@ -8,32 +8,25 @@ Omnitria comes with full bilingual support (**English** by default, with instant
 
 ## 📸 Screenshots
 
-> [!TIP]
-> Place your in-game screenshots inside `docs/screenshots/` and update the links below to showcase Omnitria in action!
-
 ### 🏰 Full Hero Board & World Boss Timers
-<!-- Add screenshot: Full-screen board displaying the live event schedule and countdowns -->
 ![Full Hero Board](docs/screenshots/hero-board.png)
 *Live event timers, active world boss meta countdowns, and quick chat broadcast actions.*
 
 ---
 
 ### 💬 Compact Mini-HUD (Over-Chat Mode)
-<!-- Add screenshot: Compact widget docked over the in-game chat -->
 ![Compact Mini-HUD](docs/screenshots/mini-hud.png)
 *Unobtrusive in-game widget hovering directly above the Guild Wars 2 chat box.*
 
 ---
 
 ### 🔨 Crafting Level Planner & Discovery Assistant
-<!-- Add screenshot: Crafting planner showing level progression and discovery combinations -->
 ![Crafting Level Planner](docs/screenshots/crafting-planner.png)
 *Step-by-step 0–500 discipline leveling guide with automatic discovery recipe combinations.*
 
 ---
 
 ### ⚔️ Legendary Armory & Mystic Forge Recipe Tree
-<!-- Add screenshot: Legendary weapon component breakdown and material requirements -->
 ![Legendary Armory](docs/screenshots/legendary-armory.png)
 *Interactive Mystic Forge crafting trees, precursor collections, and live Trading Post material costs.*
 

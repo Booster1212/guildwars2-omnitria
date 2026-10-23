@@ -194,8 +194,12 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({ bom, weaponId, mod
                     <td className="sources-cell">
                       <div className="sources-tags-wrap">
                         {sources.slice(0, 3).map((s, idx) => (
-                          <span key={idx} className={`source-pill k-${s.kind}`} title={s.detail}>
-                            {s.label}
+                          <span
+                            key={idx}
+                            className={`source-pill k-${s.kind}`}
+                            title={lang === 'en' ? (s.detailEn || s.detail) : s.detail}
+                          >
+                            {lang === 'en' ? (s.labelEn || s.label) : s.label}
                           </span>
                         ))}
                         {sources.length > 3 && (

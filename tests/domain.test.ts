@@ -567,3 +567,37 @@ test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch', () => {
   assert.equal(drakkarBoss[0].categoryEn, 'Icebrood Saga');
 });
 
+test('Legendary & Quellen: Zweisprachige Lokalisierung Deutsch & Englisch', async () => {
+  const { getGenerationLabel, getSlotLabel } = await import('../src/domain/legendary.ts');
+  const { KIND_META, resolveSources } = await import('../src/domain/sources.ts');
+
+  // Generationen
+  assert.equal(getGenerationLabel(1, 'de').long, 'Generation 1 – Ursprüngliche Legendäre');
+  assert.equal(getGenerationLabel(1, 'en').long, 'Generation 1 – Core Tyria');
+  assert.equal(getGenerationLabel(2, 'en').long, 'Generation 2 – Heart of Thorns & Path of Fire');
+  assert.equal(getGenerationLabel(3, 'en').long, "Generation 3 – Aurene's Variants");
+  assert.equal(getGenerationLabel(15, 'en').long, 'Generation 4 – Janthir Wilds');
+
+  // Slots
+  assert.equal(getSlotLabel('oneHand', 'de'), 'Einhandwaffen');
+  assert.equal(getSlotLabel('oneHand', 'en'), 'One-Handed');
+  assert.equal(getSlotLabel('twoHand', 'en'), 'Two-Handed');
+  assert.equal(getSlotLabel('offHand', 'en'), 'Off-Hand');
+  assert.equal(getSlotLabel('aquatic', 'en'), 'Aquatic');
+
+  // Quellen & Beschaffung
+  assert.equal(KIND_META.gather.labelEn, 'Gatherable');
+  assert.equal(KIND_META.drop.labelEn, 'Enemy Drop');
+  assert.equal(KIND_META.salvage.labelEn, 'Salvage');
+  assert.equal(KIND_META.craft.labelEn, 'Crafting');
+  assert.equal(KIND_META.forge.labelEn, 'Mystic Forge');
+  assert.equal(KIND_META.trade.labelEn, 'Trading Post');
+
+  const sources = resolveSources({ item: undefined, tags: ['gathering', 'drop', 'salvage', 'mystic_forge'] });
+  assert.ok(sources.every((s) => s.label && s.labelEn));
+  assert.ok(sources.every((s) => s.detail && s.detailEn));
+  const gatherSource = sources.find((s) => s.kind === 'gather');
+  assert.equal(gatherSource?.label, 'Direkt sammelbar');
+  assert.equal(gatherSource?.labelEn, 'Gatherable');
+});
+

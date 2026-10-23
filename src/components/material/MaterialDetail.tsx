@@ -69,7 +69,9 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
     vendorRecipe: model.vendorRecipeFor(itemId),
     price,
   });
-  const caveats = [...new Set(sources.flatMap((s) => s.caveats))];
+  const caveats = [
+    ...new Set(sources.flatMap((s) => (lang === 'en' ? (s.caveatsEn && s.caveatsEn.length ? s.caveatsEn : s.caveats) : s.caveats))),
+  ];
   const stock = account.stockMap.get(itemId) ?? 0;
   const bd = account.data?.breakdown[itemId];
   const untradable = isUntradable(item);
@@ -209,7 +211,7 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
             {sources.map((s, i) => (
               <li key={i} className={`src k-${s.kind}`}>
                 <div className="src-head">
-                  <span className="src-kind">{s.label}</span>
+                  <span className="src-kind">{lang === 'en' ? (s.labelEn || s.label) : s.label}</span>
                   <OriginBadge origin={s.origin} />
                   <span className={`amount a-${s.amount}`}>
                     {s.amount === 'guaranteed'
@@ -219,12 +221,15 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
                       : (lang === 'en' ? 'amount unknown' : 'Menge unbekannt')}
                   </span>
                 </div>
-                <div className="src-detail">{s.detail}</div>
+                <div className="src-detail">{lang === 'en' ? (s.detailEn || s.detail) : s.detail}</div>
               </li>
             ))}
           </ul>
           <p className="hint">
-            {lang === 'en' ? 'Categories:' : 'Kategorien:'} {Object.values(KIND_META).map((k) => k.label).join(' · ')}.
+            {lang === 'en' ? 'Categories:' : 'Kategorien:'}{' '}
+            {Object.values(KIND_META)
+              .map((k) => (lang === 'en' ? (k.labelEn || k.label) : k.label))
+              .join(' · ')}.
           </p>
         </section>
 
@@ -274,7 +279,11 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
               ))}
               {usedInOutputs.length > 12 && <span className="dim">+{usedInOutputs.length - 12}</span>}
             </div>
-            <p className="hint">{lang === 'en' ? 'Official recipes only.' : 'Nur offizielle Handwerksrezepte (Mystische-Schmiede-Rezepte sind nicht in der API).'}</p>
+            <p className="hint">
+              {lang === 'en'
+                ? 'Official crafting recipes only (Mystic Forge recipes are not exposed by the API).'
+                : 'Nur offizielle Handwerksrezepte (Mystische-Schmiede-Rezepte sind nicht in der API).'}
+            </p>
           </section>
         )}
 

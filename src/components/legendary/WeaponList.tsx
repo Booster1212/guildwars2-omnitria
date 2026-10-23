@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { LegendaryModel, LegendaryWeapon, WeaponSlot } from '../../domain/legendary';
-import { GENERATION_LABEL, SLOT_LABEL, WEAPON_TYPE_DE, weaponSlot } from '../../domain/legendary';
+import { getGenerationLabel, WEAPON_TYPE_DE, weaponSlot } from '../../domain/legendary';
 import { getItem } from '../../data/gw2/items';
 import { useProgress, progressActions } from '../../data/progressStore';
 import { ItemIcon, ProgressBar } from '../common/ui';
@@ -75,7 +75,7 @@ export const WeaponList: React.FC<WeaponListProps> = ({
     const isTracked = trackedSet.has(w.id);
     const item = getItem(w.id);
     const prog = weaponProgressMap[w.id] ?? 0;
-    const genInfo = GENERATION_LABEL[w.generation] ?? { short: `Gen ${w.generation}` };
+    const genInfo = getGenerationLabel(w.generation, lang);
     const rawType = item?.weaponType ?? w.type;
     const typeLabel = lang === 'en' ? rawType : (WEAPON_TYPE_DE[rawType] ?? rawType);
 

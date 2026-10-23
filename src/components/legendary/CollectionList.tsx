@@ -108,6 +108,8 @@ export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchi
           const total = ach.total > 0 ? ach.total : 1;
           const frac = Math.min(1, current / total);
           const title = lang === 'en' ? (ach.nameEn || ach.name) : ach.name;
+          const requirement = lang === 'en' ? (ach.requirementEn || ach.requirement) : ach.requirement;
+          const description = lang === 'en' ? (ach.descriptionEn || ach.description) : ach.description;
 
           return (
             <div key={ach.id} className={`collection-card ${isDone ? 'card-complete' : ''}`}>
@@ -133,8 +135,8 @@ export const CollectionList: React.FC<CollectionListProps> = ({ weapon, userAchi
                   </div>
                 </div>
 
-                {ach.requirement && <div className="col-requirement dim">{ach.requirement}</div>}
-                {ach.description && <div className="col-desc">{ach.description}</div>}
+                {requirement && <div className="col-requirement dim">{requirement}</div>}
+                {description && <div className="col-desc">{description}</div>}
 
                 <div className="col-progress-bar">
                   <ProgressBar value={frac} tone={isDone ? 'gold' : 'green'} slim />

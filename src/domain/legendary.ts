@@ -33,10 +33,11 @@ export interface CommunityDataset {
  * Quelle: Community-Schätzung (nicht offiziell, nicht per API prüfbar) -> in der UI als Schätzung markiert.
  * Betrifft nur das 10er-Rezept für Mystische Kleeblätter (Ausgabe 10 bei Erfolg).
  */
-export const RANDOM_RECIPE_YIELD: Record<number, { yield: number; note: string }> = {
+export const RANDOM_RECIPE_YIELD: Record<number, { yield: number; note: string; noteEn?: string }> = {
   19675: {
     yield: 0.31,
     note: 'Mystische Kleeblätter: Zufallsrezept, Erfolgsquote laut Community ca. 31 % (Schätzung, schwankt).',
+    noteEn: 'Mystic Clovers: RNG recipe, average success rate ~31% according to community data (estimate, fluctuates).',
   },
 };
 
@@ -48,6 +49,17 @@ export const SLOT_LABEL: Record<WeaponSlot, string> = {
   offHand: 'Nebenhandwaffen',
   aquatic: 'Unterwasserwaffen',
 };
+
+export const SLOT_LABEL_EN: Record<WeaponSlot, string> = {
+  oneHand: 'One-Handed',
+  twoHand: 'Two-Handed',
+  offHand: 'Off-Hand',
+  aquatic: 'Aquatic',
+};
+
+export function getSlotLabel(slot: WeaponSlot, lang: string = 'en'): string {
+  return lang === 'de' ? SLOT_LABEL[slot] : SLOT_LABEL_EN[slot];
+}
 
 const SLOT_BY_TYPE: Record<string, WeaponSlot> = {
   Axe: 'oneHand',
@@ -100,13 +112,51 @@ export const WEAPON_TYPE_DE: Record<string, string> = {
 };
 
 /** Die Generationsnummern des Datensatzes sind interne Gruppen; hier die Anzeigenamen. */
-export const GENERATION_LABEL: Record<number, { short: string; long: string }> = {
-  1: { short: 'Generation 1', long: 'Generation 1 – Ursprüngliche Legendäre' },
-  2: { short: 'Generation 2', long: 'Generation 2 – Erweiterungs-Legendäre' },
-  3: { short: 'Generation 3', long: 'Generation 3 – Aurenes Waffen' },
-  15: { short: 'Generation 4', long: 'Generation 4 – Neueste Waffen (Speere u. a.)' },
-  0: { short: 'Unbekannt', long: 'Nicht im Datensatz (Generation unbekannt)' },
+export const GENERATION_LABEL: Record<number, { short: string; long: string; shortEn: string; longEn: string }> = {
+  1: {
+    short: 'Generation 1',
+    long: 'Generation 1 – Ursprüngliche Legendäre',
+    shortEn: 'Generation 1',
+    longEn: 'Generation 1 – Core Tyria',
+  },
+  2: {
+    short: 'Generation 2',
+    long: 'Generation 2 – Erweiterungs-Legendäre',
+    shortEn: 'Generation 2',
+    longEn: 'Generation 2 – Heart of Thorns & Path of Fire',
+  },
+  3: {
+    short: 'Generation 3',
+    long: 'Generation 3 – Aurenes Waffen',
+    shortEn: 'Generation 3',
+    longEn: "Generation 3 – Aurene's Variants",
+  },
+  15: {
+    short: 'Generation 4',
+    long: 'Generation 4 – Neueste Waffen (Speere u. a.)',
+    shortEn: 'Generation 4',
+    longEn: 'Generation 4 – Janthir Wilds',
+  },
+  0: {
+    short: 'Unbekannt',
+    long: 'Nicht im Datensatz (Generation unbekannt)',
+    shortEn: 'Unknown',
+    longEn: 'Not in dataset (Generation unknown)',
+  },
 };
+
+export function getGenerationLabel(gen: number, lang: string = 'en'): { short: string; long: string } {
+  const info = GENERATION_LABEL[gen] ?? {
+    short: `Gen ${gen}`,
+    long: `Generation ${gen}`,
+    shortEn: `Gen ${gen}`,
+    longEn: `Generation ${gen}`,
+  };
+  return {
+    short: lang === 'de' ? info.short : info.shortEn,
+    long: lang === 'de' ? info.long : info.longEn,
+  };
+}
 
 export function slotOf(weaponType: string | undefined): WeaponSlot | undefined {
   return weaponType ? SLOT_BY_TYPE[weaponType] : undefined;

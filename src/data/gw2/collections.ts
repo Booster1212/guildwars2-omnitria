@@ -14,6 +14,8 @@ export interface CollectionAchievement {
   name: string;
   description: string;
   requirement: string;
+  descriptionEn?: string;
+  requirementEn?: string;
   /** Anzahl Teilziele laut Erfolgsdefinition (bits) bzw. Schwellwert */
   total: number;
 }
@@ -32,7 +34,7 @@ interface ApiCategory {
   achievements: number[];
 }
 
-const CACHE_KEY = `collections:${LANG}:v1`;
+const CACHE_KEY = `collections:v2`;
 const TTL_MS = 14 * 24 * 3600 * 1000;
 const emitter = createEmitter();
 
@@ -84,6 +86,8 @@ export function loadCollections(): Promise<void> {
           name: l.name,
           description: clean(l.description),
           requirement: clean(l.requirement),
+          descriptionEn: clean(a.description),
+          requirementEn: clean(a.requirement),
           total: a.bits?.length ?? a.tiers?.[a.tiers.length - 1]?.count ?? 0,
         };
       });
