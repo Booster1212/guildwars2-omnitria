@@ -71,20 +71,21 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   const [watchlist, setWatchlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_WATCHLIST);
-      return saved ? JSON.parse(saved) : ['daily-completer', 'wb-tequatl-meta'];
+      return saved ? JSON.parse(saved) : ['daily-worldboss', 'wb-tequatl-meta'];
     } catch {
-      return ['daily-completer', 'wb-tequatl-meta'];
+      return ['daily-worldboss', 'wb-tequatl-meta'];
     }
   });
 
   const categoryTabs: CategoryTabOption[] = [
-    { id: 'all', label: t('achievements.all') },
+    { id: 'all', label: lang === 'en' ? 'All Bosses' : 'Alle Bosse' },
     { id: 'watchlist', label: t('achievements.watchlist') },
-    { id: 'daily', label: t('achievements.daily') },
-    { id: 'worldboss', label: t('achievements.worldboss') },
-    { id: 'exploration', label: t('achievements.exploration') },
-    { id: 'fractals', label: t('achievements.fractals') },
-    { id: 'collections', label: t('achievements.collections') },
+    { id: 'worldboss', label: lang === 'en' ? 'Core World Bosses' : 'Core Weltenbosse' },
+    { id: 'hot', label: 'Heart of Thorns' },
+    { id: 'pof', label: lang === 'en' ? 'Path of Fire & IBS' : 'Path of Fire & Eisbrut' },
+    { id: 'eod', label: 'End of Dragons' },
+    { id: 'soto', label: 'Secrets of the Obscure' },
+    { id: 'janthir', label: lang === 'en' ? 'Janthir & Future' : 'Janthir & Zukunft' },
   ];
 
   const toggleWatchlist = (achId: string) => {

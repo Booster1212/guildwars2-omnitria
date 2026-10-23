@@ -52,7 +52,9 @@ export interface WorldEvent {
     intervalHours?: number;     // e.g. 2 or 3
   };
   lootHighlights: string[];
+  lootHighlightsEn?: string[];
   tactics: string;
+  tacticsEn?: string;
   iconType: IconType;
   achievements?: BossAchievement[];
 }
@@ -67,7 +69,7 @@ export interface EventInstance {
 }
 
 export type MessageTemplateType = 'standard' | 'compact' | 'waypointOnly' | 'detailed';
-export type OverlayTab = 'events' | 'waypoints' | 'achievements' | 'crafting' | 'legendary';
+export type OverlayTab = 'events' | 'achievements' | 'crafting' | 'legendary';
 
 export type SortMode = 'time' | 'grouped' | 'bossesFirst' | 'metasFirst';
 

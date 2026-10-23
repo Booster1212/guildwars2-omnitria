@@ -2,7 +2,6 @@ import React from 'react';
 import type { OverlayTab } from '../types';
 import {
   GlyphEvents,
-  GlyphWaypoint,
   GlyphAchievements,
   GlyphCrafting,
   GlyphLegendary,
@@ -38,18 +37,7 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
         {currentTab === 'events' && <div className="nav-rail-active-notch" />}
       </button>
 
-      {/* 2. Wegmarken-Verzeichnis */}
-      <button
-        className={`nav-rail-item ${currentTab === 'waypoints' ? 'active' : ''}`}
-        onClick={() => onSelectTab('waypoints')}
-        title={t('nav.waypoints')}
-      >
-        <div className="nav-item-icon">
-          <GlyphWaypoint />
-        </div>
-        <span className="nav-rail-label">{t('nav.waypoints')}</span>
-        {currentTab === 'waypoints' && <div className="nav-rail-active-notch" />}
-      </button>
+
 
       {/* 3. Bosse & Erfolge */}
       <button

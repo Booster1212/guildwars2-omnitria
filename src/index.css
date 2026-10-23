@@ -1942,81 +1942,368 @@ button {
   color: var(--gw2-text-dim);
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
-.gw2-details-toggle-btn:hover { color: #fff; }
+.gw2-details-toggle-btn:hover {
+  color: #fff;
+  background: rgba(212, 175, 55, 0.09);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+.gw2-details-toggle-btn.expanded {
+  color: var(--gw2-gold-bright);
+  background: rgba(212, 175, 55, 0.13);
+  border-color: rgba(212, 175, 55, 0.45);
+}
+.gw2-details-toggle-btn .info-btn-glyph {
+  color: var(--gw2-gold);
+  flex-shrink: 0;
+}
 
-.gw2-card-achievements-drawer, .gw2-card-tactics-drawer {
-  padding: 8px 10px;
-  background: #0f1115;
-  border-top: 1px solid #1f232d;
+/* ====================================================================
+   AUFGEHÜBSCHTE ERFOLGS- & LOOT-DRAWER FÜR EVENT-KARTEN
+   ==================================================================== */
+
+.gw2-card-achievements-drawer {
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #0e1118 0%, #080a0e 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
   font-size: 11px;
 }
-.drawer-header {
+.gw2-card-achievements-drawer .drawer-header {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-bottom: 4px;
+  justify-content: space-between;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 8px;
+}
+.drawer-header-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 .drawer-title {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--gw2-gold);
+  letter-spacing: 0.3px;
 }
+.drawer-count-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gw2-gold);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.drawer-header-right {
+  display: flex;
+  align-items: center;
+}
+.drawer-ap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--gw2-gold);
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.drawer-ap-pill .ap-icon {
+  color: var(--gw2-gold);
+}
+
 .drawer-achieve-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .drawer-achieve-item {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  background: #14161c;
-  border: 1px solid #232732;
-  padding: 5px 8px;
+  gap: 9px;
+  background: #131620;
+  border: 1px solid #232838;
+  border-left: 3px solid rgba(212, 175, 55, 0.6);
+  padding: 7px 10px;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+.drawer-achieve-item:hover {
+  background: #171b27;
+  border-color: #333a4f;
+  border-left-color: var(--gw2-gold);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 .drawer-achieve-item.ach-done {
-  background: rgba(56, 193, 114, 0.05);
-  border-color: #1a3822;
+  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.25);
+  border-left-color: #22c55e;
+}
+.ach-icon-col {
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+.ach-glyph.gold {
+  color: var(--gw2-gold);
+}
+.ach-glyph.done {
+  color: #22c55e;
 }
 .ach-left {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   flex: 1;
+  min-width: 0;
 }
 .ach-title-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .ach-item-title {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: #fff;
+  color: #f8fafc;
+  letter-spacing: 0.2px;
 }
 .ach-status-pill {
-  font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 1px;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 .ach-status-pill.done {
   background: #13331c;
   color: #86efac;
+  border: 1px solid rgba(134, 239, 172, 0.25);
 }
 .ach-status-pill.inprogress {
   background: #2b2210;
   color: #fde047;
+  border: 1px solid rgba(253, 224, 71, 0.25);
 }
 .ach-reward-title {
-  font-size: 9px;
-  color: #fde047;
+  font-size: 9.5px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  padding: 1px 5px;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 .ach-item-desc {
+  font-size: 10.5px;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+/* ====================================================================
+   TAKTIK & LOOT DETAILS (AUFGEHÜBSCHT)
+   ==================================================================== */
+.gw2-card-tactics-drawer {
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #0e1118 0%, #080a0e 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 11px;
+}
+
+.gw2-tactics-card {
+  background: rgba(18, 22, 32, 0.85);
+  border: 1px solid #232736;
+  border-left: 3px solid var(--gw2-gold);
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+.gw2-tactics-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--gw2-gold);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+.tactics-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tactics-badges-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.tactic-mini-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 2px;
+  letter-spacing: 0.2px;
+  line-height: 1.3;
+}
+.tactic-mini-tag .tag-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+.tactics-header-icon {
+  color: var(--gw2-gold);
+  flex-shrink: 0;
+}
+.tactics-card-body {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.gw2-loot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(15, 18, 26, 0.6);
+  border: 1px solid #1f2330;
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+.gw2-loot-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  color: #f6ad55;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.loot-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.loot-header-icon {
+  color: #f6ad55;
+  flex-shrink: 0;
+}
+.loot-count-badge {
   font-size: 10px;
-  color: var(--gw2-text-dim);
+  background: rgba(246, 173, 85, 0.12);
+  color: #f6ad55;
+  border: 1px solid rgba(246, 173, 85, 0.3);
+  padding: 0 5px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+.loot-badges-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.loot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  background: #141722;
+  border: 1px solid #2b3144;
+  color: #e2e8f0;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.loot-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+.loot-chip-icon {
+  flex-shrink: 0;
+}
+.loot-chip-name {
+  white-space: normal;
+}
+.loot-chip.has-item-icon {
+  padding: 2px 8px 2px 2px;
+  gap: 7px;
+}
+.loot-chip.has-item-icon .gi-s {
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+/* Rarity Accents for GW2 Loot Chips */
+.loot-chip-legendary {
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.45) 0%, rgba(20, 16, 35, 0.95) 100%);
+  border-color: rgba(168, 85, 247, 0.55);
+  color: #f3e8ff;
+}
+.loot-chip-legendary .loot-chip-icon {
+  color: #c084fc;
+}
+
+.loot-chip-ascended {
+  background: linear-gradient(135deg, rgba(159, 18, 57, 0.45) 0%, rgba(28, 14, 20, 0.95) 100%);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #ffe4e6;
+}
+.loot-chip-ascended .loot-chip-icon {
+  color: #fb7185;
+}
+
+.loot-chip-rare {
+  background: linear-gradient(135deg, rgba(146, 64, 14, 0.4) 0%, rgba(26, 20, 14, 0.95) 100%);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fef3c7;
+}
+.loot-chip-rare .loot-chip-icon {
+  color: #fbbf24;
+}
+
+.loot-chip-standard {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #e2e8f0;
+}
+.loot-chip-standard .loot-chip-icon {
+  color: #94a3b8;
 }
 
 /* Mini HUD (Docked Over In-Game Chat) */

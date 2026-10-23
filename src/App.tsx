@@ -7,7 +7,7 @@ import { AchievementsView } from './components/AchievementsView';
 import { MiniWidget } from './components/MiniWidget';
 import { SettingsModal } from './components/SettingsModal';
 import { Toast } from './components/Toast';
-import { getEventSchedule, formatCallout } from './data/events';
+import { getEventSchedule, formatCallout, LOOT_ITEM_ID_MAP } from './data/events';
 import { playCopyChime } from './data/audio';
 import { EventInstance, OverlaySettings, SortMode, OverlayTab } from './types';
 import {
@@ -18,7 +18,7 @@ import {
 import { syncIfStale } from './data/gw2/account';
 import { ensureItems } from './data/gw2/items';
 import { DISCIPLINE_ICON_ITEM } from './components/common/labels';
-import { WaypointsView } from './components/waypoints/WaypointsView';
+
 import { CraftingView } from './components/crafting/CraftingView';
 import { LegendaryView } from './components/legendary/LegendaryView';
 import { useTranslation } from './i18n';
@@ -168,6 +168,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     const preloadIds = [
       ...Object.values(DISCIPLINE_ICON_ITEM),
+      ...Object.values(LOOT_ITEM_ID_MAP),
       30689, // Sonnenaufgang (Sunrise)
       30684, // Düsterkeit (Twilight)
       30687, // Ewigkeit (Eternity)
@@ -456,15 +457,7 @@ export const App: React.FC = () => {
                   )}
                 </div>
               </>
-            ) : currentTab === 'waypoints' ? (
-              <WaypointsView
-                settings={settings}
-                onToast={(msg) => {
-                  if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-                  setToastMessage(msg);
-                  toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
-                }}
-              />
+
             ) : currentTab === 'crafting' ? (
               <CraftingView />
             ) : currentTab === 'legendary' ? (

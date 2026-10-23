@@ -61,8 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getSubTitle = () => {
     switch (currentTab) {
-      case 'waypoints':
-        return t('waypoints.title');
+
       case 'achievements':
         return t('achievements.title');
       case 'crafting':

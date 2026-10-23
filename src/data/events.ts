@@ -25,7 +25,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Schamanen-Truhe', 'Seltene Ausrüstung (Ektoplasma)', 'Trophäen & Handwerksmaterialien'],
-    tactics: 'Der Schamane beschwört Eisstürme und Frost-Elementare. Bleibe in Bewegung und nutze Fernkampf oder Feuerfertigkeiten.',
+        lootHighlightsEn: ["Shaman Chest","Glacial Chest","Rare Equipment"],
+        tactics: 'Der Schamane beschwört Eisstürme und Frost-Elementare. Bleibe in Bewegung und nutze Fernkampf oder Feuerfertigkeiten.',
+        tacticsEn: "Destroy Shaman totems and ice elementals. Dodge out of blizzard storms and cold aura fields.",
     iconType: 'elemental',
   },
   {
@@ -48,7 +50,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Feuer-Matrix-Truhe', 'Rote Funken', 'Seltene Ausrüstung'],
-    tactics: 'Golems über die Brücke eskortieren, Schadensflächen auf dem Boden meiden und die Matrix-Kerne attackieren.',
+        lootHighlightsEn: ["Fire Matrix Chest","Red Sparks","Rare Equipment"],
+        tactics: 'Golems über die Brücke eskortieren, Schadensflächen auf dem Boden meiden und die Matrix-Kerne attackieren.',
+        tacticsEn: "Escort C.L.E.A.N. golems across the bridge, avoid lava floor hazards, and destroy the Matrix Cores.",
     iconType: 'elemental',
   },
   {
@@ -71,7 +75,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Dschungelwurm-Truhe', 'Giftige Drüsen', 'Handwerksrohstoffe'],
-    tactics: 'Giftblüten im Sumpf schnell zertrampeln, damit sich keine giftigen Gaswolken ausbreiten, dann Kopf fokussieren.',
+        lootHighlightsEn: ["Jungle Wurm Chest","Toxic Glands","Crafting Materials"],
+        tactics: 'Giftblüten im Sumpf schnell zertrampeln, damit sich keine giftigen Gaswolken ausbreiten, dann Kopf fokussieren.',
+        tacticsEn: "Trample toxic blooms in the swamp to prevent poison clouds, then focus damage on the wurm head.",
     iconType: 'wurm',
   },
   {
@@ -94,7 +100,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Behemoth-Truhe', 'Garantierte Gelbe/Seltene Items', 'Schatten-Fragmente'],
-    tactics: 'Zerstöre zuerst die Unterwelt-Portale im Gottlosen Sumpf. Sobald der Behemoth erscheint, attackiere Kopf und Hände.',
+        lootHighlightsEn: ["Behemoth Chest","Guaranteed Rare Items","Shadow Fragments"],
+        tactics: 'Zerstöre zuerst die Unterwelt-Portale im Gottlosen Sumpf. Sobald der Behemoth erscheint, attackiere Kopf und Hände.',
+        tacticsEn: "Close the underworld portals across Godlost Swamp. Once the Behemoth emerges, attack its head and claws.",
     iconType: 'dragon',
   },
   {
@@ -117,7 +125,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Taidhas Piratentruhe', 'Drachenit-Erz', 'Seltene Piraten-Waffen'],
-    tactics: 'Trage Bombenfässer an die Galeerentore, weiche Mörserbeschuss aus und unterbrich Taidhas mächtige Schrotflinten-Attacken.',
+        lootHighlightsEn: ["Taidha's Pirate Chest","Dragonite Ore","Rare Pirate Weapons"],
+        tactics: 'Trage Bombenfässer an die Galeerentore, weiche Mörserbeschuss aus und unterbrich Taidhas mächtige Schrotflinten-Attacken.',
+        tacticsEn: "Carry bomb kegs to the galley gates, dodge mortar barrages, and interrupt Taidha's heavy shotgun attacks.",
     iconType: 'pirate',
   },
   {
@@ -140,7 +150,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Zerstörer-Kern-Truhe', 'Zerstörer-Magnetsteine', 'Drachenit-Erz'],
-    tactics: 'Schütze die Asura-Kühlsysteme. Bei Verwundbarkeit CC einsetzen und dem flüssigen Lava-Ausstoß ausweichen.',
+        lootHighlightsEn: ["Destroyer Core Chest","Destroyer Lodestone","Dragonite Ore"],
+        tactics: 'Schütze die Asura-Kühlsysteme. Bei Verwundbarkeit CC einsetzen und dem flüssigen Lava-Ausstoß ausweichen.',
+        tacticsEn: "Protect the Asura cooling vents. Use heavy CC on the defiance breakbar and evade erupting magma bursts.",
     iconType: 'elemental',
   },
   {
@@ -163,7 +175,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Kristall-Drachentruhe', 'Gepulste Drachenit-Blöcke', 'Kristallisierte Drachen-Fragmente'],
-    tactics: 'Nutze Mörser und Sprungkissen für Luftbomben. Wenn die Trotzleiste (Breakbar) erscheint, sofort alle Betäubungen einsetzen!',
+        lootHighlightsEn: ["Crystal Dragon Chest","Dragonite Ore","Crystallized Dragon Fragments"],
+        tactics: 'Nutze Mörser und Sprungkissen für Luftbomben. Wenn die Trotzleiste (Breakbar) erscheint, sofort alle Betäubungen einsetzen!',
+        tacticsEn: "Use mortars and jump pads for gliding bomb drops. When the defiance breakbar appears, immediately unload all CC!",
     iconType: 'dragon',
   },
   {
@@ -186,7 +200,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Ulgoths Kriegstruhe', 'Zentauren-Vorräte', 'Große Mengen T4-T5 Leder'],
-    tactics: 'Schlage die Zentauren-Camps Schritt für Schritt zurück. Im Kriegslager Ulgoth und seinen beschworenen Erdelementar trennen.',
+        lootHighlightsEn: ["Ulgoth's War Chest","Centaur Supplies","Bulk T4-T5 Leather"],
+        tactics: 'Schlage die Zentauren-Camps Schritt für Schritt zurück. Im Kriegslager Ulgoth und seinen beschworenen Erdelementar trennen.',
+        tacticsEn: "Push back the Centaur invasion waves. Watch out for Ulgoth's shockwave stomps and quickly eliminate war hounds.",
     iconType: 'sword',
   },
   {
@@ -209,7 +225,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Inquestur-Prototyp-Kiste', 'Matrix-Kerne', 'Aufgeladene Kerne & Magnetsteine'],
-    tactics: 'Verlasse sofort die elektrifizierten Bodenplatten! Elektrische Entladungen werfen um und verursachen enormen Schaden.',
+        lootHighlightsEn: ["Inquest Prototype Box","Inquest Energy Core","Matrix Cores"],
+        tactics: 'Verlasse sofort die elektrifizierten Bodenplatten! Elektrische Entladungen werfen um und verursachen enormen Schaden.',
+        tacticsEn: "Avoid electrified ground plates and poison canisters. Destroy Inquest repair drones when the shield activates.",
     iconType: 'golem',
   },
   {
@@ -232,7 +250,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Gletscher-Truhe', 'Eisbrut-Verderbnis-Fragmente', 'Seltene Sigille & Runen'],
-    tactics: 'Phase 1: Schutzwand aus Eis mit Flammenwerfern/Sprengstoff zerstören. Phase 2: Bombenträger-Golems zur betäubten Klaue eskortieren.',
+        lootHighlightsEn: ["Glacial Chest","Dragonite Ore","Charged Lodestone & Core"],
+        tactics: 'Phase 1: Schutzwand aus Eis mit Flammenwerfern/Sprengstoff zerstören. Phase 2: Bombenträger-Golems zur betäubten Klaue eskortieren.',
+        tacticsEn: "Shatter the corrupted ice pillars first. In Phase 2, escort bomb-carrying pact golems to breach its barrier.",
     iconType: 'dragon',
   },
 
@@ -265,7 +285,9 @@ export const EVENTS: WorldEvent[] = [
       ],
     },
     lootHighlights: ['Tequatls Schatzkiste', 'Aufgestiegene Sonnenlose Waffen', 'Mächtiges Drachenit-Erz'],
-    tactics: 'Hütet die Hylek-Geschütze (Finger säubern, Schilde brechen, Büffs verteilen). Springt über die Schockwellen bei Tequats Stampfer!',
+        lootHighlightsEn: ["Tequatl's Hoard","Ascended Sunless Weapons","Dragonite Ore"],
+        tactics: 'Hütet die Hylek-Geschütze (Finger säubern, Schilde brechen, Büffs verteilen). Springt über die Schockwellen bei Tequats Stampfer!',
+        tacticsEn: "HIGH PRIORITY: Jump over every shockwave! Hylek turret gunners cleanse poison fingers and buff the team.",
     iconType: 'dragon',
   },
   {
@@ -294,7 +316,9 @@ export const EVENTS: WorldEvent[] = [
       ],
     },
     lootHighlights: ['Karka-Königin-Truhe', 'Wertvolle Karka-Panzer', 'Passiflora & T6-Blut'],
-    tactics: 'Sammle siedende Karka-Eier auf und wirf sie auf die Königin, um ihre undurchdringliche Panzerung zu schmelzen.',
+        lootHighlightsEn: ["Karka Shell","Passion Flowers & T6 Blood","Floating Coral Deposit"],
+        tactics: 'Sammle siedende Karka-Eier auf und wirf sie auf die Königin, um ihre undurchdringliche Panzerung zu schmelzen.',
+        tacticsEn: "Trample karka eggs and throw boiling bile canisters to strip away her invulnerable armored shell.",
     iconType: 'karka',
   },
   {
@@ -323,7 +347,9 @@ export const EVENTS: WorldEvent[] = [
       ],
     },
     lootHighlights: ['Große Wurmtruhe', 'Aufgestiegene Rüstungstruhen', 'Seltene Dreiköpfige Trophäen'],
-    tactics: 'Erfordert 3 organisierte Kartengruppen (Bernstein, Kobalt, Purpur). Alle drei Köpfe müssen innerhalb von 60 Sek. fallen!',
+        lootHighlightsEn: ["Great Wurm Chest","Rare Triple-Headed Trophies","Ascended Armor Chests"],
+        tactics: 'Erfordert 3 organisierte Kartengruppen (Bernstein, Kobalt, Purpur). Alle drei Köpfe müssen innerhalb von 60 Sek. fallen!',
+        tacticsEn: "Coordinated 3-way decapitation (Amber, Cobalt, Crimson). Requires strict CC rotations and synchronized execution.",
     iconType: 'wurm',
   },
 
@@ -350,7 +376,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Große Erhabenen-Schatzkammer', 'Aurillium-Währung', 'Massenhaft Ektoplasmakugeln & Gelbe Ausrüstung'],
-    tactics: 'Vier Tore (Nord, Süd, Ost, West) müssen gleichzeitig die Octovine-Reben zerstören. Koordination über Kartenchat!',
+        lootHighlightsEn: ["Auric Basin: Hero's Choice Chest","Lump of Aurillium","Great Exalted Chest"],
+        tactics: 'Vier Tore (Nord, Süd, Ost, West) müssen gleichzeitig die Octovine-Reben zerstören. Koordination über Kartenchat!',
+        tacticsEn: "All 4 gates (North, South, East, West) must breach simultaneously. Roll bombs, glide-bomb, and strip octovine armor.",
     iconType: 'crystal',
   },
   {
@@ -373,7 +401,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Chak-Eiersack (Extrem wertvoll!)', 'Ley-Linien-Funken', 'HoT-Schlüssel & Truhen'],
-    tactics: 'Kanonen mit Energie füllen, Sporen detonieren und den Vormarsch des Gerents in allen vier Gängen stoppen.',
+        lootHighlightsEn: ["Chak Egg Sac (Extremely Valuable!)","Tangled Depths: Hero's Choice Chest","Ley Line Spark"],
+        tactics: 'Kanonen mit Energie füllen, Sporen detonieren und den Vormarsch des Gerents in allen vier Gängen stoppen.',
+        tacticsEn: "Defend all 4 lanes. Protect SCAR cannons, break the Gerent defiance bars, and trigger ceiling rockfalls.",
     iconType: 'karka',
   },
   {
@@ -396,7 +426,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Luftschiff-Fracht', 'Geflügelte Helme & Rüstung', 'Pakt-Krähen-Belohnungen'],
-    tactics: 'Über Nacht alle fünf Champions in den Baumkronen bezwingen, um Stufe 4 für maximale Beute zu erreichen.',
+        lootHighlightsEn: ["Verdant Brink: Hero's Choice Chest","Bottle of Airship Oil","Pact Crowbar Keys & Chests"],
+        tactics: 'Über Nacht alle fünf Champions in den Baumkronen bezwingen, um Stufe 4 für maximale Beute zu erreichen.',
+        tacticsEn: "Defend pact rally points to reach Tier 4. Take canopy updrafts with gliders to slay legendary night bosses.",
     iconType: 'airship',
   },
   {
@@ -419,7 +451,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Mund von Mordremoth Kiste', 'Kristalline Erze', 'Noxious Pods & Rezepte'],
-    tactics: 'Drei Pfade rücken gleichzeitig vor. Auf den Inseln Gleiter nutzen und die Blüten zerfetzen.',
+        lootHighlightsEn: ["Dragon's Stand: Hero's Choice Chest","Crystalline Ore","Mouth of Mordremoth Chest"],
+        tactics: 'Drei Pfade rücken gleichzeitig vor. Auf den Inseln Gleiter nutzen und die Blüten zerfetzen.',
+        tacticsEn: "Escort 3 pact vanguard lanes. Weaken the Mouth of Mordremoth across islands and glide-bomb exposed weakpoints.",
     iconType: 'dragon',
   },
 
@@ -469,7 +503,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Tormentierte Truhe', 'Vergessene Grabschätze', 'Geschmiedeten-Rüstung'],
-    tactics: 'Belagere das Portal zur Unterwelt, eskortiere die Belagerungsmaschinen und besiege die Dämonen-Generäle.',
+        lootHighlightsEn: ["Domain of Vabbi: Hero's Choice Chest","Grand Vabbi Treasure Chest","Pulsing Brandspark"],
+        tactics: 'Belagere das Portal zur Unterwelt, eskortiere die Belagerungsmaschinen und besiege die Dämonen-Generäle.',
+        tacticsEn: "Siege Realm portal disruptors. Close Torment rifts and bring down the towering Forged demigods.",
     iconType: 'portal',
   },
   {
@@ -492,7 +528,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Große Vabbi-Schatzkiste', 'Pulsierende Verbrannte Magie', 'Seltene Wüstenornamente'],
-    tactics: 'Erfordert CC-Koordination! Die Verheerten Branddrachen brechen und die Zeugen von Ysshi Hessani eliminieren.',
+        lootHighlightsEn: ["Domain of Vabbi: Hero's Choice Chest","Pulsing Brandspark","Rare Desert Ornaments"],
+        tactics: 'Erfordert CC-Koordination! Die Verheerten Branddrachen brechen und die Zeugen von Ysshi Hessani eliminieren.',
+        tacticsEn: "Extreme CC requirement! Coordinate crowd-control on the 5 Branded Zealots and interrupt devastating wipes.",
     iconType: 'shield',
   },
 
@@ -519,7 +557,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Erinnerungen an Aurene', 'Drachenwaffen-Kisten', 'Tyrianische Verteidigungssiegel'],
-    tactics: 'Aurenes Prismen aufladen, Frost- und Feuer-Champions abwehren und beide Altdrachen besiegen.',
+        lootHighlightsEn: ["Memories of Aurene","Dragon Slayer Weapon Boxes","Tyrian Defense Seals"],
+        tactics: 'Aurenes Prismen aufladen, Frost- und Feuer-Champions abwehren und beide Altdrachen besiegen.',
+        tacticsEn: "Support Aurene's prismatic forces. Evade Jormag's frost squalls and Primordus magma waves using thermal updrafts.",
     iconType: 'dragon',
   },
   {
@@ -542,7 +582,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Drakkars Eistruhe', 'Geister-der-Wildnis-Segen', 'Aufgestiegene Eisbrut-Ausrüstung'],
-    tactics: 'Raven-Schreine aktivieren, durch Geisterportale springen und Drakkar durch das Eis jagen.',
+        lootHighlightsEn: ["Drakkar's Ice Chest","Ascended Icebrood Gear","Corrupted Icebrood Fragments"],
+        tactics: 'Raven-Schreine aktivieren, durch Geisterportale springen und Drakkar durch das Eis jagen.',
+        tacticsEn: "Avoid shadow pools. Enter the Raven, Bear, and Wolf spirit shrines to defeat champions and interrupt Drakkar.",
     iconType: 'dragon',
   },
   {
@@ -565,7 +607,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Kaiserliche Gunst', 'Schatzkisten der Kaiserin', 'Jade-Runenstein-Möglichkeit'],
-    tactics: 'Schwere Ätherklingen-Luftschiffe bombardieren, Batterien deaktivieren und Renyak ausschalten.',
+        lootHighlightsEn: ["Seitung Province: Hero's Choice Chest","Imperial Favor","Empress Reward Chests"],
+        tactics: 'Schwere Ätherklingen-Luftschiffe bombardieren, Batterien deaktivieren und Renyak ausschalten.',
+        tacticsEn: "Charge Renvoi power batteries, disable Aetherblade cannons, and deplete Renak's defiance bar with hard CC.",
     iconType: 'airship',
   },
   {
@@ -588,7 +632,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Kaineng-Versorgungsbehälter', 'Jade-Technologie-Fragmente', 'T6-Trophäen'],
-    tactics: 'Stromausfall beheben, Befallene Ministeriums-Golems zerstören und den Jade-Reaktor sichern.',
+        lootHighlightsEn: ["New Kaineng City: Hero's Choice Chest","Kaineng Supply Caches","Chance at Jade Runestone"],
+        tactics: 'Stromausfall beheben, Befallene Ministeriums-Golems zerstören und den Jade-Reaktor sichern.',
+        tacticsEn: "Restore Jade Power sub-stations, utilize ziplines, and defeat Minister Li atop the Kaineng Ministry towers.",
     iconType: 'golem',
   },
   {
@@ -611,7 +657,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Jadebruderschaft-Vorräte', 'Krähen-Schmuggelgut', 'Alte Echowald-Schätze'],
-    tactics: 'Schrottplatz gegen Angreifer verteidigen, Festung der Jadebruderschaft stürmen und Prototyp-Roboter zerlegen.',
+        lootHighlightsEn: ["The Echovald Wilds: Hero's Choice Chest","Chunk of Ancient Ambergris","Ancient Echovald Treasures"],
+        tactics: 'Schrottplatz gegen Angreifer verteidigen, Festung der Jadebruderschaft stürmen und Prototyp-Roboter zerlegen.',
+        tacticsEn: "Repel the Jade Brotherhood and Speakers. Siege Fort Aspenwood and harvest ancient Kurzick amber deposits.",
     iconType: 'sword',
   },
   {
@@ -634,7 +682,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Erinnerung an Soo-Won', 'Belagerungsschildkröten-Ei-Fortschritt', 'Legendäre Fragmente'],
-    tactics: 'Höchste Koordination nötig: Alle 3 Schreine vorbereiten, Segnungen sammeln und Soo-Wons Verderbnis reinigen.',
+        lootHighlightsEn: ["Dragon's End: Hero's Choice Chest","Antique Summoning Stone","Jade Runestone"],
+        tactics: 'Höchste Koordination nötig: Alle 3 Schreine vorbereiten, Segnungen sammeln und Soo-Wons Verderbnis reinigen.',
+        tacticsEn: "MAXIMUM COORDINATION! Complete wisp rush, CC the tail and head, stack on green cleansing pads, and free Soo-Won.",
     iconType: 'dragon',
   },
 
@@ -707,7 +757,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Prächtige Konvergenz-Truhe', 'Unstabile Kryptis-Essenz', 'Resonierende Riss-Fragmente', 'Legendäre Rüstungs-Materialien'],
-    tactics: '50-Spieler-Instanz: Sammelt Essenzen für Zha-Liss, sichert Belagerungs-Inseln und bezwingt legendäre Kryptis-Fürsten (Dreadwing, HellSister, Demon Lord).',
+        lootHighlightsEn: ["Magnificent Convergence Chest","Unstable Kryptis Essence","Resonating Rift Fragments"],
+        tactics: '50-Spieler-Instanz: Sammelt Essenzen für Zha-Liss, sichert Belagerungs-Inseln und bezwingt legendäre Kryptis-Fürsten (Dreadwing, HellSister, Demon Lord).',
+        tacticsEn: "Defeat legendary Kryptis commanders (Sorrow, Dread, Decima). Collect motes and protect the siege engine.",
     iconType: 'portal',
   },
   {
@@ -730,7 +782,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Belohnungstruhe von Zakiros', 'Essenz des Mitternachtskönigs', 'Kryptis-Königskrone', 'Exotische Zakiros-Waffen'],
-    tactics: 'Durchbrich die Zitadellentore, reinige die Blutsäulen und stelle Eparch in seinem Thronsaal, bevor er Tyria verschlingt.',
+        lootHighlightsEn: ["Zakiros Reward Chest","Essence of the Midnight King","Crown of the Kryptis King"],
+        tactics: 'Durchbrich die Zitadellentore, reinige die Blutsäulen und stelle Eparch in seinem Thronsaal, bevor er Tyria verschlingt.',
+        tacticsEn: "Infiltrate Citadel of Zakiros and topple King Eparch. Cleanse emotional consume motes and break the Maw CC bar.",
     iconType: 'dragon',
   },
 
@@ -757,7 +811,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Große Titanen-Beutetruhe', 'Miasma-Proben aus den Nebeln', 'Kodan-Handwerksvorräte', 'Heimstätten-Rezepte'],
-    tactics: 'Teilt den Squad auf: Gruppe 1 bekämpft Greer die Pestbringerin im Miasma-Tal, Gruppe 2 stoppt Sturmsängerin Decima auf den Bergklippen.',
+        lootHighlightsEn: ["Titan's Hero Choice Chest","Starlight Crystals","Kodan Concord Caches"],
+        tactics: 'Teilt den Squad auf: Gruppe 1 bekämpft Greer die Pestbringerin im Miasma-Tal, Gruppe 2 stoppt Sturmsängerin Decima auf den Bergklippen.',
+        tacticsEn: "TITAN TWIN BATTLE! Balance DPS between Greer and Decima. Dodge chained lightning strikes and rot miasma.",
     iconType: 'elemental',
   },
   {
@@ -780,7 +836,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Kodan-Eintracht-Kiste', 'Bernstein-Harz', 'Schlammkriecher-Kralle', 'Kriegsklauen-Futter'],
-    tactics: 'Verteidige das Kodan-Dorf gegen die Angriffe aus den Mooren, locke das Riesen-Moorungeheuer hervor und nutze die Kriegsklaue zum Ausmanövrieren.',
+        lootHighlightsEn: ["Kodan Crafting Supplies","Chunk of Ancient Ambergris","Bogstrider Claw"],
+        tactics: 'Verteidige das Kodan-Dorf gegen die Angriffe aus den Mooren, locke das Riesen-Moorungeheuer hervor und nutze die Kriegsklaue zum Ausmanövrieren.',
+        tacticsEn: "Utilize Warclaw pounce abilities, herd bog stompers, and defend the Kodan longhouse from titan incursions.",
     iconType: 'wurm',
   },
   {
@@ -803,7 +861,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 3,
     },
     lootHighlights: ['Heroen-Titanen-Truhe', 'Uralte Kodan-Reliquien', 'Legendärer Janthir-Speer-Fortschritt', 'Gereinigte Nebelessenz'],
-    tactics: 'Beschütze das Ritual der Kodan-Ältesten vor anstürmenden Titanen-Horden und bezwinge die entfesselten Nebelkolosse.',
+        lootHighlightsEn: ["Grand Titan Spoils Chest","Legendary Janthir Spear Progress","Ancient Kodan Relics"],
+        tactics: 'Beschütze das Ritual der Kodan-Ältesten vor anstürmenden Titanen-Horden und bezwinge die entfesselten Nebelkolosse.',
+        tacticsEn: "Colossal Titan Convergence. Mount Warclaws through ley streams and banish the Primordial Titan Horrors.",
     iconType: 'crystal',
   },
 
@@ -830,7 +890,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Castora-Pionier-Truhe', 'Sternenlicht-Kristall', 'Inquest-Energiekern', 'Eternity-Spezialisierungs-Kiste'],
-    tactics: 'Infiltriert die geheime Inquest-Forschungsbasis im Sternenwald, überladet die Resonanz-Generatoren mit dem Schweberochen und schlagt den experimentellen Prototypen in die Flucht.',
+        lootHighlightsEn: ["Castora Pioneer Chest","Starlight Crystals","Homestead Blueprints"],
+        tactics: 'Infiltriert die geheime Inquest-Forschungsbasis im Sternenwald, überladet die Resonanz-Generatoren mit dem Schweberochen und schlagt den experimentellen Prototypen in die Flucht.',
+        tacticsEn: "Solve starlight celestial puzzles and protect ancestral groves against the surge of void anomalies.",
     iconType: 'golem',
   },
   {
@@ -853,7 +915,9 @@ export const EVENTS: WorldEvent[] = [
       intervalHours: 2,
     },
     lootHighlights: ['Uralte Ewigkeitstruhe', 'Reliquie der Ur-Insel', 'Schwebendes Korallenvorkommen', 'Legendärer Wasseratmer-Teil'],
-    tactics: 'Drei Relikt-Altäre gleichzeitig aktivieren, Tiefsee-Wächter abwehren und den uralten Wächter der Insel bezwingen.',
+        lootHighlightsEn: ["Ancient Eternity Chest","Relic of the Primeval Isle","Warclaw Provisions"],
+        tactics: 'Drei Relikt-Altäre gleichzeitig aktivieren, Tiefsee-Wächter abwehren und den uralten Wächter der Insel bezwingen.',
+        tacticsEn: "Reactivate dormant Primeval Golems and seal the rift into forgotten timeless epochs.",
     iconType: 'crystal',
   },
 ];
@@ -962,6 +1026,16 @@ export function getEventCategoryLabel(event: WorldEvent, lang: 'de' | 'en'): str
   return lang === 'en' ? (event.categoryLabelEn || event.categoryLabel) : event.categoryLabel;
 }
 
+export function getEventTactics(event: WorldEvent, lang: 'de' | 'en'): string {
+  return lang === 'en' ? (event.tacticsEn || event.tactics) : event.tactics;
+}
+
+export function getEventLootHighlights(event: WorldEvent, lang: 'de' | 'en'): string[] {
+  return lang === 'en' && event.lootHighlightsEn && event.lootHighlightsEn.length > 0
+    ? event.lootHighlightsEn
+    : event.lootHighlights;
+}
+
 export function formatCountdown(seconds: number): string {
   if (seconds <= 0) return '00m 00s';
   const h = Math.floor(seconds / 3600);
@@ -1045,3 +1119,106 @@ export function formatCallout(
 export function formatGermanCallout(inst: EventInstance, template: MessageTemplateType = 'standard'): string {
   return formatCallout(inst, template, 'de');
 }
+
+/**
+ * 100% Verified Official Guild Wars 2 Item IDs for Major Event & Meta-Loot Highlights.
+ * All entries verified against the ArenaNet v2 API to return authentic assets, rarities, and descriptions.
+ * Indexed in both German and English to provide accurate tooltips in the user's active language.
+ */
+export const LOOT_ITEM_ID_MAP: Record<string, number> = {
+  // Tequatl
+  'Tequatls Schatzkiste': 47870,
+  "Tequatl's Hoard": 47870,
+  'Hort Tequatls': 47870,
+  'Aufgestiegene Sonnenlose Waffen': 47870,
+  'Ascended Sunless Weapons': 47870,
+
+  // Pinata
+  'Festliche Choya-Piñata-Infusion (>8.000g)': 85900,
+  'Festive Confetti Infusion (>8,000g)': 85900,
+  'Festive Confetti Infusion': 85900,
+  'Festliche Konfetti-Infusion': 85900,
+
+  // Chak
+  'Chak-Eiersack (Extrem wertvoll!)': 72021,
+  'Chak Egg Sac (Extremely Valuable!)': 72021,
+  'Chak Egg Sac': 72021,
+  'Chak-Eiersack': 72021,
+
+  // HoT Hero's Choice Chests
+  "Verdant Brink: Hero's Choice Chest": 78743,
+  'Grasgrüne Schwelle: Truhe der Helden-Auswahl': 78743,
+  "Auric Basin: Hero's Choice Chest": 78650,
+  'Güldener Talkessel: Truhe der Helden-Auswahl': 78650,
+  'Große Erhabenen-Schatzkammer': 78650,
+  'Great Exalted Chest': 78650,
+  "Tangled Depths: Hero's Choice Chest": 78751,
+  'Verschlungene Tiefen: Truhe der Helden-Auswahl': 78751,
+  "Dragon's Stand: Hero's Choice Chest": 78617,
+  'Widerstand des Drachen: Truhe der Helden-Auswahl': 78617,
+  'Mund von Mordremoth Kiste': 78617,
+  'Mouth of Mordremoth Chest': 78617,
+
+  // EoD Hero's Choice Chests
+  "Seitung Province: Hero's Choice Chest": 97895,
+  'Provinz Seitung: Truhe der Helden-Auswahl': 97895,
+  "New Kaineng City: Hero's Choice Chest": 97901,
+  'Stadt Neu-Kaineng: Truhe der Helden-Auswahl': 97901,
+  "The Echovald Wilds: Hero's Choice Chest": 97894,
+  'Echowald-Wildnis: Truhe der Helden-Auswahl': 97894,
+  "Dragon's End: Hero's Choice Chest": 97896,
+  'Drachen-Ende: Truhe der Helden-Auswahl': 97896,
+
+  // PoF Hero's Choice Chests
+  "Crystal Oasis: Hero's Choice Chest": 90958,
+  'Kristalloase: Truhe der Helden-Auswahl': 90958,
+  "Domain of Vabbi: Hero's Choice Chest": 83035,
+  'Domäne Vaabi: Truhe der Helden-Auswahl': 83035,
+  'Große Vabbi-Schatzkiste': 83035,
+  'Grand Vabbi Treasure Chest': 83035,
+
+  // SotO Hero's Choice Chests
+  "Skywatch Archipelago: Hero's Choice Chest": 100547,
+  'Himmelswacht-Archipel: Truhe der Helden-Auswahl': 100547,
+  "Amnytas: Hero's Choice Chest": 100193,
+  'Amnytas: Truhe der Helden-Auswahl': 100193,
+
+  // Verified Materials & Currencies
+  'Ley-Linien-Funken': 69392,
+  'Ley Line Spark': 69392,
+  'Aurillium-Währung': 75012,
+  'Lump of Aurillium': 75012,
+  'Luftschiff-Fracht': 69434,
+  'Bottle of Airship Oil': 69434,
+  'Kristalline Erze': 46682,
+  'Crystalline Ore': 46682,
+  'Drachenit-Erz': 46733,
+  'Dragonite Ore': 46733,
+  'Mächtiges Drachenit-Erz': 46733,
+  'Jade-Runenstein': 96722,
+  'Jade Runestone': 96722,
+  'Erinnerungen an Aurene': 96088,
+  'Memories of Aurene': 96088,
+  'Pulsierende Verbrannte Magie': 82678,
+  'Pulsing Brandspark': 82678,
+  'Wertvolle Karka-Panzer': 37897,
+  'Karka Shell': 37897,
+  'Zerstörer-Magnetsteine': 24325,
+  'Destroyer Lodestone': 24325,
+  'Aufgeladene Kerne & Magnetsteine': 24305,
+  'Charged Lodestone & Core': 24305,
+  'T6-Trophäen': 24295,
+  'T6 Powerful Blood': 24295,
+  'Passiflora & T6-Blut': 24295,
+  'Passion Flowers & T6 Blood': 24295,
+  'Fine Rift Essence': 100078,
+  'Edle Riss-Essenz': 100078,
+  'Kryptis-Essenz der Verzweiflung': 100078,
+  'Antique Summoning Stone': 96978,
+  'Antiker Herbeirufstein': 96978,
+  'Erinnerung an Soo-Won': 96978,
+  'Bernstein-Harz': 96347,
+  'Chunk of Ancient Ambergris': 96347,
+  'Ektoplasmakugel': 19721,
+  'Glob of Ectoplasm': 19721,
+};

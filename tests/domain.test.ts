@@ -281,6 +281,9 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
     getEventZone,
     getEventWaypointName,
     getEventCategoryLabel,
+    getEventTactics,
+    getEventLootHighlights,
+    LOOT_ITEM_ID_MAP,
   } = await import('../src/data/events.ts');
   const {
     getDisciplineName,
@@ -365,6 +368,23 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
   const enDetailed = formatCallout(inst, 'detailed', 'en');
   assert.ok(deDetailed.includes('Funkenschwärmersumpf') && deDetailed.includes('Hardcore Großboss'));
   assert.ok(enDetailed.includes('Sparkfly Fen') && enDetailed.includes('Hardcore World Boss'));
+
+  // 5. Bilingual Tactics & Loot Highlights
+  assert.ok(getEventTactics(sampleEvent, 'de').includes('Hylek-Geschütze') || getEventTactics(sampleEvent, 'de').includes('Stampfer'));
+  assert.ok(getEventTactics(sampleEvent, 'en').includes('HIGH PRIORITY') && getEventTactics(sampleEvent, 'en').includes('shockwave'));
+
+  const deLoot = getEventLootHighlights(sampleEvent, 'de');
+  const enLoot = getEventLootHighlights(sampleEvent, 'en');
+  assert.ok(deLoot.includes('Tequatls Schatzkiste'));
+  assert.ok(enLoot.includes("Tequatl's Hoard"));
+
+  // 6. Verified Item IDs in LOOT_ITEM_ID_MAP
+  assert.equal(LOOT_ITEM_ID_MAP['Tequatls Schatzkiste'], 47870);
+  assert.equal(LOOT_ITEM_ID_MAP["Tequatl's Hoard"], 47870);
+  assert.equal(LOOT_ITEM_ID_MAP['Chak-Eiersack (Extrem wertvoll!)'], 72021);
+  assert.equal(LOOT_ITEM_ID_MAP['Chak Egg Sac (Extremely Valuable!)'], 72021);
+  assert.equal(LOOT_ITEM_ID_MAP['Festliche Choya-Piñata-Infusion (>8.000g)'], 85900);
+  assert.equal(LOOT_ITEM_ID_MAP['Festive Confetti Infusion (>8,000g)'], 85900);
 
   // Reset back to en
   setLanguage('en');
@@ -521,17 +541,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
 });
 
 test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch', () => {
-  assert.equal(GLOBAL_ACHIEVEMENTS.length, 29);
-
-  // Täglicher Komplettierer
-  const dailyCompleter = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'daily-completer');
-  assert.ok(dailyCompleter);
-  assert.equal(getAchievementTitle(dailyCompleter, 'de'), 'Täglicher Komplettierer');
-  assert.equal(getAchievementTitle(dailyCompleter, 'en'), 'Daily Completer');
-  assert.ok(getAchievementDesc(dailyCompleter, 'en').includes('Complete any 3 daily achievements'));
-  assert.ok(getAchievementDesc(dailyCompleter, 'de').includes('Schließt 3 beliebige tägliche Erfolge'));
-  assert.equal(getAchievementCategoryLabel(dailyCompleter, 'de'), 'Täglich');
-  assert.equal(getAchievementCategoryLabel(dailyCompleter, 'en'), 'Daily');
+  assert.equal(GLOBAL_ACHIEVEMENTS.length, 35);
 
   // Täglicher Weltenboss-Jäger (Wiederholbar-Tag)
   const dailyWb = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'daily-worldboss');
@@ -540,6 +550,8 @@ test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch', () => {
   assert.equal(getAchievementTitle(dailyWb, 'en'), 'Daily World Boss Hunter');
   assert.equal(getAchievementTierInfo(dailyWb, 'en'), 'Daily repeatable');
   assert.equal(getAchievementTierInfo(dailyWb, 'de'), 'Täglich wiederholbar');
+  assert.equal(getAchievementCategoryLabel(dailyWb, 'de'), 'Weltenbosse');
+  assert.equal(getAchievementCategoryLabel(dailyWb, 'en'), 'World Bosses');
 
   // Der Sonnenlose (Tequatl)
   const tequatl = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'wb-tequatl-meta');

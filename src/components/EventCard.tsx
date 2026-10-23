@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   MessageSquare,
   Compass,
@@ -13,8 +13,22 @@ import {
   Sparkles,
   CheckCircle2,
   Clock,
+  Gift,
+  Package,
+  Info,
+  Zap,
+  AlertCircle,
+  Bot,
+  Bug,
+  Skull,
+  Sprout,
+  Gem,
+  Swords,
+  Plane,
+  Radio,
+  LucideIcon,
 } from 'lucide-react';
-import { EventInstance } from '../types';
+import { EventInstance, IconType } from '../types';
 import {
   formatCountdown,
   formatLocalTime,
@@ -22,10 +36,211 @@ import {
   getEventZone,
   getEventWaypointName,
   getEventCategoryLabel,
+  getEventTactics,
+  getEventLootHighlights,
+  LOOT_ITEM_ID_MAP,
 } from '../data/events';
 import { Gw2AccountAchievement } from '../data/gw2Api';
-
+import { useItems } from '../data/gw2/items';
+import { ItemIcon } from './common/ui';
 import { useTranslation } from '../i18n';
+
+function getLootMeta(loot: string): { type: string; icon: LucideIcon } {
+  const lower = loot.toLowerCase();
+  if (lower.includes('infusion') || lower.includes('legendär') || lower.includes('legendary')) {
+    return { type: 'legendary', icon: Sparkles };
+  }
+  if (
+    lower.includes('aufgestiegen') ||
+    lower.includes('ascended') ||
+    lower.includes('heroen') ||
+    lower.includes('hero\'s') ||
+    lower.includes('heros') ||
+    lower.includes('prächtig') ||
+    lower.includes('magnificent') ||
+    lower.includes('große') ||
+    lower.includes('grand') ||
+    lower.includes('great')
+  ) {
+    return { type: 'ascended', icon: Gift };
+  }
+  if (
+    lower.includes('exotisch') ||
+    lower.includes('exotic') ||
+    lower.includes('essenz') ||
+    lower.includes('essence') ||
+    lower.includes('waffen') ||
+    lower.includes('weapon') ||
+    lower.includes('weapons') ||
+    lower.includes('truhe') ||
+    lower.includes('chest') ||
+    lower.includes('schatz') ||
+    lower.includes('hoard') ||
+    lower.includes('kiste') ||
+    lower.includes('cache') ||
+    lower.includes('box') ||
+    lower.includes('matrix') ||
+    lower.includes('krone') ||
+    lower.includes('crown') ||
+    lower.includes('kristall') ||
+    lower.includes('crystal')
+  ) {
+    return { type: 'rare', icon: Package };
+  }
+  return { type: 'standard', icon: Award };
+}
+
+function getEventIcon(iconType?: IconType | string): LucideIcon {
+  switch (iconType) {
+    case 'dragon':
+      return Flame;
+    case 'golem':
+      return Bot;
+    case 'elemental':
+      return Sparkles;
+    case 'wurm':
+      return Bug;
+    case 'pirate':
+      return Skull;
+    case 'karka':
+      return Shield;
+    case 'choya':
+      return Sprout;
+    case 'crystal':
+      return Gem;
+    case 'sword':
+      return Swords;
+    case 'shield':
+      return Shield;
+    case 'airship':
+      return Plane;
+    case 'portal':
+      return Radio;
+    default:
+      return Award;
+  }
+}
+
+interface MechanicBadge {
+  icon: LucideIcon;
+  label: string;
+  title: string;
+}
+
+function getTacticsBadges(tactics: string | undefined, lang: string): MechanicBadge[] {
+  if (!tactics) return [];
+  const lower = tactics.toLowerCase();
+  const badges: MechanicBadge[] = [];
+
+  if (
+    lower.includes('cc') ||
+    lower.includes('trotzbalken') ||
+    lower.includes('breakbar') ||
+    lower.includes('defiance') ||
+    lower.includes('trotz') ||
+    lower.includes('stunt') ||
+    lower.includes('interrupt') ||
+    lower.includes('unterbrechen')
+  ) {
+    badges.push({
+      icon: Zap,
+      label: 'Breakbar / CC',
+      title: lang === 'en' ? 'Hard CC to break defiance bar' : 'CC & Trotzbalken schnell brechen',
+    });
+  }
+
+  if (
+    lower.includes('ausweichen') ||
+    lower.includes('dodge') ||
+    lower.includes('evade') ||
+    lower.includes('schockwelle') ||
+    lower.includes('shockwave') ||
+    lower.includes('wellen') ||
+    lower.includes('waves') ||
+    lower.includes('bodeneffekt') ||
+    lower.includes('schadensflächen') ||
+    lower.includes('hazard') ||
+    lower.includes('flächen') ||
+    lower.includes('aoe')
+  ) {
+    badges.push({
+      icon: AlertCircle,
+      label: lang === 'en' ? 'Dodge / Waves' : 'Ausweichen / Wellen',
+      title: lang === 'en' ? 'Dodge shockwaves and AoE fields' : 'Schockwellen & Flächen meiden',
+    });
+  }
+
+  if (
+    lower.includes('gleit') ||
+    lower.includes('gleitschirm') ||
+    lower.includes('aufwind') ||
+    lower.includes('glider') ||
+    lower.includes('gliding') ||
+    lower.includes('updraft') ||
+    lower.includes('launch pad') ||
+    lower.includes('sprungpilz')
+  ) {
+    badges.push({
+      icon: Compass,
+      label: lang === 'en' ? 'Glider / Updraft' : 'Gleitschirm / Aufwind',
+      title: lang === 'en' ? 'Use glider and updrafts' : 'Gleitschirm & Aufwinde nutzen',
+    });
+  }
+
+  if (
+    lower.includes('riss') ||
+    lower.includes('risse') ||
+    lower.includes('rift') ||
+    lower.includes('rifts') ||
+    lower.includes('portal') ||
+    lower.includes('portals') ||
+    lower.includes('unterwelt')
+  ) {
+    badges.push({
+      icon: Flame,
+      label: lang === 'en' ? 'Rifts / Portals' : 'Risse / Portale',
+      title: lang === 'en' ? 'Close rifts & demonic portals' : 'Risse & Unterwelt-Portale schließen',
+    });
+  }
+
+  if (
+    lower.includes('eskort') ||
+    lower.includes('verteidig') ||
+    lower.includes('escort') ||
+    lower.includes('defend') ||
+    lower.includes('protect') ||
+    lower.includes('schützen') ||
+    lower.includes('schutzkreis') ||
+    lower.includes('basen') ||
+    lower.includes('bastion')
+  ) {
+    badges.push({
+      icon: Shield,
+      label: lang === 'en' ? 'Escort / Defend' : 'Eskorte / Schutz',
+      title: lang === 'en' ? 'Defend allies and bases' : 'Verbündete & Basen verteidigen',
+    });
+  }
+
+  if (
+    lower.includes('bombe') ||
+    lower.includes('bomb') ||
+    lower.includes('kanone') ||
+    lower.includes('cannon') ||
+    lower.includes('matrix') ||
+    lower.includes('emp') ||
+    lower.includes('spezial') ||
+    lower.includes('laser') ||
+    lower.includes('action')
+  ) {
+    badges.push({
+      icon: Sparkles,
+      label: lang === 'en' ? 'Special Action' : 'Spezial-Aktion',
+      title: lang === 'en' ? 'Special actions & environment weapons' : 'Spezial-Fähigkeit & Umweltwaffen',
+    });
+  }
+
+  return badges;
+}
 
 interface EventCardProps {
   instance: EventInstance;
@@ -53,6 +268,21 @@ export const EventCard: React.FC<EventCardProps> = ({
   const displayZone = getEventZone(event, lang);
   const displayWaypoint = getEventWaypointName(event, lang);
   const displayCategory = getEventCategoryLabel(event, lang);
+  const tacticsText = useMemo(() => getEventTactics(event, lang), [event, lang]);
+  const lootHighlights = useMemo(() => getEventLootHighlights(event, lang), [event, lang]);
+
+  const cardLootIds = useMemo(() => {
+    if (!lootHighlights) return [];
+    return lootHighlights
+      .map((loot: string) => LOOT_ITEM_ID_MAP[loot])
+      .filter((id): id is number => typeof id === 'number' && id > 0);
+  }, [lootHighlights]);
+
+  // Preload verified official items from API when expanded
+  useItems(expanded ? cardLootIds : []);
+
+  const tacticsBadges = useMemo(() => getTacticsBadges(tacticsText, lang), [tacticsText, lang]);
+  const EventGlyph = getEventIcon(event.iconType);
 
   const getCategoryClass = () => {
     switch (event.category) {
@@ -84,9 +314,9 @@ export const EventCard: React.FC<EventCardProps> = ({
       }`}
     >
       <div className="gw2-card-body">
-        {/* Left Laurel Wreath Medal Icon (Authentic GW2 style from Screenshot 2) */}
-        <div className={`gw2-card-medal ${isActive ? 'active-medal' : ''}`}>
-          <Award size={18} className={`medal-svg ${isActive ? 'active' : ''}`} />
+        {/* Left Laurel Wreath Medal Icon with Dynamic Boss Glyph */}
+        <div className={`gw2-card-medal ${isActive ? 'active-medal' : ''}`} title={event.iconType}>
+          <EventGlyph size={18} className={`medal-svg ${isActive ? 'active' : ''}`} />
           {isActive && <span className="active-pulse-dot" />}
         </div>
 
@@ -149,7 +379,7 @@ export const EventCard: React.FC<EventCardProps> = ({
             )}
           </div>
 
-          {/* The 2 requested action buttons: "Nachricht senden" | "Zur Wegmarke Teleportieren" */}
+          {/* Action buttons: "Nachricht senden" | "Zur Wegmarke Teleportieren" | "Info" */}
           <div className="gw2-card-actions-row">
             {/* 1. Nachricht senden */}
             <button
@@ -175,13 +405,18 @@ export const EventCard: React.FC<EventCardProps> = ({
               <span>{t('events.copyWaypoint')}</span>
             </button>
 
-            {/* Accordion Toggle for Taktik & Beute */}
+            {/* Accordion Toggle for Taktik & Beute with Info Icon */}
             <button
-              className="gw2-details-toggle-btn"
-              title={expanded ? 'Details ausblenden' : 'Taktik & Beute anzeigen'}
+              className={`gw2-details-toggle-btn ${expanded ? 'expanded' : ''}`}
+              title={
+                expanded
+                  ? (lang === 'en' ? 'Hide tactics & loot' : 'Details ausblenden')
+                  : (lang === 'en' ? 'Show tactics & loot' : 'Taktik & Beute anzeigen')
+              }
               onClick={() => setExpanded(!expanded)}
             >
-              <span>{expanded ? 'Weniger' : 'Info'}</span>
+              <Info size={11} className="info-btn-glyph" />
+              <span>{expanded ? (lang === 'en' ? 'Less' : 'Weniger') : 'Info'}</span>
               {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
             </button>
           </div>
@@ -192,10 +427,19 @@ export const EventCard: React.FC<EventCardProps> = ({
       {showAchievements && achievements.length > 0 && (
         <div className="gw2-card-achievements-drawer">
           <div className="drawer-header">
-            <Trophy size={11} className="trophy-gold" />
-            <span className="drawer-title">
-              {lang === 'en' ? 'Potential in-game achievements:' : 'Mögliche Erfolge im Spiel:'}
-            </span>
+            <div className="drawer-header-left">
+              <Trophy size={13} className="trophy-gold" />
+              <span className="drawer-title font-serif">
+                {lang === 'en' ? 'Boss & Event Achievements' : 'Mögliche Boss- & Event-Erfolge'}
+              </span>
+              <span className="drawer-count-badge font-mono">{achievements.length}</span>
+            </div>
+            <div className="drawer-header-right">
+              <div className="drawer-ap-pill font-mono" title={lang === 'en' ? 'Total AP for this event' : 'Gesamte AP für dieses Event'}>
+                <Award size={11} className="ap-icon" />
+                <span>+{achievements.reduce((acc, cur) => acc + (cur.ap || 0), 0)} AP</span>
+              </div>
+            </div>
           </div>
 
           <div className="drawer-achieve-list">
@@ -209,9 +453,12 @@ export const EventCard: React.FC<EventCardProps> = ({
 
               return (
                 <div key={ach.id} className={`drawer-achieve-item ${isDone ? 'ach-done' : ''}`}>
+                  <div className="ach-icon-col">
+                    <Trophy size={13} className={`ach-glyph ${isDone ? 'done' : 'gold'}`} />
+                  </div>
                   <div className="ach-left">
                     <div className="ach-title-row">
-                      <span className="ach-item-title">{achTitle}</span>
+                      <span className="ach-item-title font-serif">{achTitle}</span>
                       {isDone ? (
                         <span className="ach-status-pill done">
                           <CheckCircle2 size={10} />
@@ -248,18 +495,66 @@ export const EventCard: React.FC<EventCardProps> = ({
       {/* Expandable Taktik & Beute Details */}
       {expanded && (
         <div className="gw2-card-tactics-drawer">
-          <div className="tactic-text">
-            <strong style={{ color: 'var(--gw2-gold)' }}>Taktik:</strong>{' '}
-            {event.tactics}
-          </div>
-          <div className="loot-list-wrap">
-            <Award size={10} style={{ color: 'var(--gw2-gold)', flexShrink: 0 }} />
-            {event.lootHighlights.map((loot, idx) => (
-              <span key={idx} className="loot-badge-pill">
-                {loot}
-              </span>
-            ))}
-          </div>
+          {tacticsText && (
+            <div className="gw2-tactics-card">
+              <div className="gw2-tactics-card-header">
+                <div className="tactics-header-left">
+                  <Shield size={12} className="tactics-header-icon" />
+                  <span className="tactics-header-title font-serif">
+                    {lang === 'en' ? 'Tactics & Mechanics' : 'Taktik & Boss-Mechanik'}
+                  </span>
+                </div>
+                {tacticsBadges.length > 0 && (
+                  <div className="tactics-badges-wrap">
+                    {tacticsBadges.map((badge, idx) => {
+                      const BadgeIcon = badge.icon;
+                      return (
+                        <span key={idx} className="tactic-mini-tag font-sans" title={badge.title}>
+                          <BadgeIcon size={10} className="tag-icon" />
+                          <span>{badge.label}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="tactics-card-body">{tacticsText}</div>
+            </div>
+          )}
+
+          {lootHighlights && lootHighlights.length > 0 && (
+            <div className="gw2-loot-card">
+              <div className="gw2-loot-card-header">
+                <div className="loot-header-left">
+                  <Gift size={12} className="loot-header-icon" />
+                  <span className="loot-header-title font-serif">
+                    {lang === 'en' ? 'Key Loot & Guaranteed Chests' : 'Wichtige Beute & Belohnungen'}
+                  </span>
+                </div>
+                <span className="loot-count-badge font-mono">{lootHighlights.length}</span>
+              </div>
+              <div className="loot-badges-grid">
+                {lootHighlights.map((loot: string, idx: number) => {
+                  const itemId = LOOT_ITEM_ID_MAP[loot];
+                  const { type, icon: IconComp } = getLootMeta(loot);
+                  return (
+                    <div
+                      key={idx}
+                      className={`loot-chip loot-chip-${type} ${itemId ? 'has-item-icon' : ''}`}
+                      title={itemId ? undefined : loot}
+                    >
+                      {itemId ? (
+                        <ItemIcon id={itemId} size="s" />
+                      ) : (
+                        <IconComp size={11} className="loot-chip-icon" />
+                      )}
+                      <span className="loot-chip-name">{loot}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

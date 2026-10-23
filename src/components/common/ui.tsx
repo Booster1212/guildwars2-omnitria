@@ -4,7 +4,7 @@ import type { Origin } from '../../domain/sources';
 import { splitCoins } from '../../domain/costs';
 import { isUntradable, DisciplineId } from '../../domain/types';
 import { WEAPON_TYPE_DE } from '../../domain/legendary';
-import { getItem, useItems, cleanDescription } from '../../data/gw2/items';
+import { getItem, useItems, cleanDescription, getItemLanguage } from '../../data/gw2/items';
 import { getPrice } from '../../data/gw2/prices';
 import { getAccountState } from '../../data/gw2/account';
 import { ITEM_TYPE_DE, RARITY_DE, fmtInt, DISCIPLINE_ICONS, DISCIPLINE_ICON_ITEM, DISCIPLINE_DE } from './labels';
@@ -244,6 +244,7 @@ const ItemTooltip: React.FC<{ id: number; x: number; y: number; extra?: string[]
   const price = getPrice(id);
   const stock = getAccountState().stockMap.get(id);
   const hasStock = getAccountState().hasStockData;
+  const isEn = getItemLanguage() === 'en';
   const ref = useRef<HTMLDivElement | null>(null);
   // Position korrigieren, falls der Tooltip aus dem Fenster ragt
   const [pos, setPos] = useState({ left: x, top: y });
@@ -261,42 +262,48 @@ const ItemTooltip: React.FC<{ id: number; x: number; y: number; extra?: string[]
   if (!item) {
     return (
       <div className="tip" ref={ref} style={pos}>
-        <div className="tip-name">Gegenstand {id}</div>
-        <div className="tip-dim">Daten werden geladen …</div>
+        <div className="tip-name">{isEn ? `Item ${id}` : `Gegenstand ${id}`}</div>
+        <div className="tip-dim">{isEn ? 'Loading item data…' : 'Daten werden geladen …'}</div>
       </div>
     );
   }
-  const typeLine =
-    item.type === 'Weapon' && item.weaponType
+  const typeLine = isEn
+    ? (item.type === 'Weapon' && item.weaponType ? item.weaponType : item.type)
+    : (item.type === 'Weapon' && item.weaponType
       ? `${WEAPON_TYPE_DE[item.weaponType] ?? item.weaponType}`
-      : (ITEM_TYPE_DE[item.type] ?? item.type);
+      : (ITEM_TYPE_DE[item.type] ?? item.type));
+  const rarityLabel = isEn ? item.rarity : (RARITY_DE[item.rarity] ?? item.rarity);
   const desc = cleanDescription(item.description);
   return (
     <div className="tip" ref={ref} style={pos} role="tooltip">
       <div className={`tip-name r-${item.rarity}`}>{item.name}</div>
       <div className="tip-type">
-        {RARITY_DE[item.rarity]} · {typeLine}
-        {item.level > 0 ? ` · Stufe ${item.level}` : ''}
+        {rarityLabel} · {typeLine}
+        {item.level > 0 ? (isEn ? ` · Level ${item.level}` : ` · Stufe ${item.level}`) : ''}
       </div>
       {desc && <div className="tip-desc">{desc}</div>}
       {isUntradable(item) && (
-        <div className="tip-bind">{item.flags.includes('AccountBound') ? 'Accountgebunden' : 'Seelengebunden'}</div>
+        <div className="tip-bind">
+          {item.flags.includes('AccountBound')
+            ? (isEn ? 'Account Bound' : 'Accountgebunden')
+            : (isEn ? 'Soulbound' : 'Seelengebunden')}
+        </div>
       )}
       {price && price.sell > 0 && !isUntradable(item) && (
         <div className="tip-row">
-          <span>Handelsgesellschaft</span>
+          <span>{isEn ? 'Trading Post' : 'Handelsgesellschaft'}</span>
           <Coin copper={price.sell} />
         </div>
       )}
       {item.vendorValue > 0 && (
         <div className="tip-row dim">
-          <span>Händlerwert</span>
+          <span>{isEn ? 'Vendor Value' : 'Händlerwert'}</span>
           <Coin copper={item.vendorValue} />
         </div>
       )}
       {hasStock && (
         <div className="tip-row">
-          <span>Im Besitz</span>
+          <span>{isEn ? 'In Inventory' : 'Im Besitz'}</span>
           <b>{fmtInt(stock ?? 0)}</b>
         </div>
       )}

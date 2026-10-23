@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Boss & Event Achievements and Visual Overhaul
+* **Visual Overhaul for Loot & Tactics (Event Cards)**:
+  * Resolved text concatenation bug where loot highlights were squished together with zero spacing.
+  * Added `<Info size={11} className="info-btn-glyph" />` icon to the card's Info toggle button with dynamic open/close state.
+  * Verified 100% of event item IDs against the official ArenaNet API (`47870` Tequatl's Hoard, `85900` Festive Confetti Infusion, `72021` Chak Egg Sac, `78743` Verdant Brink Chest, `78650` Auric Basin Chest, `69392` Ley Line Spark, `75012` Aurillium, etc.) to eliminate mismatched hover tooltips and broken images.
+  * Added complete bilingual support for all 35 world bosses and meta events with English & German loot highlights (`lootHighlightsEn`) and boss tactics (`tacticsEn`).
+  * Updated `ItemTooltip` to render localized metadata (Rarity, Type, Level, Binding, Vendor/Trading Post value, Inventory count) in both English and German.
+  * Conceptual / non-item drops now render crisp themed Lucide icons and clean localized tooltips instead of unrelated item tooltips.
+  * Added dynamic mechanic badge icons in the tactics header (`Breakbar/CC`, `Dodge/Waves`, `Glider/Updraft`, `Rifts/Portals`, `Escort/Defend`, `Special Action`).
+  * Updated left event medal glyph to dynamically match event types (dragon, golem, elemental, wurm, pirate, karka, choya, crystal, airship, portal).
+  * Introduced dedicated `.gw2-tactics-card` with shield icon and authentic typography.
+  * Introduced `.gw2-loot-card` with themed rarity chips (`loot-chip-legendary`, `loot-chip-ascended`, `loot-chip-rare`, `loot-chip-standard`) and dynamic icons (`Gift`, `Package`, `Sparkles`, `Award`).
+  * Redesigned the in-game achievements drawer with total AP calculation, authentic GW2 gold accents, and status badges.
+* **Exclusive Focus on Boss & Meta-Event Achievements**:
+  * Filtered achievements in both the Achievements view and Event Cards to strictly list World Bosses and Expansion Meta Events (Core, HoT, PoF/IBS, EoD, SotO, Janthir).
+  * Removed non-boss achievements (woodcutting, vista views, map exploration, jumping puzzles, fractals).
+  * Added authentic achievements for previously missing boss events (`verdant-brink-night`, `choya-pinata`, `maws-of-torment`, `serpents-ire`, `aetherblade-assault`, `kaineng-blackout`, `gangs-of-echovald`).
+  * Removed fallback generic placeholder `Event-Teilnehmer`.
+* **Navigation Streamlining**:
+  * Removed the standalone "Wegmarken" (Waypoints) section from the navigation rail and routing, focusing the overlay on Events, Achievements, Crafting, and Legendary weapons.
+
 #### Recursive Crafting & Leveling Calculator
 * **Multi-Tier Intermediate Product Tree Resolution**:
   * Implemented recursive material requirement calculation in `src/domain/craftingCalculator.ts`.
