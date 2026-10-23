@@ -1,5 +1,5 @@
-import { WorldEvent, EventInstance, MessageTemplateType } from '../types';
-import { getAchievementsForEvent } from './achievements';
+import type { WorldEvent, EventInstance, MessageTemplateType } from '../types.ts';
+import { getAchievementsForEvent } from './achievements.ts';
 
 export const EVENTS: WorldEvent[] = [
   // ==========================================
@@ -558,6 +558,198 @@ export const EVENTS: WorldEvent[] = [
     lootHighlights: ['Erinnerung an Soo-Won', 'Belagerungsschildkröten-Ei-Fortschritt', 'Legendäre Fragmente'],
     tactics: 'Höchste Koordination nötig: Alle 3 Schreine vorbereiten, Segnungen sammeln und Soo-Wons Verderbnis reinigen.',
     iconType: 'dragon',
+  },
+
+  // ==========================================
+  // SECRETS OF THE OBSCURE (SotO)
+  // ==========================================
+  {
+    id: 'skywatch-tower',
+    name: 'Turm der Zauberer (Himmelswacht)',
+    nameEn: "Unlocking the Wizard's Tower",
+    category: 'soto',
+    categoryLabel: 'SotO Meta',
+    zone: 'Himmelswacht-Archipel',
+    level: 80,
+    waypoint: '[&BL4NAAA=]',
+    waypointName: 'Drohende Himmelswacht-Wegmarke',
+    durationMinutes: 25,
+    schedule: {
+      type: 'repeat',
+      start: [0, 0],
+      intervalHours: 2,
+    },
+    lootHighlights: ['Heroen-Auswahl-Truhe des Archipels', 'Kryptis-Essenz der Verzweiflung', 'Pinch of Stardust', 'Astralwachen-Ausrüstung'],
+    tactics: 'Befreie die Insel-Fraktale von Kryptis-Rissen, eskortiere Astralwachen-Gelehrte und bezwinge die Dämonen-Lieutenants vor dem Turmtor.',
+    iconType: 'portal',
+  },
+  {
+    id: 'defense-of-amnytas',
+    name: 'Verteidigung von Amnytas (Nourys)',
+    nameEn: 'The Defense of Amnytas',
+    category: 'soto',
+    categoryLabel: 'SotO Meta',
+    zone: 'Amnytas',
+    level: 80,
+    waypoint: '[&BDQOAAA=]',
+    waypointName: 'Bastion des Gleichgewichts-Wegmarke',
+    durationMinutes: 25,
+    schedule: {
+      type: 'repeat',
+      start: [1, 0],
+      intervalHours: 2,
+    },
+    lootHighlights: ['Heroen-Auswahl-Truhe von Amnytas', 'Essenz des Triumphs', 'Auge des Abgrunds-Beute', 'Großes Kryptis-Archiv'],
+    tactics: 'Verteidige alle 6 Bastionen, lade die Himmelschuppen-Reittiere mit Lichtkugeln auf und vernichte die Tentakel des kolossalen Nourys im Zentrum.',
+    iconType: 'dragon',
+  },
+  {
+    id: 'convergences-public',
+    name: 'Konvergenz (Turm der Zauberer)',
+    nameEn: 'Convergences (Public)',
+    category: 'soto',
+    categoryLabel: 'SotO Meta',
+    zone: 'Turm der Zauberer',
+    level: 80,
+    waypoint: '[&BB8OAAA=]',
+    waypointName: 'Turm der Zauberer-Wegmarke',
+    durationMinutes: 30,
+    schedule: {
+      type: 'repeat',
+      start: [1, 30],
+      intervalHours: 3,
+    },
+    lootHighlights: ['Prächtige Konvergenz-Truhe', 'Unstabile Kryptis-Essenz', 'Resonierende Riss-Fragmente', 'Legendäre Rüstungs-Materialien'],
+    tactics: '50-Spieler-Instanz: Sammelt Essenzen für Zha-Liss, sichert Belagerungs-Inseln und bezwingt legendäre Kryptis-Fürsten (Dreadwing, HellSister, Demon Lord).',
+    iconType: 'portal',
+  },
+  {
+    id: 'inner-nayos-eparch',
+    name: 'Inneres Nayos: Fall von Zakiros (Eparch)',
+    nameEn: "Into the Spider's Lair (Eparch)",
+    category: 'soto',
+    categoryLabel: 'SotO Meta',
+    zone: 'Inneres Nayos',
+    level: 80,
+    waypoint: '[&BEYOAAA=]',
+    waypointName: 'Heitors Tor-Wegmarke',
+    durationMinutes: 30,
+    schedule: {
+      type: 'repeat',
+      start: [0, 30],
+      intervalHours: 2,
+    },
+    lootHighlights: ['Belohnungstruhe von Zakiros', 'Essenz des Mitternachtskönigs', 'Kryptis-Königskrone', 'Exotische Zakiros-Waffen'],
+    tactics: 'Durchbrich die Zitadellentore, reinige die Blutsäulen und stelle Eparch in seinem Thronsaal, bevor er Tyria verschlingt.',
+    iconType: 'dragon',
+  },
+
+  // ==========================================
+  // JANTHIR WILDS (JW)
+  // ==========================================
+  {
+    id: 'janthir-syntri-titans',
+    name: 'Von Nebeln und Monstern (Greer & Decima)',
+    nameEn: 'Of Mists and Monsters (Greer & Decima)',
+    category: 'janthir',
+    categoryLabel: 'Janthir Meta',
+    zone: 'Janthir-Syntri',
+    level: 80,
+    waypoint: '[&BBAQAAA=]',
+    waypointName: 'Mondlager-Wegmarke',
+    durationMinutes: 25,
+    schedule: {
+      type: 'repeat',
+      start: [1, 30],
+      intervalHours: 2,
+    },
+    lootHighlights: ['Große Titanen-Beutetruhe', 'Miasma-Proben aus den Nebeln', 'Kodan-Handwerksvorräte', 'Heimstätten-Rezepte'],
+    tactics: 'Teilt den Squad auf: Gruppe 1 bekämpft Greer die Pestbringerin im Miasma-Tal, Gruppe 2 stoppt Sturmsängerin Decima auf den Bergklippen.',
+    iconType: 'elemental',
+  },
+  {
+    id: 'lowland-shore-gathering',
+    name: 'Tiefland-Kodan-Versammlung & Moorungeheuer',
+    nameEn: 'Lowland Shore: Kodan Gathering',
+    category: 'janthir',
+    categoryLabel: 'Janthir Meta',
+    zone: 'Tiefland-Küste',
+    level: 80,
+    waypoint: '[&BO4PAAA=]',
+    waypointName: 'Tiefland-Kodan-Dorf-Wegmarke',
+    durationMinutes: 20,
+    schedule: {
+      type: 'repeat',
+      start: [0, 0],
+      intervalHours: 2,
+    },
+    lootHighlights: ['Kodan-Eintracht-Kiste', 'Bernstein-Harz', 'Schlammkriecher-Kralle', 'Kriegsklauen-Futter'],
+    tactics: 'Verteidige das Kodan-Dorf gegen die Angriffe aus den Mooren, locke das Riesen-Moorungeheuer hervor und nutze die Kriegsklaue zum Ausmanövrieren.',
+    iconType: 'wurm',
+  },
+  {
+    id: 'janthir-convergence',
+    name: 'Janthir-Konvergenz (Titanen-Invasion)',
+    nameEn: 'Janthir Convergences',
+    category: 'janthir',
+    categoryLabel: 'Janthir Meta',
+    zone: 'Janthir-Syntri / Heiligtum',
+    level: 80,
+    waypoint: '[&BBAQAAA=]',
+    waypointName: 'Mondlager-Wegmarke',
+    durationMinutes: 30,
+    schedule: {
+      type: 'repeat',
+      start: [2, 30],
+      intervalHours: 3,
+    },
+    lootHighlights: ['Heroen-Titanen-Truhe', 'Uralte Kodan-Reliquien', 'Legendärer Janthir-Speer-Fortschritt', 'Gereinigte Nebelessenz'],
+    tactics: 'Beschütze das Ritual der Kodan-Ältesten vor anstürmenden Titanen-Horden und bezwinge die entfesselten Nebelkolosse.',
+    iconType: 'crystal',
+  },
+
+  // ==========================================
+  // VISIONS OF ETERNITY (VoE)
+  // ==========================================
+  {
+    id: 'castora-starlit-weald',
+    name: 'Insel Castora (Geheimnisse des Sternenwalds)',
+    nameEn: 'Secrets of the Starlit Weald',
+    category: 'voe',
+    categoryLabel: 'VoE Meta',
+    zone: 'Insel Castora',
+    level: 80,
+    waypoint: '[&BD0RAAA=]',
+    waypointName: 'Castora-Hafen-Wegmarke',
+    durationMinutes: 25,
+    schedule: {
+      type: 'repeat',
+      start: [1, 0],
+      intervalHours: 2,
+    },
+    lootHighlights: ['Castora-Pionier-Truhe', 'Sternenlicht-Kristall', 'Inquest-Energiekern', 'Eternity-Spezialisierungs-Kiste'],
+    tactics: 'Infiltriert die geheime Inquest-Forschungsbasis im Sternenwald, überladet die Resonanz-Generatoren mit dem Schweberochen und schlagt den experimentellen Prototypen in die Flucht.',
+    iconType: 'golem',
+  },
+  {
+    id: 'castora-ruins-eternity',
+    name: 'Erwachen der Ewigkeit (Tempelruinen)',
+    nameEn: 'Awakening of the Ancients',
+    category: 'voe',
+    categoryLabel: 'VoE Meta',
+    zone: 'Insel Castora',
+    level: 80,
+    waypoint: '[&BO8RAAA=]',
+    waypointName: 'Ewigkeitstempel-Wegmarke',
+    durationMinutes: 25,
+    schedule: {
+      type: 'repeat',
+      start: [0, 0],
+      intervalHours: 2,
+    },
+    lootHighlights: ['Uralte Ewigkeitstruhe', 'Reliquie der Ur-Insel', 'Schwebendes Korallenvorkommen', 'Legendärer Wasseratmer-Teil'],
+    tactics: 'Drei Relikt-Altäre gleichzeitig aktivieren, Tiefsee-Wächter abwehren und den uralten Wächter der Insel bezwingen.',
+    iconType: 'crystal',
   },
 ];
 

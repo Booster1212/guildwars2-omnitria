@@ -238,3 +238,28 @@ test('Entdeckungsrezepte: Filterung, Erkennung und Status-Berechnung', async () 
   assert.equal(cost.totalCost, 105);
   assert.equal(cost.hasUnpriced, false);
 });
+
+test('Events: SotO, Janthir Wilds und Visions of Eternity sind im Zeitplan enthalten', async () => {
+  const { getEventSchedule, EVENTS } = await import('../src/data/events.ts');
+
+  // Verify all 3 categories exist in EVENTS
+  const sotoEvents = EVENTS.filter((e) => e.category === 'soto');
+  const janthirEvents = EVENTS.filter((e) => e.category === 'janthir');
+  const voeEvents = EVENTS.filter((e) => e.category === 'voe');
+
+  assert.ok(sotoEvents.length >= 4, 'Mindestens 4 SotO Events erwartet');
+  assert.ok(janthirEvents.length >= 3, 'Mindestens 3 Janthir Events erwartet');
+  assert.ok(voeEvents.length >= 2, 'Mindestens 2 VoE Events erwartet');
+
+  // Verify schedule calculation contains them
+  const ref = new Date('2026-10-23T12:00:00Z');
+  const instances = getEventSchedule(ref, 6);
+
+  const foundSoto = instances.some((i) => i.event.category === 'soto');
+  const foundJanthir = instances.some((i) => i.event.category === 'janthir');
+  const foundVoe = instances.some((i) => i.event.category === 'voe');
+
+  assert.equal(foundSoto, true, 'SotO Event in 6h-Zeitplan gefunden');
+  assert.equal(foundJanthir, true, 'Janthir Event in 6h-Zeitplan gefunden');
+  assert.equal(foundVoe, true, 'VoE Event in 6h-Zeitplan gefunden');
+});

@@ -1736,7 +1736,16 @@ button {
   background: #1e222c;
   border: 1px solid #333846;
   color: #94a3b8;
+  border-radius: 1px;
 }
+.gw2-cat-tag.category-core { background: #1a1e28; border-color: #384256; color: #94a3b8; }
+.gw2-cat-tag.category-hardcore { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.45); color: #fca5a5; }
+.gw2-cat-tag.category-hot { background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.45); color: #86efac; }
+.gw2-cat-tag.category-pof { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.45); color: #fde047; }
+.gw2-cat-tag.category-eod { background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.45); color: #67e8f9; }
+.gw2-cat-tag.category-soto { background: rgba(251, 146, 60, 0.15); border-color: rgba(251, 146, 60, 0.5); color: #fed7aa; }
+.gw2-cat-tag.category-janthir { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.5); color: #6ee7b7; }
+.gw2-cat-tag.category-voe { background: rgba(168, 85, 247, 0.18); border-color: rgba(168, 85, 247, 0.5); color: #e9d5ff; }
 .gw2-boss-name { font-size: 14px; font-weight: 700; font-family: var(--font-serif); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .gw2-card-timer-badge {

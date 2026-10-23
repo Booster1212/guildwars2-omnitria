@@ -34,7 +34,10 @@ export const BossFilterBar: React.FC<BossFilterBarProps> = ({
     { id: 'hardcore', label: 'Hardcore' },
     { id: 'hot', label: 'HoT' },
     { id: 'pof', label: 'PoF' },
-    { id: 'eod', label: 'EoD/LW' },
+    { id: 'eod', label: 'EoD' },
+    { id: 'soto', label: 'SotO' },
+    { id: 'janthir', label: 'Janthir' },
+    { id: 'voe', label: 'VoE' },
   ];
 
   return (

@@ -1,4 +1,4 @@
-import { BossAchievement } from '../types';
+import type { BossAchievement } from '../types.ts';
 
 export type AchievementCategory = 'daily' | 'worldboss' | 'exploration' | 'fractals' | 'collections';
 
@@ -860,6 +860,92 @@ export const BOSS_ACHIEVEMENTS: Record<string, BossAchievement[]> = {
       description: 'Besiegt die korrumpierte Drachenmutter Soo-Won im Erntetempel der Drachen-Ende Meta.',
       category: 'End of Dragons',
       rewardTitle: 'Retter von Cantha',
+    },
+  ],
+  'skywatch-tower': [
+    {
+      id: 'skywatch-tower-conqueror',
+      title: 'Turmstürmer des Archipels',
+      ap: 10,
+      description: 'Schließt die Meta „Aufschließen des Turms der Zauberer“ im Himmelswacht-Archipel ab.',
+      category: 'Secrets of the Obscure',
+      rewardTitle: 'Astralwächter',
+    },
+  ],
+  'defense-of-amnytas': [
+    {
+      id: 'amnytas-defender',
+      title: 'Verteidiger von Amnytas',
+      ap: 15,
+      description: 'Schlagt Nourys, das Auge des Abgrunds, in der Verteidigung von Amnytas zurück.',
+      category: 'Secrets of the Obscure',
+      rewardTitle: 'Auge des Sturms',
+    },
+  ],
+  'convergences-public': [
+    {
+      id: 'convergences-hero',
+      title: 'Held der Konvergenzen',
+      ap: 15,
+      description: 'Schließt eine öffentliche Konvergenz im Turm der Zauberer erfolgreich ab.',
+      category: 'Secrets of the Obscure',
+    },
+  ],
+  'inner-nayos-eparch': [
+    {
+      id: 'eparch-downfall',
+      title: 'Sturz des Mitternachtskönigs',
+      ap: 20,
+      description: 'Besiegt Mitternachtskönig Eparch in der Zitadelle von Zakiros.',
+      category: 'Secrets of the Obscure',
+      rewardTitle: 'Eparchs Bezwinger',
+    },
+  ],
+  'janthir-syntri-titans': [
+    {
+      id: 'janthir-titans-hunter',
+      title: 'Titanenjäger von Janthir',
+      ap: 15,
+      description: 'Besiegt Greer die Pestbringerin und Decima die Sturmsängerin in Janthir-Syntri.',
+      category: 'Janthir Wilds',
+      rewardTitle: 'Nebelbezwinger',
+    },
+  ],
+  'lowland-shore-gathering': [
+    {
+      id: 'lowland-kodan-friend',
+      title: 'Freund der Tiefland-Kodan',
+      ap: 10,
+      description: 'Schützt das Kodan-Dorf und vertreibt das Moorungeheuer an der Tiefland-Küste.',
+      category: 'Janthir Wilds',
+    },
+  ],
+  'janthir-convergence': [
+    {
+      id: 'janthir-convergence-master',
+      title: 'Titanen-Belagerung gebrochen',
+      ap: 15,
+      description: 'Schließt eine Janthir-Konvergenz gegen die Titanenhorden erfolgreich ab.',
+      category: 'Janthir Wilds',
+    },
+  ],
+  'castora-starlit-weald': [
+    {
+      id: 'castora-weald-secrets',
+      title: 'Schatten im Sternenwald',
+      ap: 15,
+      description: 'Infiltriert die Inquestur-Basis und deckt die Geheimnisse des Sternenwalds auf Castora auf.',
+      category: 'Visions of Eternity',
+      rewardTitle: 'Insel-Pionier',
+    },
+  ],
+  'castora-ruins-eternity': [
+    {
+      id: 'castora-ancients-awake',
+      title: 'Hüter der Ewigkeit',
+      ap: 15,
+      description: 'Aktiviert die drei Relikt-Altäre und bezwingt den uralten Inselwächter auf Castora.',
+      category: 'Visions of Eternity',
     },
   ],
 };

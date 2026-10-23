@@ -52,6 +52,12 @@ export const EventCard: React.FC<EventCardProps> = ({
         return 'category-pof';
       case 'eod':
         return 'category-eod';
+      case 'soto':
+        return 'category-soto';
+      case 'janthir':
+        return 'category-janthir';
+      case 'voe':
+        return 'category-voe';
       default:
         return 'category-core';
     }

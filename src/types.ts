@@ -1,4 +1,4 @@
-export type EventCategory = 'core' | 'hardcore' | 'hot' | 'pof' | 'eod' | 'soto';
+export type EventCategory = 'core' | 'hardcore' | 'hot' | 'pof' | 'eod' | 'soto' | 'janthir' | 'voe';
 
 export type IconType =
   | 'dragon'
