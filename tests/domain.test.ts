@@ -533,14 +533,31 @@ test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch', () => {
   assert.equal(getAchievementCategoryLabel(dailyCompleter, 'de'), 'Täglich');
   assert.equal(getAchievementCategoryLabel(dailyCompleter, 'en'), 'Daily');
 
+  // Täglicher Weltenboss-Jäger (Wiederholbar-Tag)
+  const dailyWb = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'daily-worldboss');
+  assert.ok(dailyWb);
+  assert.equal(getAchievementTitle(dailyWb, 'de'), 'Täglicher Weltenboss-Jäger');
+  assert.equal(getAchievementTitle(dailyWb, 'en'), 'Daily World Boss Hunter');
+  assert.equal(getAchievementTierInfo(dailyWb, 'en'), 'Daily repeatable');
+  assert.equal(getAchievementTierInfo(dailyWb, 'de'), 'Täglich wiederholbar');
+
   // Der Sonnenlose (Tequatl)
   const tequatl = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'wb-tequatl-meta');
   assert.ok(tequatl);
   assert.equal(getAchievementTitle(tequatl, 'de'), 'Der Sonnenlose');
   assert.equal(getAchievementTitle(tequatl, 'en'), 'The Sunless');
   assert.equal(getAchievementCategoryLabel(tequatl, 'en'), 'World Bosses');
-  assert.equal(getAchievementTierInfo(tequatl, 'en'), 'Rank 4 of 5');
-  assert.equal(getAchievementTierInfo(tequatl, 'de'), 'Rang 4 von 5');
+
+  // Keine fixen Testdaten in den Basisdaten
+  for (const ach of GLOBAL_ACHIEVEMENTS) {
+    assert.equal(ach.isCompleted, undefined, `Erfolg ${ach.id} darf kein hardcodiertes isCompleted haben`);
+    assert.equal(ach.progressCurrent, undefined, `Erfolg ${ach.id} darf kein hardcodiertes progressCurrent haben`);
+    if (ach.objectives) {
+      for (const obj of ach.objectives) {
+        assert.notEqual(obj.done, true, `Teilziel ${obj.id} darf nicht standardmäßig erledigt sein`);
+      }
+    }
+  }
 
   // Boss-Achievements (z.B. Drakkar, Shatterer)
   const drakkarBoss = BOSS_ACHIEVEMENTS['drakkar'];

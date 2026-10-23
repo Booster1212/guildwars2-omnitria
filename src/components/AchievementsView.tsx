@@ -15,6 +15,7 @@ import {
   Sparkles,
   Clock,
   Shield,
+  Key,
 } from 'lucide-react';
 import {
   GLOBAL_ACHIEVEMENTS,
@@ -41,6 +42,7 @@ interface AchievementsViewProps {
   onSwitchToEvents: () => void;
   accountInfo?: Gw2AccountInfo | null;
   userAchievements?: Map<number, Gw2AccountAchievement>;
+  onOpenSettings?: () => void;
 }
 
 const STORAGE_KEY_WATCHLIST = 'gw2_watchlist_achievements';
@@ -57,6 +59,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   onSwitchToEvents,
   accountInfo,
   userAchievements,
+  onOpenSettings,
 }) => {
   const { t, lang } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<'all' | AchievementCategory | 'watchlist'>('all');
@@ -103,21 +106,60 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
     }));
   };
 
+  const hasSyncedApiKey = Boolean(accountInfo && userAchievements && userAchievements.size > 0);
+
   // Merge live user account progress into achievements
   const mergedAchievements = useMemo<GlobalAchievementItem[]>(() => {
     return GLOBAL_ACHIEVEMENTS.map((item) => {
-      if (item.gw2Id && userAchievements && userAchievements.has(item.gw2Id)) {
+      // If user has a synced API key and record for this achievement: load REAL data!
+      if (hasSyncedApiKey && item.gw2Id && userAchievements && userAchievements.has(item.gw2Id)) {
         const u = userAchievements.get(item.gw2Id)!;
+        const isDone = Boolean(u.done);
+        const max = u.max !== undefined && u.max > 0 ? u.max : (item.progressMax ?? 1);
+        const cur = u.current !== undefined ? u.current : (isDone ? max : 0);
+
+        let tierInfo = item.tierInfo;
+        let tierInfoEn = item.tierInfoEn;
+        if (!tierInfo && isDone) {
+          tierInfo = 'Abgeschlossen';
+          tierInfoEn = 'Completed';
+        } else if (!tierInfo && cur > 0 && max > 1) {
+          tierInfo = `${cur} / ${max}`;
+          tierInfoEn = `${cur} / ${max}`;
+        }
+
+        const objectives = item.objectives?.map((obj, idx) => ({
+          ...obj,
+          done: isDone || (u.bits ? u.bits.includes(idx) : false),
+        }));
+
         return {
           ...item,
-          isCompleted: u.done,
-          progressCurrent: u.current !== undefined ? u.current : item.progressCurrent,
-          progressMax: u.max !== undefined ? u.max : item.progressMax,
+          isCompleted: isDone,
+          progressCurrent: cur,
+          progressMax: max,
+          tierInfo,
+          tierInfoEn,
+          objectives,
         };
       }
-      return item;
+
+      // If no API key or user hasn't made progress on it: strictly 0 progress, not completed!
+      const max = item.progressMax ?? 1;
+      return {
+        ...item,
+        isCompleted: false,
+        progressCurrent: 0,
+        progressMax: max,
+        tierInfo: item.tierInfo || (hasSyncedApiKey ? (lang === 'en' ? 'Not started' : 'Nicht begonnen') : undefined),
+        tierInfoEn: item.tierInfoEn || (hasSyncedApiKey ? 'Not started' : undefined),
+        objectives: item.objectives?.map((obj) => ({
+          ...obj,
+          done: false,
+        })),
+      };
     });
-  }, [userAchievements]);
+  }, [userAchievements, hasSyncedApiKey, lang]);
 
   // Overall account stats
   const totalAvailableAp = useMemo(() => {
@@ -277,6 +319,30 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
         </div>
       </div>
 
+      {/* API Key Notice Banner if not synced */}
+      {!hasSyncedApiKey && (
+        <div className="gw2-achieve-api-notice">
+          <div className="notice-left">
+            <Key size={14} className="notice-key-icon" />
+            <div className="notice-text">
+              <span className="notice-title">
+                {lang === 'en' ? 'No GW2 API Key Synced' : 'Kein GW2 API-Schlüssel synchronisiert'}
+              </span>
+              <span className="notice-sub">
+                {lang === 'en'
+                  ? 'Personal achievement progress is displayed as 0 / grayed out. Enter your API key in Settings to load live progress.'
+                  : 'Persönlicher Erfolgsfortschritt wird als 0 / gesperrt dargestellt. Hinterlege deinen API-Schlüssel in den Optionen, um echte Account-Daten zu laden.'}
+              </span>
+            </div>
+          </div>
+          {onOpenSettings && (
+            <button className="gw2-btn-gold sm" onClick={onOpenSettings}>
+              {lang === 'en' ? 'Open Settings' : 'Einstellungen'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 2. GW2 Category Navigation Bar */}
       <div className="gw2-achieve-category-bar">
         {categoryTabs.map((tab) => {
@@ -340,7 +406,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                   key={item.id}
                   className={`gw2-hero-achieve-card ${isDone ? 'is-done' : ''} ${
                     item.isFeatured ? 'is-featured' : ''
-                  }`}
+                  } ${!hasSyncedApiKey ? 'is-unlinked' : ''}`}
                 >
                   {/* Left Column: Laurel Wreath */}
                   <div
@@ -397,6 +463,10 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                           <span className={`achieve-pbar-status-text ${isDone ? 'done-gold' : ''}`}>
                             {isDone
                               ? (lang === 'en' ? 'Completed' : 'Abgeschlossen')
+                              : !hasSyncedApiKey
+                              ? (lang === 'en' ? 'API Key Required' : 'API-Key erforderlich')
+                              : cur === 0
+                              ? (lang === 'en' ? 'Not Started' : 'Nicht begonnen')
                               : (lang === 'en' ? 'In Progress' : 'In Arbeit')}
                           </span>
                           <span className="achieve-pbar-numbers font-mono">
@@ -544,10 +614,20 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
             <span className="dock-hint dim">{t('achievements.synced')}</span>
           </div>
         ) : (
-          <div className="dock-connect-hint">
+          <div className="dock-connect-hint" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="hint-text dim">
               {t('achievements.apiHint')}
             </span>
+            {onOpenSettings && (
+              <button
+                className="gw2-btn-gold sm"
+                onClick={onOpenSettings}
+                style={{ padding: '2px 8px', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <Key size={10} />
+                <span>{lang === 'en' ? 'Connect Key' : 'Key eintragen'}</span>
+              </button>
+            )}
           </div>
         )}
 

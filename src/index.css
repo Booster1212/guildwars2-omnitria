@@ -2577,6 +2577,45 @@ button {
   width: 115px;
 }
 
+/* API Key Sync Status Notice */
+.gw2-achieve-api-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(90deg, rgba(38, 30, 16, 0.95) 0%, rgba(20, 23, 30, 0.95) 100%);
+  border: 1px dashed var(--gw2-gold-dim);
+  border-radius: 2px;
+  padding: 8px 12px;
+  box-shadow: inset 0 1px 0 rgba(212, 163, 89, 0.15);
+}
+.gw2-achieve-api-notice .notice-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.notice-key-icon {
+  color: var(--gw2-gold-bright);
+  flex-shrink: 0;
+}
+.gw2-achieve-api-notice .notice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.gw2-achieve-api-notice .notice-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--gw2-gold-bright);
+}
+.gw2-achieve-api-notice .notice-sub {
+  font-size: 10.5px;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
 /* 2. Category Navigation Bar */
 .gw2-achieve-category-bar {
   display: flex;
@@ -2664,6 +2703,14 @@ button {
 }
 .gw2-hero-achieve-card.is-featured {
   border-left: 2px solid var(--gw2-gold);
+}
+.gw2-hero-achieve-card.is-unlinked {
+  opacity: 0.85;
+  border-color: #242836;
+}
+.gw2-hero-achieve-card.is-unlinked:hover {
+  opacity: 1;
+  border-color: #3b4256;
 }
 
 /* Medal Frame */

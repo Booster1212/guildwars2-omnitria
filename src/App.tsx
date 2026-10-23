@@ -478,6 +478,7 @@ export const App: React.FC = () => {
                 onSwitchToEvents={() => setCurrentTab('events')}
                 accountInfo={accountInfo}
                 userAchievements={userAchievements}
+                onOpenSettings={() => setIsSettingsOpen(true)}
               />
             )}
           </div>
