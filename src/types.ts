@@ -32,10 +32,13 @@ export interface WorldEvent {
   nameEn: string;
   category: EventCategory;
   categoryLabel: string;
+  categoryLabelEn?: string;
   zone: string;
+  zoneEn?: string;
   level: number;
   waypoint: string;
   waypointName: string;
+  waypointNameEn?: string;
   durationMinutes: number;
   schedule: {
     type: 'fixed' | 'repeat';

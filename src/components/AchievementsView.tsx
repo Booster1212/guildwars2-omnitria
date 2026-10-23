@@ -24,7 +24,7 @@ import {
 import type { EventInstance } from '../types';
 import type { Gw2AccountInfo, Gw2AccountAchievement } from '../data/gw2Api';
 import { ProgressBar } from './common/ui';
-import { formatCountdown } from '../data/events';
+import { formatCountdown, getEventZone } from '../data/events';
 import { useTranslation } from '../i18n';
 
 interface AchievementsViewProps {
@@ -451,7 +451,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                                 <span>{t('achievements.inTime', { time: formatCountdown(linkedEvent.startsInSeconds) })}</span>
                               </span>
                             )}
-                            <span className="boss-zone dim">{linkedEvent.event.zone}</span>
+                            <span className="boss-zone dim">{getEventZone(linkedEvent.event, lang)}</span>
                           </div>
 
                           <div className="boss-btns-group">

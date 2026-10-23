@@ -15,7 +15,14 @@ import {
   Clock,
 } from 'lucide-react';
 import { EventInstance } from '../types';
-import { formatCountdown, formatLocalTime } from '../data/events';
+import {
+  formatCountdown,
+  formatLocalTime,
+  getEventName,
+  getEventZone,
+  getEventWaypointName,
+  getEventCategoryLabel,
+} from '../data/events';
 import { Gw2AccountAchievement } from '../data/gw2Api';
 
 import { useTranslation } from '../i18n';
@@ -42,7 +49,10 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   const isImminent = !isActive && startsInSeconds <= 15 * 60;
   const achievements = event.achievements || [];
-  const displayName = lang === 'en' ? (event.nameEn || event.name) : event.name;
+  const displayName = getEventName(event, lang);
+  const displayZone = getEventZone(event, lang);
+  const displayWaypoint = getEventWaypointName(event, lang);
+  const displayCategory = getEventCategoryLabel(event, lang);
 
   const getCategoryClass = () => {
     switch (event.category) {
@@ -86,7 +96,7 @@ export const EventCard: React.FC<EventCardProps> = ({
           <div className="gw2-card-header-row">
             <div className="gw2-title-cluster">
               <span className={`gw2-cat-tag ${getCategoryClass()}`}>
-                {event.categoryLabel}
+                {displayCategory}
               </span>
               <span className="gw2-boss-name" title={displayName}>
                 {displayName}
@@ -121,7 +131,7 @@ export const EventCard: React.FC<EventCardProps> = ({
             <div className="gw2-sub-location">
               <MapPin size={10} className="pin-icon" />
               <span>
-                {event.zone} • {event.waypointName} ({formatLocalTime(instance.startTime)})
+                {displayZone} • {displayWaypoint} ({formatLocalTime(instance.startTime, lang)})
               </span>
             </div>
 

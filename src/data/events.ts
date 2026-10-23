@@ -11,10 +11,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'The Frozen Maw (Svanir Shaman)',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Wanderer-Hügel',
+    zoneEn: 'Wayfarer Foothills',
     level: 10,
     waypoint: '[&BMIDAAA=]',
     waypointName: 'Krawallmacher-Wegmarke',
+    waypointNameEn: 'Krennak\'s Homestead Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -31,10 +34,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Fire Elemental',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Provinz Metrica',
+    zoneEn: 'Metrica Province',
     level: 15,
     waypoint: '[&BEcAAAA=]',
     waypointName: 'Thaumanova-Wegmarke',
+    waypointNameEn: 'Muridian Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -51,10 +57,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Great Jungle Wurm',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Caledon-Wald',
+    zoneEn: 'Caledon Forest',
     level: 15,
     waypoint: '[&BEEFAAA=]',
     waypointName: 'Zwielichtgarten-Wegmarke',
+    waypointNameEn: 'Twilight Arbor Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -71,10 +80,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Shadow Behemoth',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Königintal',
+    zoneEn: 'Queensdale',
     level: 15,
     waypoint: '[&BPcAAAA=]',
     waypointName: 'Sumpfwasser-Wegmarke',
+    waypointNameEn: 'Swamplost Haven Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -91,10 +103,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Admiral Taidha Covington',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Blutstrom-Küste',
+    zoneEn: 'Bloodtide Coast',
     level: 50,
     waypoint: '[&BKgBAAA=]',
     waypointName: 'Lachmöwen-Wegmarke',
+    waypointNameEn: 'Laughing Gull Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -111,10 +126,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Megadestroyer',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Mahlstromgipfel',
+    zoneEn: 'Mount Maelstrom',
     level: 66,
     waypoint: '[&BM0CAAA=]',
     waypointName: 'Aschfurt-Wegmarke',
+    waypointNameEn: 'Maelstrom\'s Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -131,10 +149,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'The Shatterer',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Flammenkamm-Steppen',
+    zoneEn: 'Blazeridge Steppes',
     level: 50,
     waypoint: '[&BE4DAAA=]',
     waypointName: 'Niedergang-Wegmarke',
+    waypointNameEn: 'Lowland Burns Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -151,10 +172,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Modniir Ulgoth',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Harathi-Hinterland',
+    zoneEn: 'Harathi Hinterlands',
     level: 43,
     waypoint: '[&BLAAAAA=]',
     waypointName: 'Königssteige-Wegmarke',
+    waypointNameEn: 'Junction Camp Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -171,10 +195,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Inquest Golem Mark II',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Mahlstromgipfel',
+    zoneEn: 'Mount Maelstrom',
     level: 68,
     waypoint: '[&BNQCAAA=]',
     waypointName: 'Alter Ool-Wegmarke',
+    waypointNameEn: 'Old Sledge Site Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'repeat',
@@ -191,10 +218,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Claw of Jormag',
     category: 'core',
     categoryLabel: 'Core Weltboss',
+    categoryLabelEn: 'Core World Boss',
     zone: 'Eisklamm-Sunde',
+    zoneEn: 'Frostgorge Sound',
     level: 80,
     waypoint: '[&BHoCAAA=]',
     waypointName: 'Erdbeben-Wegmarke',
+    waypointNameEn: 'Earthshake Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -215,10 +245,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Tequatl the Sunless',
     category: 'hardcore',
     categoryLabel: 'Hardcore Großboss',
+    categoryLabelEn: 'Hardcore World Boss',
     zone: 'Funkenschwärmersumpf',
+    zoneEn: 'Sparkfly Fen',
     level: 65,
     waypoint: '[&BNwCAAA=]',
     waypointName: 'Splitterküsten-Wegmarke',
+    waypointNameEn: 'Splintered Coast Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'fixed',
@@ -241,10 +274,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Karka Queen',
     category: 'hardcore',
     categoryLabel: 'Hardcore Großboss',
+    categoryLabelEn: 'Hardcore World Boss',
     zone: 'Südlicht-Bucht',
+    zoneEn: 'Southsun Cove',
     level: 80,
     waypoint: '[&BNUGAAA=]',
     waypointName: 'Kielbruch-Wegmarke',
+    waypointNameEn: 'Pearl Islet Waypoint',
     durationMinutes: 15,
     schedule: {
       type: 'fixed',
@@ -267,10 +303,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Triple Trouble (Great Jungle Wurm)',
     category: 'hardcore',
     categoryLabel: 'Hardcore Großboss',
+    categoryLabelEn: 'Hardcore World Boss',
     zone: 'Blutstrom-Küste',
+    zoneEn: 'Bloodtide Coast',
     level: 55,
     waypoint: '[&BKoBAAA=]',
     waypointName: 'Rebhuhn-Wegmarke',
+    waypointNameEn: 'Firthside Vigil Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'fixed',
@@ -297,10 +336,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Battle in Tarir (Octovine)',
     category: 'hot',
     categoryLabel: 'HoT Meta-Event',
+    categoryLabelEn: 'HoT Meta Event',
     zone: 'Güldener Talkessel',
+    zoneEn: 'Auric Basin',
     level: 80,
     waypoint: '[&BNYHAAA=]',
     waypointName: 'Vergessene-Stadt-Wegmarke',
+    waypointNameEn: 'Wanderer\'s Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -317,10 +359,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Chak Gerent (Tangled Depths)',
     category: 'hot',
     categoryLabel: 'HoT Meta-Event',
+    categoryLabelEn: 'HoT Meta Event',
     zone: 'Verschlungene Tiefen',
+    zoneEn: 'Tangled Depths',
     level: 80,
     waypoint: '[&BPUHAAA=]',
     waypointName: 'Zusammenfluss-Wegmarke',
+    waypointNameEn: 'Ley-Line Confluence Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -337,10 +382,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Verdant Brink: Night Bosses',
     category: 'hot',
     categoryLabel: 'HoT Meta-Event',
+    categoryLabelEn: 'HoT Meta Event',
     zone: 'Grasgrüne Schwelle',
+    zoneEn: 'Verdant Brink',
     level: 80,
     waypoint: '[&BO8HAAA=]',
     waypointName: 'Pakt-Lager-Wegmarke',
+    waypointNameEn: 'Faren\'s Flyer Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -357,10 +405,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: "Dragon's Stand (Mouth of Mordremoth)",
     category: 'hot',
     categoryLabel: 'HoT Meta-Event',
+    categoryLabelEn: 'HoT Meta Event',
     zone: 'Widerstand des Drachen',
+    zoneEn: 'Dragon\'s Stand',
     level: 80,
     waypoint: '[&BBAIAAA=]',
     waypointName: 'Pakt-Basislager-Wegmarke',
+    waypointNameEn: 'Pact Base Camp Waypoint',
     durationMinutes: 35,
     schedule: {
       type: 'repeat',
@@ -381,10 +432,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Casino Blitz & Choya Pinata',
     category: 'pof',
     categoryLabel: 'PoF Meta-Event',
+    categoryLabelEn: 'PoF Meta Event',
     zone: 'Kristall-Oase',
+    zoneEn: 'Crystal Oasis',
     level: 80,
     waypoint: '[&BLsKAAA=]',
     waypointName: 'Amnoon-Wegmarke',
+    waypointNameEn: 'Amnoon Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -401,10 +455,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Maws of Torment (The Desolation)',
     category: 'pof',
     categoryLabel: 'PoF Meta-Event',
+    categoryLabelEn: 'PoF Meta Event',
     zone: 'Das Ödland',
+    zoneEn: 'The Desolation',
     level: 80,
     waypoint: '[&BKMKAAA=]',
     waypointName: 'Dunkelstrom-Wegmarke',
+    waypointNameEn: 'The Darklands Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -421,10 +478,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: "Serpent's Ire (Domain of Vabbi)",
     category: 'pof',
     categoryLabel: 'PoF Meta-Event',
+    categoryLabelEn: 'PoF Meta Event',
     zone: 'Domäne Vabbi',
+    zoneEn: 'Domain of Vabbi',
     level: 80,
     waypoint: '[&BO0KAAA=]',
     waypointName: 'Vehtendi-Akademie-Wegmarke',
+    waypointNameEn: 'Vehtendi Academy Waypoint',
     durationMinutes: 25,
     schedule: {
       type: 'repeat',
@@ -445,10 +505,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Dragonstorm (Eye of the North)',
     category: 'eod',
     categoryLabel: 'Living World Boss',
+    categoryLabelEn: 'Living World Boss',
     zone: 'Auge des Nordens',
+    zoneEn: 'Eye of the North',
     level: 80,
     waypoint: '[&BAkMAAA=]',
     waypointName: 'Auge des Nordens-Wegmarke',
+    waypointNameEn: 'Eye of the North Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -465,10 +528,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Drakkar (Bjora Marches)',
     category: 'eod',
     categoryLabel: 'Living World Boss',
+    categoryLabelEn: 'Living World Boss',
     zone: 'Bjora-Sümpfe',
+    zoneEn: 'Bjora Marches',
     level: 80,
     waypoint: '[&BDkMAAA=]',
     waypointName: 'Stillwasser-Wegmarke',
+    waypointNameEn: 'Still Waters Speaking Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -485,10 +551,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Aetherblade Assault (Seitung Province)',
     category: 'eod',
     categoryLabel: 'EoD Meta-Event',
+    categoryLabelEn: 'EoD Meta Event',
     zone: 'Provinz Seitung',
+    zoneEn: 'Seitung Province',
     level: 80,
     waypoint: '[&BGUNAAA=]',
     waypointName: 'Seitung-Hafen-Wegmarke',
+    waypointNameEn: 'Daigo Ward Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -505,10 +574,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Kaineng Blackout (New Kaineng City)',
     category: 'eod',
     categoryLabel: 'EoD Meta-Event',
+    categoryLabelEn: 'EoD Meta Event',
     zone: 'Neu-Kaineng',
+    zoneEn: 'New Kaineng City',
     level: 80,
     waypoint: '[&BBkNAAA=]',
     waypointName: 'Gartenhöhen-Wegmarke',
+    waypointNameEn: 'Ministry Ward Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -525,10 +597,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'The Gangs of Echovald (Echovald Wilds)',
     category: 'eod',
     categoryLabel: 'EoD Meta-Event',
+    categoryLabelEn: 'EoD Meta Event',
     zone: 'Echowald-Wildnis',
+    zoneEn: 'Echovald Wilds',
     level: 80,
     waypoint: '[&BO8MAAA=]',
     waypointName: 'Arboretum-Wegmarke',
+    waypointNameEn: 'The Old Steamshop Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -545,10 +620,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: "The Battle for the Dragon's End",
     category: 'eod',
     categoryLabel: 'EoD Meta-Event',
+    categoryLabelEn: 'EoD Meta Event',
     zone: 'Das Drachen-Ende',
+    zoneEn: 'Dragon\'s End',
     level: 80,
     waypoint: '[&BKIMAAA=]',
     waypointName: 'Vorbereitungslager-Wegmarke',
+    waypointNameEn: 'Jade Quarry Waypoint',
     durationMinutes: 30,
     schedule: {
       type: 'repeat',
@@ -569,10 +647,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: "Unlocking the Wizard's Tower",
     category: 'soto',
     categoryLabel: 'SotO Meta',
+    categoryLabelEn: 'SotO Meta',
     zone: 'Himmelswacht-Archipel',
+    zoneEn: 'Skywatch Archipelago',
     level: 80,
     waypoint: '[&BL4NAAA=]',
     waypointName: 'Drohende Himmelswacht-Wegmarke',
+    waypointNameEn: 'Droknar\'s Light Waypoint',
     durationMinutes: 25,
     schedule: {
       type: 'repeat',
@@ -589,10 +670,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'The Defense of Amnytas',
     category: 'soto',
     categoryLabel: 'SotO Meta',
+    categoryLabelEn: 'SotO Meta',
     zone: 'Amnytas',
+    zoneEn: 'Amnytas',
     level: 80,
     waypoint: '[&BDQOAAA=]',
     waypointName: 'Bastion des Gleichgewichts-Wegmarke',
+    waypointNameEn: 'Bastion of the Natural Waypoint',
     durationMinutes: 25,
     schedule: {
       type: 'repeat',
@@ -609,10 +693,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Convergences (Public)',
     category: 'soto',
     categoryLabel: 'SotO Meta',
+    categoryLabelEn: 'SotO Meta',
     zone: 'Turm der Zauberer',
+    zoneEn: 'The Wizard\'s Tower',
     level: 80,
     waypoint: '[&BB8OAAA=]',
     waypointName: 'Turm der Zauberer-Wegmarke',
+    waypointNameEn: 'Tower Courtyard Waypoint',
     durationMinutes: 30,
     schedule: {
       type: 'repeat',
@@ -629,10 +716,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: "Into the Spider's Lair (Eparch)",
     category: 'soto',
     categoryLabel: 'SotO Meta',
+    categoryLabelEn: 'SotO Meta',
     zone: 'Inneres Nayos',
+    zoneEn: 'Inner Nayos',
     level: 80,
     waypoint: '[&BEYOAAA=]',
     waypointName: 'Heitors Tor-Wegmarke',
+    waypointNameEn: 'Heitor\'s Gate Waypoint',
     durationMinutes: 30,
     schedule: {
       type: 'repeat',
@@ -653,10 +743,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Of Mists and Monsters (Greer & Decima)',
     category: 'janthir',
     categoryLabel: 'Janthir Meta',
+    categoryLabelEn: 'Janthir Meta',
     zone: 'Janthir-Syntri',
+    zoneEn: 'Janthir Syntri',
     level: 80,
     waypoint: '[&BBAQAAA=]',
     waypointName: 'Mondlager-Wegmarke',
+    waypointNameEn: 'Moon Camp Waypoint',
     durationMinutes: 25,
     schedule: {
       type: 'repeat',
@@ -673,10 +766,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Lowland Shore: Kodan Gathering',
     category: 'janthir',
     categoryLabel: 'Janthir Meta',
+    categoryLabelEn: 'Janthir Meta',
     zone: 'Tiefland-Küste',
+    zoneEn: 'Lowland Shore',
     level: 80,
     waypoint: '[&BO4PAAA=]',
     waypointName: 'Tiefland-Kodan-Dorf-Wegmarke',
+    waypointNameEn: 'Harvest Den Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
@@ -693,10 +789,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Janthir Convergences',
     category: 'janthir',
     categoryLabel: 'Janthir Meta',
+    categoryLabelEn: 'Janthir Meta',
     zone: 'Janthir-Syntri / Heiligtum',
+    zoneEn: 'Janthir Syntri / Sanctuary',
     level: 80,
     waypoint: '[&BBAQAAA=]',
     waypointName: 'Mondlager-Wegmarke',
+    waypointNameEn: 'Moon Camp Waypoint',
     durationMinutes: 30,
     schedule: {
       type: 'repeat',
@@ -717,10 +816,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Secrets of the Starlit Weald',
     category: 'voe',
     categoryLabel: 'VoE Meta',
+    categoryLabelEn: 'VoE Meta',
     zone: 'Insel Castora',
+    zoneEn: 'Isle of Castora',
     level: 80,
     waypoint: '[&BD0RAAA=]',
     waypointName: 'Castora-Hafen-Wegmarke',
+    waypointNameEn: 'Castora Harbor Waypoint',
     durationMinutes: 25,
     schedule: {
       type: 'repeat',
@@ -737,10 +839,13 @@ export const EVENTS: WorldEvent[] = [
     nameEn: 'Awakening of the Ancients',
     category: 'voe',
     categoryLabel: 'VoE Meta',
+    categoryLabelEn: 'VoE Meta',
     zone: 'Insel Castora',
+    zoneEn: 'Isle of Castora',
     level: 80,
     waypoint: '[&BO8RAAA=]',
     waypointName: 'Ewigkeitstempel-Wegmarke',
+    waypointNameEn: 'Temple of Eternity Waypoint',
     durationMinutes: 25,
     schedule: {
       type: 'repeat',
@@ -840,6 +945,23 @@ function addCandidate(
 /**
  * Format remaining seconds into clean German countdown: e.g. "04m 12s", "1h 15m"
  */
+
+export function getEventName(event: WorldEvent, lang: 'de' | 'en'): string {
+  return lang === 'en' ? (event.nameEn || event.name) : event.name;
+}
+
+export function getEventZone(event: WorldEvent, lang: 'de' | 'en'): string {
+  return lang === 'en' ? (event.zoneEn || event.zone) : event.zone;
+}
+
+export function getEventWaypointName(event: WorldEvent, lang: 'de' | 'en'): string {
+  return lang === 'en' ? (event.waypointNameEn || event.waypointName) : event.waypointName;
+}
+
+export function getEventCategoryLabel(event: WorldEvent, lang: 'de' | 'en'): string {
+  return lang === 'en' ? (event.categoryLabelEn || event.categoryLabel) : event.categoryLabel;
+}
+
 export function formatCountdown(seconds: number): string {
   if (seconds <= 0) return '00m 00s';
   const h = Math.floor(seconds / 3600);
@@ -855,8 +977,8 @@ export function formatCountdown(seconds: number): string {
 /**
  * Format short countdown for minimal space: e.g. "4m" or "1h"
  */
-export function formatShortCountdown(seconds: number): string {
-  if (seconds <= 0) return 'Jetzt';
+export function formatShortCountdown(seconds: number, lang: 'de' | 'en' = 'en'): string {
+  if (seconds <= 0) return lang === 'en' ? 'Now' : 'Jetzt';
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;
@@ -866,7 +988,14 @@ export function formatShortCountdown(seconds: number): string {
 /**
  * Format local German clock time: e.g. "20:15 Uhr"
  */
-export function formatLocalTime(date: Date): string {
+export function formatLocalTime(date: Date, lang: 'de' | 'en' = 'en'): string {
+  if (lang === 'en') {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
   return date.toLocaleTimeString('de-DE', {
     hour: '2-digit',
     minute: '2-digit',
@@ -883,8 +1012,11 @@ export function formatCallout(
   lang: 'de' | 'en' = 'en'
 ): string {
   const isEn = lang === 'en';
-  const name = isEn ? (inst.event.nameEn || inst.event.name) : inst.event.name;
-  const { waypoint, zone, categoryLabel } = inst.event;
+  const name = getEventName(inst.event, lang);
+  const zone = getEventZone(inst.event, lang);
+  const categoryLabel = getEventCategoryLabel(inst.event, lang);
+  const waypointName = getEventWaypointName(inst.event, lang);
+  const { waypoint } = inst.event;
 
   let timeString: string;
   if (isEn) {

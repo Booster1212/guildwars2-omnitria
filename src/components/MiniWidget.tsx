@@ -1,7 +1,13 @@
 import React from 'react';
 import { Flame, MessageSquare, Compass, ChevronDown, Check } from 'lucide-react';
 import { EventInstance } from '../types';
-import { formatShortCountdown, formatCountdown } from '../data/events';
+import {
+  formatShortCountdown,
+  formatCountdown,
+  getEventName,
+  getEventZone,
+  getEventWaypointName,
+} from '../data/events';
 import { useTranslation } from '../i18n';
 
 interface MiniWidgetProps {
@@ -32,7 +38,9 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
       ) : (
         displayItems.map((inst, index) => {
           const isCopied = copiedId === `${inst.event.id}_${inst.startTime.getTime()}`;
-          const eventDisplayName = lang === 'en' ? (inst.event.nameEn || inst.event.name) : inst.event.name;
+          const eventDisplayName = getEventName(inst.event, lang);
+          const displayZone = getEventZone(inst.event, lang);
+          const displayWaypoint = getEventWaypointName(inst.event, lang);
           return (
             <div
               key={`${inst.event.id}_${inst.startTime.getTime()}`}
@@ -60,14 +68,14 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
                   }`}
                 >
                   {inst.isActive
-                    ? `${t('events.activeBadge')} (${formatShortCountdown(inst.endsInSeconds)})`
+                    ? `${t('events.activeBadge')} (${formatShortCountdown(inst.endsInSeconds, lang)})`
                     : `${t('events.in')} ${formatCountdown(inst.startsInSeconds)}`}
                 </div>
               </div>
 
               {/* Zone / Map indicator */}
               <div className="mini-zone-label">
-                {inst.event.zone} • {inst.event.waypointName}
+                {displayZone} • {displayWaypoint}
               </div>
 
               {/* Action buttons */}

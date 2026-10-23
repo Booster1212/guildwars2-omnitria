@@ -266,7 +266,14 @@ test('Events: SotO, Janthir Wilds und Visions of Eternity sind im Zeitplan entha
 
 test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts', async () => {
   const { t, getLanguage, setLanguage, TRANSLATIONS } = await import('../src/i18n/index.ts');
-  const { formatCallout, EVENTS } = await import('../src/data/events.ts');
+  const {
+    formatCallout,
+    EVENTS,
+    getEventName,
+    getEventZone,
+    getEventWaypointName,
+    getEventCategoryLabel,
+  } = await import('../src/data/events.ts');
   const {
     getDisciplineName,
     getRarityName,
@@ -331,13 +338,25 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
   assert.ok(deGuide.primary.includes('Klinge'));
   assert.ok(enGuide.primary.includes('Blade'));
 
-  // 4. Bilingual Callout generation
+  // 4. Bilingual Event, Zone, Waypoint and Callout generation
+  assert.equal(getEventZone(sampleEvent, 'de'), 'Funkenschwärmersumpf');
+  assert.equal(getEventZone(sampleEvent, 'en'), 'Sparkfly Fen');
+  assert.equal(getEventWaypointName(sampleEvent, 'de'), 'Splitterküsten-Wegmarke');
+  assert.equal(getEventWaypointName(sampleEvent, 'en'), 'Splintered Coast Waypoint');
+  assert.equal(getEventCategoryLabel(sampleEvent, 'de'), 'Hardcore Großboss');
+  assert.equal(getEventCategoryLabel(sampleEvent, 'en'), 'Hardcore World Boss');
+
   const deCallout = formatCallout(inst, 'standard', 'de');
   const enCallout = formatCallout(inst, 'standard', 'en');
 
   assert.ok(deCallout.includes('startet in'), 'Deutscher Callout enthält "startet in"');
   assert.ok(enCallout.includes('starts in'), 'Englischer Callout enthält "starts in"');
   assert.ok(enCallout.includes(sampleEvent.nameEn), 'Englischer Callout enthält englischen Namen');
+
+  const deDetailed = formatCallout(inst, 'detailed', 'de');
+  const enDetailed = formatCallout(inst, 'detailed', 'en');
+  assert.ok(deDetailed.includes('Funkenschwärmersumpf') && deDetailed.includes('Hardcore Großboss'));
+  assert.ok(enDetailed.includes('Sparkfly Fen') && enDetailed.includes('Hardcore World Boss'));
 
   // Reset back to en
   setLanguage('en');

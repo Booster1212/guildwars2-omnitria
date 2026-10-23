@@ -217,8 +217,8 @@ export const App: React.FC = () => {
         const q = searchTerm.toLowerCase();
         const matchName = inst.event.name.toLowerCase().includes(q);
         const matchEn = inst.event.nameEn.toLowerCase().includes(q);
-        const matchZone = inst.event.zone.toLowerCase().includes(q);
-        const matchWaypoint = inst.event.waypointName.toLowerCase().includes(q);
+        const matchZone = inst.event.zone.toLowerCase().includes(q) || (inst.event.zoneEn?.toLowerCase().includes(q) ?? false);
+        const matchWaypoint = inst.event.waypointName.toLowerCase().includes(q) || (inst.event.waypointNameEn?.toLowerCase().includes(q) ?? false);
         if (!matchName && !matchEn && !matchZone && !matchWaypoint) {
           return false;
         }

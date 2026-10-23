@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Compass, MessageSquare, Check, Copy } from 'lucide-react';
-import { EVENTS } from '../../data/events';
+import { EVENTS, getEventName, getEventZone, getEventWaypointName, getEventCategoryLabel } from '../../data/events';
 import { playCopyChime } from '../../data/audio';
 import type { OverlaySettings } from '../../types';
 import { useTranslation } from '../../i18n';
@@ -28,18 +28,21 @@ export const WaypointsView: React.FC<WaypointsViewProps> = ({ settings, onToast 
     const map = new Map<string, WaypointEntry>();
     for (const ev of EVENTS) {
       if (!ev.waypoint) continue;
-      const evName = lang === 'en' ? (ev.nameEn || ev.name) : ev.name;
+      const evName = getEventName(ev, lang);
+      const wpName = getEventWaypointName(ev, lang);
+      const zoneName = getEventZone(ev, lang);
+      const catLabel = getEventCategoryLabel(ev, lang);
       const existing = map.get(ev.waypoint);
       if (existing) {
         if (!existing.eventNames.includes(evName)) existing.eventNames.push(evName);
-        if (!existing.categoryLabels.includes(ev.categoryLabel)) existing.categoryLabels.push(ev.categoryLabel);
+        if (!existing.categoryLabels.includes(catLabel)) existing.categoryLabels.push(catLabel);
       } else {
         map.set(ev.waypoint, {
           waypoint: ev.waypoint,
-          waypointName: ev.waypointName || ev.zone,
-          zone: ev.zone,
+          waypointName: wpName || zoneName,
+          zone: zoneName,
           eventNames: [evName],
-          categoryLabels: [ev.categoryLabel],
+          categoryLabels: [catLabel],
         });
       }
     }
