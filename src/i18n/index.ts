@@ -196,6 +196,16 @@ export const TRANSLATIONS = {
     'crafting.intermediatesTab': 'Zwischenprodukte',
     'crafting.totalCost': 'Gesamtkosten:',
     'crafting.recipesIntro': 'Zeigt Rezepte für {disc} bis Rang {rank}. Klicke auf ein Ergebnis oder eine Zutat für Details.',
+    'crafting.discoveryRequired': 'Entdeckungsrezept erforderlich (an der Station erforschen)',
+    'crafting.discoveryBonusPill': '+100%–200% Bonus-EP',
+    'crafting.discoveryCombineInstruction': 'Im 2. Reiter der Station (Entdeckung) kombinieren:',
+    'crafting.discoveryRepeatNote': 'Danach noch {count}× regulär im 1. Reiter herstellen',
+    'crafting.discoverySingleCraftNote': '1× Entdeckung genügt für diesen Rangschritt',
+    'crafting.searchNoResultsInTier': 'Keine Entdeckungen in Stufe „{tier}“ gefunden.',
+    'crafting.searchCrossTierHits': '{count} passende Entdeckungen in anderen Stufen vorhanden.',
+    'crafting.searchShowAllTiers': 'In allen Stufen suchen ({count})',
+    'crafting.searchReset': 'Suche zurücksetzen',
+    'crafting.noSearchResults': 'Keine Entdeckungsrezepte für diese Suchanfrage gefunden.',
 
     // Legendary
     'legendary.title': 'Legendäre Waffen & Rüstkammer',
@@ -423,6 +433,16 @@ export const TRANSLATIONS = {
     'crafting.intermediatesTab': 'Intermediate Components',
     'crafting.totalCost': 'Total Cost:',
     'crafting.recipesIntro': 'Shows recipes for {disc} up to rank {rank}. Click on an item or ingredient for details.',
+    'crafting.discoveryRequired': 'Discovery Recipe Required (Research at station)',
+    'crafting.discoveryBonusPill': '+100%–200% Bonus XP',
+    'crafting.discoveryCombineInstruction': 'Combine in 2nd station tab (Discovery):',
+    'crafting.discoveryRepeatNote': 'Then craft {count}× normally in 1st tab',
+    'crafting.discoverySingleCraftNote': '1× discovery is sufficient for this rank step',
+    'crafting.searchNoResultsInTier': 'No discoveries found in tier "{tier}".',
+    'crafting.searchCrossTierHits': '{count} matching discoveries found in other tiers.',
+    'crafting.searchShowAllTiers': 'Search across all tiers ({count})',
+    'crafting.searchReset': 'Reset search',
+    'crafting.noSearchResults': 'No discovery recipes found matching your search.',
 
     // Legendary
     'legendary.title': 'Legendary Weapons & Armory',

@@ -8,7 +8,7 @@ import { useProgress, progressActions } from '../../data/progressStore';
 import { getItem, useItems } from '../../data/gw2/items';
 import { fmtInt } from '../common/labels';
 import { Coin, ItemIcon, Notice, Check, ProgressBar } from '../common/ui';
-import { ChevronRight, Sliders, ShoppingBag, Layers } from 'lucide-react';
+import { ChevronRight, Sliders, ShoppingBag, Layers, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 interface LevelPlannerProps {
@@ -105,6 +105,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     plan.steps.forEach((st) => {
       ids.add(st.recipe.outputId);
       st.ingredients.forEach((i) => ids.add(i.itemId));
+      st.recipe.ingredients.forEach((i) => ids.add(i.itemId));
     });
     for (const [id] of plan.purchases) ids.add(id);
     plan.intermediates.forEach((im) => ids.add(im.recipe.outputId));
@@ -358,8 +359,64 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                       )}
                     </div>
 
+                    {/* Prominent Discovery Recipe Box */}
+                    {st.needsDiscovery && (
+                      <div className="planner-discovery-recipe-box">
+                        <div className="pdr-header">
+                          <div className="pdr-title">
+                            <Sparkles size={13} className="text-amber-400" />
+                            <span className="font-semibold">{t('crafting.discoveryRequired')}</span>
+                            <span className="pdr-badge">{t('crafting.discoveryBonusPill')}</span>
+                          </div>
+                          <span className="pdr-subtitle">
+                            {t('crafting.discoveryCombineInstruction')}
+                          </span>
+                        </div>
+
+                        <div className="pdr-formula-row">
+                          {st.recipe.ingredients.map((ing, idx) => {
+                            const ingItem = getItem(ing.itemId);
+                            const stock = account.stockMap.get(ing.itemId) ?? 0;
+                            const hasEnough = stock >= ing.count;
+
+                            return (
+                              <React.Fragment key={ing.itemId}>
+                                {idx > 0 && <span className="pdr-plus font-mono">+</span>}
+                                <button
+                                  type="button"
+                                  className={`pdr-ing-chip ${account.hasStockData && hasEnough ? 'stock-ok' : ''}`}
+                                  onClick={() => onOpenItem(ing.itemId)}
+                                  title={`${ingItem?.name ?? ing.itemId} (${t('crafting.inStock')} ${stock})`}
+                                >
+                                  <ItemIcon id={ing.itemId} count={ing.count} size="s" />
+                                  <div className="pdr-ing-text">
+                                    <span className="pdr-ing-name">{ingItem?.name ?? `#${ing.itemId}`}</span>
+                                    {account.hasStockData && (
+                                      <span className={`pdr-ing-stock ${hasEnough ? 'ok' : 'missing'}`}>
+                                        {hasEnough ? `✓ ${stock}` : `${stock}/${ing.count}`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+
+                        <div className="pdr-footer-note dim">
+                          {st.crafts > 1
+                            ? t('crafting.discoveryRepeatNote', { count: st.crafts - 1 })
+                            : t('crafting.discoverySingleCraftNote')}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="step-ings-line">
-                      <span className="ings-label dim">{lang === 'en' ? 'Ingredients:' : 'Zutaten:'}</span>
+                      <span className="ings-label dim">
+                        {st.needsDiscovery
+                          ? lang === 'en' ? 'Total Materials:' : 'Gesamtbedarf:'
+                          : lang === 'en' ? 'Ingredients:' : 'Zutaten:'}
+                      </span>
                       <div className="step-ings-wrap">
                         {st.ingredients.map((ing) => {
                           const it = getItem(ing.itemId);

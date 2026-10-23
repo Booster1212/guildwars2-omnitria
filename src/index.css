@@ -1225,11 +1225,11 @@ button {
 }
 .planner-step-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   background: #14161c;
   border: 1px solid #242832;
-  padding: 6px 10px;
+  padding: 8px 10px;
   transition: background 0.1s;
 }
 .planner-step-card:hover {
@@ -1239,6 +1239,9 @@ button {
 .planner-step-card.step-done {
   opacity: 0.65;
   background: #0f1014;
+}
+.step-check-col {
+  padding-top: 2px;
 }
 .step-rank-badge {
   font-size: 11px;
@@ -1252,13 +1255,115 @@ button {
   width: 75px;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
+}
+.step-icon-col {
+  margin-top: 1px;
+  flex-shrink: 0;
 }
 .step-content-col {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+}
+
+/* Dedicated Discovery Recipe Box in Level Planner */
+.planner-discovery-recipe-box {
+  margin: 4px 0 6px 0;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, rgba(234, 179, 8, 0.08) 0%, rgba(20, 16, 10, 0.35) 100%);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-left: 3px solid var(--gw2-gold);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pdr-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.pdr-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--gw2-gold-bright);
+}
+.pdr-badge {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  background: rgba(234, 179, 8, 0.18);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #fef08a;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.pdr-subtitle {
+  font-size: 11px;
+  color: var(--gw2-text-dim);
+}
+.pdr-formula-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.pdr-plus {
+  color: var(--gw2-gold-dim);
+  font-size: 14px;
+  font-weight: bold;
+  user-select: none;
+}
+.pdr-ing-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0d0f13;
+  border: 1px solid #352c1e;
+  padding: 2px 7px 2px 3px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pdr-ing-chip:hover {
+  border-color: var(--gw2-gold);
+  background: #181b22;
+}
+.pdr-ing-chip.stock-ok {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+.pdr-ing-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+.pdr-ing-name {
+  font-size: 11px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+.pdr-ing-stock {
+  font-size: 9.5px;
+  font-family: monospace;
+}
+.pdr-ing-stock.ok {
+  color: #4ade80;
+}
+.pdr-ing-stock.missing {
+  color: #f87171;
+}
+.pdr-footer-note {
+  font-size: 10.5px;
+  color: var(--gw2-text-dim);
+  font-style: italic;
 }
 .step-title-line {
   display: flex;
@@ -3357,5 +3462,50 @@ button {
   font-size: 11.5px;
   color: #94a3b8;
 }
+
+/* Cross-tier search suggestion banner */
+.discovery-cross-tier-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(234, 179, 8, 0.12) 0%, rgba(20, 16, 10, 0.4) 100%);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-left: 3px solid var(--gw2-gold);
+  padding: 8px 12px;
+  border-radius: 2px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.cross-tier-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #f8fafc;
+}
+
+.cross-tier-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a1e28;
+  border: 1px solid var(--gw2-gold);
+  color: var(--gw2-gold-bright);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cross-tier-btn:hover {
+  background: var(--gw2-gold);
+  color: #0b0d11;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
 
 

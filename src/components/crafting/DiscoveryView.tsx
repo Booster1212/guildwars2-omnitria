@@ -107,9 +107,24 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
     return Array.from(types).sort();
   }, [allDisciplineRecipes, discipline, activeTier.minRating, activeTier.maxRating]);
 
+  // Collect all unique item IDs for this discipline so all names & icons are in the local cache
+  const allDisciplineItemIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const r of allDisciplineRecipes) {
+      if (!r.disciplines.includes(discipline)) continue;
+      ids.add(r.outputId);
+      for (const ing of r.ingredients) {
+        ids.add(ing.itemId);
+      }
+    }
+    return Array.from(ids);
+  }, [allDisciplineRecipes, discipline]);
+
+  const itemsState = useItems(allDisciplineItemIds);
+
   // Filtered recipes
   const filteredRecipes = useMemo(() => {
-    const list = filterDiscoveryRecipes(allDisciplineRecipes, {
+    return filterDiscoveryRecipes(allDisciplineRecipes, {
       discipline,
       minRating: activeTier.minRating,
       maxRating: activeTier.maxRating,
@@ -117,22 +132,9 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       search: searchQuery,
       status: statusFilter,
       knownRecipeIds: account.knownRecipeSet,
+      getItemName: (id: number) => getItem(id)?.name,
+      getRecipeTypeName: (type: string) => getRecipeTypeName(type, lang),
     });
-
-    // Also filter by item name if search query exists
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      return list.filter((r) => {
-        const item = getItem(r.outputId);
-        if (item && item.name.toLowerCase().includes(q)) return true;
-        return r.ingredients.some((ing) => {
-          const ingItem = getItem(ing.itemId);
-          return ingItem && ingItem.name.toLowerCase().includes(q);
-        });
-      });
-    }
-
-    return list;
   }, [
     allDisciplineRecipes,
     discipline,
@@ -142,9 +144,38 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
     searchQuery,
     statusFilter,
     account.knownRecipeSet,
+    itemsState.version,
+    lang,
   ]);
 
-  // Preload items into cache for visible candidates
+  // Count matches across all tiers if a search query is active
+  const crossTierMatchesCount = useMemo(() => {
+    if (!searchQuery.trim() || selectedTier === 'all') return 0;
+    const allMatches = filterDiscoveryRecipes(allDisciplineRecipes, {
+      discipline,
+      minRating: 0,
+      maxRating: 500,
+      type: selectedType,
+      search: searchQuery,
+      status: statusFilter,
+      knownRecipeIds: account.knownRecipeSet,
+      getItemName: (id: number) => getItem(id)?.name,
+      getRecipeTypeName: (type: string) => getRecipeTypeName(type, lang),
+    });
+    return allMatches.length;
+  }, [
+    allDisciplineRecipes,
+    discipline,
+    selectedType,
+    searchQuery,
+    statusFilter,
+    account.knownRecipeSet,
+    selectedTier,
+    itemsState.version,
+    lang,
+  ]);
+
+  // Preload prices for visible candidates
   const visibleItemIds = useMemo(() => {
     const ids = new Set<number>();
     filteredRecipes.slice(0, 100).forEach((r) => {
@@ -154,7 +185,6 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
     return Array.from(ids);
   }, [filteredRecipes]);
 
-  useItems(visibleItemIds);
   const prices = usePrices(visibleItemIds);
 
   // Sorting
@@ -402,13 +432,53 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
         )}
       </div>
 
+      {/* Cross-Tier Search Suggestion Banner */}
+      {sortedRecipes.length === 0 && crossTierMatchesCount > 0 && (
+        <div className="discovery-cross-tier-notice">
+          <div className="cross-tier-text">
+            <Info size={16} className="text-amber-400" />
+            <span>
+              {t('crafting.searchNoResultsInTier', { tier: activeTier.label })}{' '}
+              <strong>{t('crafting.searchCrossTierHits', { count: crossTierMatchesCount })}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            className="cross-tier-btn"
+            onClick={() => setSelectedTier('all')}
+          >
+            <Layers size={13} />
+            {t('crafting.searchShowAllTiers', { count: crossTierMatchesCount })}
+          </button>
+        </div>
+      )}
+
       {sortedRecipes.length === 0 ? (
         <div className="discovery-empty-state">
           <Sparkles size={32} className="dim text-amber-400" />
-          <p className="empty-title">{lang === 'en' ? 'No discovery recipes found for these filter criteria.' : 'Keine Entdeckungsrezepte für diese Filterkriterien gefunden.'}</p>
-          <p className="dim empty-subtitle">
-            {lang === 'en' ? 'Try another crafting tier or choose "All Categories".' : 'Versuche eine andere Rangstufe oder wähle „Alle Kategorien“.'}
+          <p className="empty-title">
+            {searchQuery.trim()
+              ? t('crafting.noSearchResults')
+              : lang === 'en'
+                ? 'No discovery recipes found for these filter criteria.'
+                : 'Keine Entdeckungsrezepte für diese Filterkriterien gefunden.'}
           </p>
+          <div className="dim empty-subtitle">
+            {searchQuery.trim() ? (
+              <button
+                type="button"
+                className="btn-tiny"
+                onClick={() => setSearchQuery('')}
+                style={{ marginTop: '6px' }}
+              >
+                {t('crafting.searchReset')}
+              </button>
+            ) : (
+              lang === 'en'
+                ? 'Try another crafting tier or choose "All Categories".'
+                : 'Versuche eine andere Rangstufe oder wähle „Alle Kategorien“.'
+            )}
+          </div>
         </div>
       ) : (
         <div className="discovery-cards-grid">

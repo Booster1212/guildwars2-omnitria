@@ -334,3 +334,154 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
   // Reset back to de
   setLanguage('de');
 });
+
+test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierung', async () => {
+  const { filterDiscoveryRecipes, isDiscoveryRecipe } = await import('../src/domain/discovery.ts');
+  const { getRecipeTypeName } = await import('../src/components/common/labels.ts');
+  const { t, setLanguage } = await import('../src/i18n/index.ts');
+
+  const mockRecipes: Recipe[] = [
+    {
+      id: 101,
+      outputId: 2001, // Eisernes Großschwert
+      outputCount: 1,
+      type: 'Greatsword',
+      rating: 150,
+      disciplines: ['Weaponsmith'],
+      flags: [],
+      ingredients: [
+        { itemId: 3001, count: 1 }, // Eisen-Klinge
+        { itemId: 3002, count: 1 }, // Eisen-Griff
+        { itemId: 3003, count: 1 }, // Verwüstende Eisen-Insignie
+      ],
+    },
+    {
+      id: 102,
+      outputId: 2002, // Bronzener Dolch
+      outputCount: 1,
+      type: 'Dagger',
+      rating: 25,
+      disciplines: ['Weaponsmith'],
+      flags: [],
+      ingredients: [
+        { itemId: 3010, count: 1 }, // Bronze-Klinge
+        { itemId: 3011, count: 1 }, // Bronze-Griff
+        { itemId: 3012, count: 1 }, // Bösartige Bronze-Insignie
+      ],
+    },
+    {
+      id: 103,
+      outputId: 2003, // Jute-Stiefel (Autogelernt)
+      outputCount: 1,
+      type: 'Boots',
+      rating: 0,
+      disciplines: ['Tailor'],
+      flags: ['AutoLearned'],
+      ingredients: [{ itemId: 4001, count: 2 }],
+    },
+  ];
+
+  const mockNames: Record<number, string> = {
+    2001: 'Eisernes Großschwert',
+    2002: 'Bronzener Dolch',
+    2003: 'Jute-Stiefel',
+    3001: 'Eisen-Großschwertklinge',
+    3002: 'Eisen-Großschwertheft',
+    3003: 'Verwüstende Eisen-Insignie',
+    3010: 'Bronze-Dolchklinge',
+    3011: 'Bronze-Dolchheft',
+    3012: 'Bösartige Bronze-Insignie',
+  };
+
+  const getItemName = (id: number) => mockNames[id];
+  const getLocTypeDe = (type: string) => getRecipeTypeName(type, 'de');
+  const getLocTypeEn = (type: string) => getRecipeTypeName(type, 'en');
+
+  // 1. isDiscoveryRecipe check
+  assert.equal(isDiscoveryRecipe(mockRecipes[0]), true);
+  assert.equal(isDiscoveryRecipe(mockRecipes[1]), true);
+  assert.equal(isDiscoveryRecipe(mockRecipes[2]), false); // AutoLearned
+
+  // 2. Suche nach Output-Gegenstandsname (deutsch)
+  const hitsByName = filterDiscoveryRecipes(mockRecipes, {
+    discipline: 'Weaponsmith',
+    search: 'Eisernes',
+    getItemName,
+    getRecipeTypeName: getLocTypeDe,
+  });
+  assert.equal(hitsByName.length, 1);
+  assert.equal(hitsByName[0].id, 101);
+
+  // 3. Suche nach Zutat (z. B. "Insignie" oder "Dolchklinge")
+  const hitsByIng = filterDiscoveryRecipes(mockRecipes, {
+    discipline: 'Weaponsmith',
+    search: 'Insignie',
+    getItemName,
+    getRecipeTypeName: getLocTypeDe,
+  });
+  assert.equal(hitsByIng.length, 2, 'Beide Rezepte enthalten eine Insignie');
+
+  const hitsByDaggerBlade = filterDiscoveryRecipes(mockRecipes, {
+    discipline: 'Weaponsmith',
+    search: 'Dolchklinge',
+    getItemName,
+    getRecipeTypeName: getLocTypeDe,
+  });
+  assert.equal(hitsByDaggerBlade.length, 1);
+  assert.equal(hitsByDaggerBlade[0].id, 102);
+
+  // 4. Suche nach lokalisiertem Rezepttyp (deutsch: "Großschwert", englisch: "Greatsword")
+  const hitsByTypeDe = filterDiscoveryRecipes(mockRecipes, {
+    discipline: 'Weaponsmith',
+    search: 'Großschwert',
+    getItemName,
+    getRecipeTypeName: getLocTypeDe,
+  });
+  assert.equal(hitsByTypeDe.length, 1);
+  assert.equal(hitsByTypeDe[0].id, 101);
+
+  const hitsByTypeEn = filterDiscoveryRecipes(mockRecipes, {
+    discipline: 'Weaponsmith',
+    search: 'Greatsword',
+    getItemName,
+    getRecipeTypeName: getLocTypeEn,
+  });
+  assert.equal(hitsByTypeEn.length, 1);
+  assert.equal(hitsByTypeEn[0].id, 101);
+
+  // 5. Suche nach ID (Output oder Rezept-ID)
+  const hitsById = filterDiscoveryRecipes(mockRecipes, {
+    discipline: 'Weaponsmith',
+    search: '2002',
+    getItemName,
+    getRecipeTypeName: getLocTypeDe,
+  });
+  assert.equal(hitsById.length, 1);
+  assert.equal(hitsById[0].id, 102);
+
+  // 6. Tier/Rating Grenzen (z. B. Rang 0-74 filtert Rang 150 heraus)
+  const tier1Only = filterDiscoveryRecipes(mockRecipes, {
+    discipline: 'Weaponsmith',
+    minRating: 0,
+    maxRating: 74,
+    getItemName,
+    getRecipeTypeName: getLocTypeDe,
+  });
+  assert.equal(tier1Only.length, 1);
+  assert.equal(tier1Only[0].id, 102);
+
+  // 7. Lokalisierte Texte für Planer & Entdeckungssuche
+  setLanguage('de');
+  assert.ok(t('crafting.discoveryRequired').includes('Entdeckungsrezept'));
+  assert.ok(t('crafting.discoveryCombineInstruction').includes('kombinieren'));
+  assert.ok(t('crafting.searchNoResultsInTier', { tier: 'Stufe 1' }).includes('Stufe 1'));
+  assert.ok(t('crafting.searchShowAllTiers', { count: 5 }).includes('5'));
+
+  setLanguage('en');
+  assert.ok(t('crafting.discoveryRequired').includes('Discovery Recipe'));
+  assert.ok(t('crafting.discoveryCombineInstruction').includes('Discovery'));
+  assert.ok(t('crafting.searchNoResultsInTier', { tier: 'Tier 1' }).includes('Tier 1'));
+  assert.ok(t('crafting.searchShowAllTiers', { count: 5 }).includes('5'));
+  setLanguage('de');
+});
+

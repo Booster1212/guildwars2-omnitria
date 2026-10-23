@@ -14,6 +14,10 @@ export interface DiscoveryFilterOptions {
   search?: string;
   status?: DiscoveryStatusFilter;
   knownRecipeIds?: ReadonlySet<number> | null;
+  /** Optional resolver for item names (cached from /v2/items) */
+  getItemName?: (id: number) => string | undefined;
+  /** Optional resolver for localized recipe types */
+  getRecipeTypeName?: (type: string) => string | undefined;
 }
 
 export interface DiscoveryStats {
@@ -62,6 +66,8 @@ export function filterDiscoveryRecipes(
     search,
     status = 'all',
     knownRecipeIds,
+    getItemName,
+    getRecipeTypeName,
   } = options;
 
   const normalizedSearch = search?.trim().toLowerCase();
@@ -78,10 +84,36 @@ export function filterDiscoveryRecipes(
     if (status === 'discovered' && knownRecipeIds && !isKnown) return false;
 
     if (normalizedSearch) {
-      // Search matches recipe type or ID (names are looked up asynchronously)
-      const matchesType = r.type?.toLowerCase().includes(normalizedSearch);
-      const matchesId = String(r.id).includes(normalizedSearch) || String(r.outputId).includes(normalizedSearch);
-      if (!matchesType && !matchesId) return false;
+      // 1. Output item name
+      const outName = getItemName?.(r.outputId)?.toLowerCase();
+      const matchesOutName = Boolean(outName && outName.includes(normalizedSearch));
+
+      // 2. Ingredient names
+      let matchesIngredients = false;
+      if (getItemName) {
+        for (const ing of r.ingredients) {
+          const ingName = getItemName(ing.itemId)?.toLowerCase();
+          if (ingName && ingName.includes(normalizedSearch)) {
+            matchesIngredients = true;
+            break;
+          }
+        }
+      }
+
+      // 3. Recipe type (internal e.g. "Greatsword" or localized e.g. "Großschwert")
+      const matchesType = Boolean(r.type?.toLowerCase().includes(normalizedSearch));
+      const locTypeName = getRecipeTypeName && r.type ? getRecipeTypeName(r.type)?.toLowerCase() : undefined;
+      const matchesLocType = Boolean(locTypeName && locTypeName.includes(normalizedSearch));
+
+      // 4. IDs (recipe ID, output ID, or ingredient IDs)
+      const matchesId =
+        String(r.id).includes(normalizedSearch) ||
+        String(r.outputId).includes(normalizedSearch) ||
+        r.ingredients.some((ing) => String(ing.itemId).includes(normalizedSearch));
+
+      if (!matchesOutName && !matchesIngredients && !matchesType && !matchesLocType && !matchesId) {
+        return false;
+      }
     }
 
     return true;
