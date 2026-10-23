@@ -1,16 +1,16 @@
 @echo off
-title Guild Wars 2 Overlay
+title Omnitria HUD • Guild Wars 2
 cd /d "%~dp0"
 cls
 echo ===================================================================
-echo   GUILD WARS 2 - EVENT OVERLAY (3-EVENT HUD)
+echo   OMNITRIA HUD - GUILD WARS 2 EVENT, HANDWERK ^& LEGENDAR
 echo ===================================================================
 echo.
-echo   [+] Starte Overlay direkt ueber dem Chat...
+echo   [+] Starte Omnitria HUD direkt ueber dem Chat...
 start "" "%~dp0node_modules\electron\dist\electron.exe" "."
-echo   [+] Status: Overlay wurde gestartet!
+echo   [+] Status: Omnitria HUD wurde gestartet!
 echo   [+] Schau auf deinen Bildschirm:
-echo       - HUD schwebt unten links ueber dem GW2-Chat
+echo       - Omnitria HUD schwebt unten links ueber dem GW2-Chat
 echo       - Goldener Drache im Windows System-Tray (neben der Uhr)
 echo.
 echo   [+] Hotkeys:
