@@ -42,3 +42,8 @@ gw2-overlay-data/
 ehthumbs.db
 Thumbs.db
 Desktop.ini
+
+# Local launcher scripts
+start-browser.bat
+start-overlay.bat
+
