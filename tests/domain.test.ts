@@ -170,3 +170,71 @@ test('Quellen: unbekannte Materialien werden als unbekannt gekennzeichnet', () =
   const t = resolveSources({ item: undefined, tags: ['trading_post', 'mystic_forge'] });
   assert.ok(t.some((x) => x.kind === 'forge') && t.some((x) => x.kind === 'trade'));
 });
+
+test('Entdeckungsrezepte: Filterung, Erkennung und Status-Berechnung', async () => {
+  const { isDiscoveryRecipe, computeDiscoveryStats, filterDiscoveryRecipes, estimateRecipeCost } = await import('../src/domain/discovery.ts');
+
+  const r1 = rec('101', 1001, 1, [[1, 1], [2, 1], [3, 1]], {
+    disciplines: ['Weaponsmith'],
+    rating: 0,
+    type: 'Sword',
+    flags: [],
+  });
+  const r2 = rec('102', 1002, 1, [[1, 2]], {
+    disciplines: ['Weaponsmith'],
+    rating: 0,
+    type: 'Refinement',
+    flags: ['AutoLearned'],
+  });
+  const r3 = rec('103', 1003, 1, [[4, 1]], {
+    disciplines: ['Weaponsmith'],
+    rating: 75,
+    type: 'Sword',
+    flags: ['LearnedFromItem'],
+  });
+  const r4 = rec('104', 1004, 1, [[1, 1], [2, 1], [3, 1]], {
+    disciplines: ['Weaponsmith'],
+    rating: 75,
+    type: 'Dagger',
+    flags: [],
+  });
+
+  // Flag check
+  assert.equal(isDiscoveryRecipe(r1), true);
+  assert.equal(isDiscoveryRecipe(r2), false);
+  assert.equal(isDiscoveryRecipe(r3), false);
+  assert.equal(isDiscoveryRecipe(r4), true);
+
+  // Stats check with known recipe set
+  const known = new Set([101]);
+  const statsT1 = computeDiscoveryStats([r1, r2, r3, r4], 'Weaponsmith', known, 0, 74);
+  assert.equal(statsT1.total, 1);
+  assert.equal(statsT1.discovered, 1);
+  assert.equal(statsT1.undiscovered, 0);
+  assert.equal(statsT1.pctDiscovered, 100);
+
+  const statsAll = computeDiscoveryStats([r1, r2, r3, r4], 'Weaponsmith', known, 0, 500);
+  assert.equal(statsAll.total, 2);
+  assert.equal(statsAll.discovered, 1);
+  assert.equal(statsAll.undiscovered, 1);
+  assert.equal(statsAll.pctDiscovered, 50);
+
+  // Filter check
+  const undiscoveredOnly = filterDiscoveryRecipes([r1, r2, r3, r4], {
+    discipline: 'Weaponsmith',
+    status: 'undiscovered',
+    knownRecipeIds: known,
+  });
+  assert.equal(undiscoveredOnly.length, 1);
+  assert.equal(undiscoveredOnly[0].id, '104');
+
+  // Cost estimation
+  const prices = new Map<number, PriceInfo>([
+    [1, { sell: 20, buy: 15, sellQty: 10, buyQty: 10 }],
+    [2, { sell: 35, buy: 30, sellQty: 10, buyQty: 10 }],
+    [3, { sell: 50, buy: 40, sellQty: 10, buyQty: 10 }],
+  ]);
+  const cost = estimateRecipeCost(r1, prices);
+  assert.equal(cost.totalCost, 105);
+  assert.equal(cost.hasUnpriced, false);
+});

@@ -6,8 +6,11 @@ import { useProgress } from '../../data/progressStore';
 import { DISCIPLINE_DE, fmtInt } from '../common/labels';
 import { DisciplineIcon, ItemIcon, ProgressBar, Tabs } from '../common/ui';
 import { LevelPlanner } from './LevelPlanner';
+import { DiscoveryView } from './DiscoveryView';
+import { CURATED_DISCOVERIES } from '../../data/crafting/curatedDiscoveries';
+import { isDiscoveryRecipe } from '../../domain/discovery';
 import { getItem } from '../../data/gw2/items';
-import { Compass, BookOpen, Sliders, User } from 'lucide-react';
+import { Compass, BookOpen, Sliders, User, Sparkles } from 'lucide-react';
 
 interface DisciplineDetailProps {
   discipline: DisciplineId;
@@ -16,7 +19,7 @@ interface DisciplineDetailProps {
 }
 
 export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, maxRank, onOpenItem }) => {
-  const [activeTab, setActiveTab] = useState<'planner' | 'recipes'>('planner');
+  const [activeTab, setActiveTab] = useState<'planner' | 'discovery' | 'recipes'>('planner');
   const account = useAccountState();
   const progress = useProgress();
   const recipeDb = useRecipeDb(true);
@@ -27,6 +30,14 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
   const charName = accountCrafting?.character;
 
   const progressFrac = Math.min(1, currentRank / maxRank);
+
+  // Discoverable recipes count
+  const discoveryRecipesCount = React.useMemo(() => {
+    const list = recipeDb.status === 'ready' && recipeDb.recipes.length > 0
+      ? recipeDb.recipes
+      : CURATED_DISCOVERIES;
+    return list.filter((r) => r.disciplines.includes(discipline) && isDiscoveryRecipe(r)).length;
+  }, [recipeDb.recipes, recipeDb.status, discipline]);
 
   // Recipes relevant for this discipline around current rank
   const relevantRecipes = React.useMemo(() => {
@@ -72,23 +83,33 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
         </div>
       </div>
 
-      {/* Main Tabs: Levelplaner / Rezepte */}
+      {/* Main Tabs: Levelplaner / Entdeckungsrezepte / Rezepte */}
       <div className="detail-tabs-strip">
         <Tabs
           tabs={[
             { id: 'planner', label: 'Interaktiver Levelplaner' },
+            { id: 'discovery', label: `✨ Entdeckungsrezepte (${discoveryRecipesCount})` },
             { id: 'recipes', label: `Erlernte / Relevante Rezepte (${relevantRecipes.length})` },
           ]}
           value={activeTab}
-          onChange={(tab) => setActiveTab(tab as 'planner' | 'recipes')}
+          onChange={(tab) => setActiveTab(tab as 'planner' | 'discovery' | 'recipes')}
         />
       </div>
 
       {/* Tab Content */}
       <div className="detail-content-area">
-        {activeTab === 'planner' ? (
+        {activeTab === 'planner' && (
           <LevelPlanner discipline={discipline} maxRank={maxRank} onOpenItem={onOpenItem} />
-        ) : (
+        )}
+        {activeTab === 'discovery' && (
+          <DiscoveryView
+            discipline={discipline}
+            maxRank={maxRank}
+            currentRank={currentRank}
+            onOpenItem={onOpenItem}
+          />
+        )}
+        {activeTab === 'recipes' && (
           <div className="discipline-recipes-view">
             <div className="recipes-intro-bar">
               <span className="dim">
