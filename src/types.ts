@@ -18,12 +18,17 @@ export interface BossAchievement {
   id: string;
   gw2Id?: number;
   title: string;
+  titleEn?: string;
   ap: number;
   description: string;
+  descriptionEn?: string;
   category: string;
+  categoryEn?: string;
   rewardTitle?: string;
+  rewardTitleEn?: string;
   isDailyOrRepeatable?: boolean;
   tierInfo?: string;
+  tierInfoEn?: string;
 }
 
 export interface WorldEvent {

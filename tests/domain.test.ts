@@ -10,6 +10,14 @@ import { ranksPerCraft, categoryOf } from '../src/domain/craftingXp.ts';
 import { planLevelRoute, maxRankOf } from '../src/domain/levelPlanner.ts';
 import { resolveSources } from '../src/domain/sources.ts';
 import type { Recipe, PriceInfo } from '../src/domain/types.ts';
+import {
+  GLOBAL_ACHIEVEMENTS,
+  BOSS_ACHIEVEMENTS,
+  getAchievementTitle,
+  getAchievementDesc,
+  getAchievementCategoryLabel,
+  getAchievementTierInfo,
+} from '../src/data/achievements.ts';
 
 const rec = (id: string, out: number, count: number, ing: [number, number][], extra: Partial<Recipe> = {}): Recipe => ({
   id,
@@ -510,5 +518,35 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   assert.ok(t('crafting.searchNoResultsInTier', { tier: 'Tier 1' }).includes('Tier 1'));
   assert.ok(t('crafting.searchShowAllTiers', { count: 5 }).includes('5'));
   setLanguage('en');
+});
+
+test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch', () => {
+  assert.equal(GLOBAL_ACHIEVEMENTS.length, 29);
+
+  // Täglicher Komplettierer
+  const dailyCompleter = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'daily-completer');
+  assert.ok(dailyCompleter);
+  assert.equal(getAchievementTitle(dailyCompleter, 'de'), 'Täglicher Komplettierer');
+  assert.equal(getAchievementTitle(dailyCompleter, 'en'), 'Daily Completer');
+  assert.ok(getAchievementDesc(dailyCompleter, 'en').includes('Complete any 3 daily achievements'));
+  assert.ok(getAchievementDesc(dailyCompleter, 'de').includes('Schließt 3 beliebige tägliche Erfolge'));
+  assert.equal(getAchievementCategoryLabel(dailyCompleter, 'de'), 'Täglich');
+  assert.equal(getAchievementCategoryLabel(dailyCompleter, 'en'), 'Daily');
+
+  // Der Sonnenlose (Tequatl)
+  const tequatl = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'wb-tequatl-meta');
+  assert.ok(tequatl);
+  assert.equal(getAchievementTitle(tequatl, 'de'), 'Der Sonnenlose');
+  assert.equal(getAchievementTitle(tequatl, 'en'), 'The Sunless');
+  assert.equal(getAchievementCategoryLabel(tequatl, 'en'), 'World Bosses');
+  assert.equal(getAchievementTierInfo(tequatl, 'en'), 'Rank 4 of 5');
+  assert.equal(getAchievementTierInfo(tequatl, 'de'), 'Rang 4 von 5');
+
+  // Boss-Achievements (z.B. Drakkar, Shatterer)
+  const drakkarBoss = BOSS_ACHIEVEMENTS['drakkar'];
+  assert.ok(drakkarBoss && drakkarBoss.length > 0);
+  assert.equal(drakkarBoss[0].title, 'Stimme im Eis');
+  assert.equal(drakkarBoss[0].titleEn, 'Voice in the Ice Broken');
+  assert.equal(drakkarBoss[0].categoryEn, 'Icebrood Saga');
 });
 

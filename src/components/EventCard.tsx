@@ -193,7 +193,9 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="gw2-card-achievements-drawer">
           <div className="drawer-header">
             <Trophy size={11} className="trophy-gold" />
-            <span className="drawer-title">Mögliche Erfolge im Spiel:</span>
+            <span className="drawer-title">
+              {lang === 'en' ? 'Potential in-game achievements:' : 'Mögliche Erfolge im Spiel:'}
+            </span>
           </div>
 
           <div className="drawer-achieve-list">
@@ -201,30 +203,33 @@ export const EventCard: React.FC<EventCardProps> = ({
               const userAch = ach.gw2Id ? userAchievements?.get(ach.gw2Id) : undefined;
               const isDone = userAch?.done;
               const hasProgress = userAch && userAch.current !== undefined && userAch.max !== undefined && !isDone;
+              const achTitle = lang === 'en' ? (ach.titleEn || ach.title) : ach.title;
+              const achDesc = lang === 'en' ? (ach.descriptionEn || ach.description) : ach.description;
+              const achReward = lang === 'en' ? (ach.rewardTitleEn || ach.rewardTitle) : ach.rewardTitle;
 
               return (
                 <div key={ach.id} className={`drawer-achieve-item ${isDone ? 'ach-done' : ''}`}>
                   <div className="ach-left">
                     <div className="ach-title-row">
-                      <span className="ach-item-title">{ach.title}</span>
+                      <span className="ach-item-title">{achTitle}</span>
                       {isDone ? (
                         <span className="ach-status-pill done">
                           <CheckCircle2 size={10} />
-                          <span>Erledigt</span>
+                          <span>{lang === 'en' ? 'Completed' : 'Erledigt'}</span>
                         </span>
                       ) : hasProgress ? (
                         <span className="ach-status-pill inprogress font-mono">
                           <Clock size={10} />
                           <span>{userAch.current} / {userAch.max}</span>
                         </span>
-                      ) : ach.rewardTitle ? (
+                      ) : achReward ? (
                         <span className="ach-reward-title font-serif">
                           <Award size={10} />
-                          <span>Titel: {ach.rewardTitle}</span>
+                          <span>{lang === 'en' ? `Title: ${achReward}` : `Titel: ${achReward}`}</span>
                         </span>
                       ) : null}
                     </div>
-                    <div className="ach-item-desc">{ach.description}</div>
+                    <div className="ach-item-desc">{achDesc}</div>
                   </div>
 
                   <div className="ach-right">

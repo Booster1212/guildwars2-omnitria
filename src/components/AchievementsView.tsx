@@ -20,6 +20,13 @@ import {
   GLOBAL_ACHIEVEMENTS,
   GlobalAchievementItem,
   AchievementCategory,
+  getAchievementTitle,
+  getAchievementDesc,
+  getAchievementCategoryLabel,
+  getAchievementTierInfo,
+  getAchievementRewardTitle,
+  getAchievementRewardItem,
+  getObjectiveTitle,
 } from '../data/achievements';
 import type { EventInstance } from '../types';
 import type { Gw2AccountInfo, Gw2AccountAchievement } from '../data/gw2Api';
@@ -154,14 +161,27 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
       if (statusFilter === 'completed' && !item.isCompleted) return false;
       if (statusFilter === 'inprogress' && item.isCompleted) return false;
 
-      // Text search
+      // Text search (checks both German and English titles, descriptions, categories, rewards, objectives)
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const inTitle = item.title.toLowerCase().includes(query);
-        const inDesc = item.description.toLowerCase().includes(query);
-        const inCat = (item.categoryLabel || item.category).toLowerCase().includes(query);
-        const inReward = (item.rewardTitle || item.rewardItem || '').toLowerCase().includes(query);
-        const inObjectives = item.objectives?.some((o) => o.title.toLowerCase().includes(query)) || false;
+        const query = searchQuery.toLowerCase().trim();
+        const inTitle =
+          item.title.toLowerCase().includes(query) ||
+          (item.titleEn && item.titleEn.toLowerCase().includes(query));
+        const inDesc =
+          item.description.toLowerCase().includes(query) ||
+          (item.descriptionEn && item.descriptionEn.toLowerCase().includes(query));
+        const inCat =
+          (item.categoryLabel || item.category).toLowerCase().includes(query) ||
+          (item.categoryLabelEn && item.categoryLabelEn.toLowerCase().includes(query));
+        const inReward =
+          (item.rewardTitle || item.rewardItem || '').toLowerCase().includes(query) ||
+          ((item.rewardTitleEn || item.rewardItemEn || '').toLowerCase().includes(query));
+        const inObjectives =
+          item.objectives?.some(
+            (o) =>
+              o.title.toLowerCase().includes(query) ||
+              (o.titleEn && o.titleEn.toLowerCase().includes(query))
+          ) || false;
         if (!inTitle && !inDesc && !inCat && !inReward && !inObjectives) return false;
       }
 
@@ -238,7 +258,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
               <button
                 className="btn-clear-search"
                 onClick={() => setSearchQuery('')}
-                title="Suche leeren"
+                title={lang === 'en' ? 'Clear search' : 'Suche leeren'}
               >
                 <X size={11} />
               </button>
@@ -337,12 +357,16 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                     <div className="card-top-row">
                       <div className="card-title-group">
                         <span className="achieve-category-pill">
-                          {item.categoryLabel || item.category}
+                          {getAchievementCategoryLabel(item, lang)}
                         </span>
-                        <h4 className="achieve-title font-serif" title={item.title}>
-                          {item.title}
+                        <h4 className="achieve-title font-serif" title={getAchievementTitle(item, lang)}>
+                          {getAchievementTitle(item, lang)}
                         </h4>
-                        {item.tierInfo && <span className="achieve-tier-tag dim">{item.tierInfo}</span>}
+                        {getAchievementTierInfo(item, lang) && (
+                          <span className="achieve-tier-tag dim">
+                            {getAchievementTierInfo(item, lang)}
+                          </span>
+                        )}
                       </div>
 
                       <div className="card-top-actions">
@@ -364,7 +388,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                     </div>
 
                     {/* Description */}
-                    <p className="achieve-desc">{item.description}</p>
+                    <p className="achieve-desc">{getAchievementDesc(item, lang)}</p>
 
                     {/* Progress Bar Row */}
                     {item.progressMax !== undefined && (
@@ -411,7 +435,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                                 ) : (
                                   <Circle size={10} className="obj-icon dim" />
                                 )}
-                                <span className="obj-title">{obj.title}</span>
+                                <span className="obj-title">{getObjectiveTitle(obj, lang)}</span>
                               </div>
                             ))}
                           </div>
@@ -424,24 +448,36 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                       {/* Rewards Badges */}
                       <div className="rewards-badges-row">
                         {item.rewardTitle && (
-                          <span className="reward-tag font-serif" title="Freischaltbarer Titel">
+                          <span
+                            className="reward-tag font-serif"
+                            title={lang === 'en' ? 'Unlockable title' : 'Freischaltbarer Titel'}
+                          >
                             <Award size={10} className="gold" />
-                            <span>{t('achievements.titleReward')} {item.rewardTitle}</span>
+                            <span>
+                              {t('achievements.titleReward')} {getAchievementRewardTitle(item, lang)}
+                            </span>
                           </span>
                         )}
                         {item.rewardMastery && (
                           <span
                             className={`mastery-tag mastery-${item.rewardMastery.region}`}
-                            title={`Beherrschungspunkt (${item.rewardMastery.region.toUpperCase()})`}
+                            title={
+                              lang === 'en'
+                                ? `Mastery Point (${item.rewardMastery.region.toUpperCase()})`
+                                : `Beherrschungspunkt (${item.rewardMastery.region.toUpperCase()})`
+                            }
                           >
                             <Sparkles size={10} />
                             <span>+{item.rewardMastery.points} {t('achievements.mastery')}</span>
                           </span>
                         )}
                         {item.rewardItem && (
-                          <span className="reward-item-tag" title="Belohnungs-Gegenstand">
+                          <span
+                            className="reward-item-tag"
+                            title={lang === 'en' ? 'Reward item' : 'Belohnungs-Gegenstand'}
+                          >
                             <Shield size={10} className="gold" />
-                            <span>{item.rewardItem}</span>
+                            <span>{getAchievementRewardItem(item, lang)}</span>
                           </span>
                         )}
                       </div>
