@@ -1,6 +1,6 @@
-# ✨ Omnitria HUD • Guild Wars 2 In-Game Overlay
+# ✨ Omnitria • Guild Wars 2 In-Game Overlay
 
-**Omnitria HUD** ist ein professionelles, immersives In-Game-HUD für **Guild Wars 2**, das als kompaktes Overlay direkt über dem Spielchat schwebt oder als vollständige Heldin-Tafel genutzt werden kann. Gestaltet im authentischen Guild-Wars-2-Interface-Stil (dunkler Schiefer, antike Bronze/Gold-Rahmen, GW2-Raritätsfarben und offizielle ArenaNet-Icons).
+**Omnitria** ist ein professionelles, immersives In-Game-Overlay für **Guild Wars 2**, das wahlweise kompakt direkt über dem Spielchat schwebt oder als vollständige Tafel genutzt werden kann. Gestaltet im authentischen Guild-Wars-2-Interface-Stil (dunkler Schiefer, antike Bronze/Gold-Rahmen, GW2-Raritätsfarben und offizielle ArenaNet-Icons).
 
 ---
 

@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className="gw2-title-text-wrap">
-            <span className="gw2-hero-title font-serif">Omnitria HUD</span>
+            <span className="gw2-hero-title font-serif">Omnitria</span>
             <span className="gw2-tab-subtitle dim font-serif">• {getSubTitle()}</span>
 
             {accountName ? (
@@ -138,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Mini Widget Toggle */}
           <button
             className={`gw2-nav-icon-btn ${settings.widgetMode ? 'active' : ''}`}
-            title={settings.widgetMode ? (lang === 'en' ? 'Open Expanded View' : 'Erweiterte Ansicht öffnen') : (lang === 'en' ? 'Compact Chat Overlay (Omnitria Mini-HUD)' : 'Kompaktes Chat-Overlay (Omnitria Mini-HUD)')}
+            title={settings.widgetMode ? (lang === 'en' ? 'Open Expanded View' : 'Erweiterte Ansicht öffnen') : (lang === 'en' ? 'Compact Chat Overlay (Omnitria Mini)' : 'Kompaktes Chat-Overlay (Omnitria Mini)')}
             onClick={handleToggleMini}
           >
             {settings.widgetMode ? <Maximize2 size={13} /> : <Minimize2 size={13} />}

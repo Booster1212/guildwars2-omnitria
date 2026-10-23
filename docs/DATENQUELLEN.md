@@ -1,6 +1,6 @@
 # Datenquellen, Architektur & Grenzen der Daten
 
-Dieses Dokument beschreibt die Architektur der Datenbeschaffung, die Klassifikation der Datenquellen sowie bekannte Grenzen und Annahmen der Anwendung **Omnitria HUD**.
+Dieses Dokument beschreibt die Architektur der Datenbeschaffung, die Klassifikation der Datenquellen sowie bekannte Grenzen und Annahmen der Anwendung **Omnitria**.
 
 ---
 

@@ -42,7 +42,7 @@ process.on('unhandledRejection', (reason) => {
 });
 log('Main process starting up...');
 
-app.name = 'Omnitria-HUD';
+app.name = 'Omnitria';
 // Prevent Windows file lock conflicts (Zugriff verweigert 0x5) on GPU disk cache
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.commandLine.appendSwitch('disable-http-cache');
@@ -296,7 +296,7 @@ function createTray(icon) {
   try {
     const trayIcon = icon.resize({ width: 16, height: 16 });
     tray = new Tray(trayIcon);
-    tray.setToolTip('Omnitria HUD • Guild Wars 2');
+    tray.setToolTip('Omnitria • Guild Wars 2');
     updateTrayMenu();
     tray.on('double-click', () => {
       if (!mainWindow) return;
@@ -313,8 +313,8 @@ function createTray(icon) {
     if (Notification.isSupported()) {
       try {
         const notif = new Notification({
-          title: '✨ Omnitria HUD Aktiv!',
-          body: 'Omnitria HUD schwebt über dem Chat. [F9] zum Ein-/Ausblenden.',
+          title: '✨ Omnitria Aktiv!',
+          body: 'Omnitria schwebt über dem Chat. [F9] zum Ein-/Ausblenden.',
           icon: icon,
         });
         notif.show();
@@ -333,7 +333,7 @@ function updateTrayMenu() {
   try {
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: 'Omnitria HUD ein-/ausblenden (F9)',
+        label: 'Omnitria ein-/ausblenden (F9)',
         click: () => {
           if (!mainWindow) return;
           if (mainWindow.isVisible()) {

@@ -282,14 +282,16 @@ test('i18n: Deutsch & Englisch Übersetzungen, Bezeichnungen und Chat-Callouts',
   assert.equal(t('nav.events'), 'Eventübersicht');
   assert.equal(t('nav.crafting'), 'Handwerk & Berufe');
   assert.equal(t('settings.language'), 'Sprache / Language');
-  assert.ok(t('settings.title').includes('Omnitria HUD'));
+  assert.ok(t('settings.title').includes('Omnitria'));
+  assert.equal(t('settings.title').includes('HUD'), false);
 
   setLanguage('en');
   assert.equal(getLanguage(), 'en');
   assert.equal(t('nav.events'), 'Event Timers');
   assert.equal(t('nav.crafting'), 'Crafting & Disciplines');
   assert.equal(t('settings.language'), 'Language / Sprache');
-  assert.ok(t('settings.title').includes('Omnitria HUD'));
+  assert.ok(t('settings.title').includes('Omnitria'));
+  assert.equal(t('settings.title').includes('HUD'), false);
 
   // 2. Bilingual Discipline & Rarity labels
   assert.equal(getDisciplineName('Weaponsmith', 'de'), 'Waffenschmied');
