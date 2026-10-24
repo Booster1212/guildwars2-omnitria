@@ -40,7 +40,31 @@ if (!fs.existsSync(electronDistDir)) {
   console.error('    Bitte fuehre "npm ci" oder "npm install" aus.');
   process.exit(1);
 }
-console.log('[+] Electron-Distributable in node_modules verifiziert.');
+
+const requiredFiles = [
+  'electron.exe',
+  'resources.pak',
+  'chrome_100_percent.pak',
+  'chrome_200_percent.pak',
+  'icudtl.dat',
+  'v8_context_snapshot.bin',
+  'ffmpeg.dll',
+  'd3dcompiler_47.dll',
+  'libEGL.dll',
+  'libGLESv2.dll',
+  'vk_swiftshader.dll',
+  'vulkan-1.dll',
+];
+
+for (const f of requiredFiles) {
+  const p = path.join(electronDistDir, f);
+  if (!fs.existsSync(p)) {
+    console.error(`[-] KRITISCHER FEHLER: Erforderliche Datei fehlt in Electron-Dist: ${p}`);
+    console.error('    Bitte fuehre "npm install electron" aus.');
+    process.exit(1);
+  }
+}
+console.log(`[+] Alle ${requiredFiles.length} essenziellen Electron-Dateien (inkl. pak & dlls) verifiziert.`);
 
 // 4. Zielverzeichnisse vorbereiten
 const releaseDir = path.join(rootDir, 'release');
@@ -56,6 +80,16 @@ fs.mkdirSync(stagingDir, { recursive: true });
 // 5. Electron Runtime-Dateien kopieren
 console.log('[+] Kopiere Electron Runtime-Dateien in Staging-Verzeichnis...');
 fs.cpSync(electronDistDir, stagingDir, { recursive: true });
+
+// Validierung im Staging-Ordner
+for (const f of requiredFiles) {
+  const destName = f === 'electron.exe' ? 'Omnitria.exe' : f;
+  const destPath = path.join(stagingDir, f === 'electron.exe' ? f : destName);
+  if (!fs.existsSync(destPath)) {
+    console.error(`[-] FEHLER: Kopieren von ${f} nach Staging fehlgeschlagen!`);
+    process.exit(1);
+  }
+}
 
 // 6. electron.exe in Omnitria.exe umbenennen
 const electronExe = path.join(stagingDir, 'electron.exe');
