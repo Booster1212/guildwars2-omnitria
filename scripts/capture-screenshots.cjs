@@ -64,14 +64,14 @@ ipcMain.on('store-write', (_event, name, json) => {
   fs.writeFileSync(path.join(storeDir, `${name}.json`), json, 'utf8');
 });
 
-ipcMain.handle('app-get-version', () => '0.1.2');
+ipcMain.handle('app-get-version', () => '0.1.3');
 ipcMain.handle('app-check-update', async () => ({
   ok: true,
-  currentVersion: '0.1.2',
-  latestVersion: '0.1.2',
-  latestTag: 'v0.1.2',
+  currentVersion: '0.1.3',
+  latestVersion: '0.1.3',
+  latestTag: 'v0.1.3',
   hasUpdate: false,
-  releaseName: 'Omnitria v0.1.2',
+  releaseName: 'Omnitria v0.1.3',
   publishedAt: new Date().toISOString(),
   htmlUrl: 'https://github.com/Booster1212/guildwars2-omnitria/releases',
 }));

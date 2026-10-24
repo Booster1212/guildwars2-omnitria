@@ -16,6 +16,10 @@ import {
   Clock,
   Shield,
   Key,
+  RefreshCw,
+  Info,
+  Gift,
+  Check,
 } from 'lucide-react';
 import {
   GLOBAL_ACHIEVEMENTS,
@@ -30,7 +34,7 @@ import {
   getObjectiveTitle,
 } from '../data/achievements';
 import type { EventInstance } from '../types';
-import type { Gw2AccountInfo, Gw2AccountAchievement } from '../data/gw2Api';
+import type { Gw2AccountInfo, Gw2AccountAchievement, Gw2DailyProgression } from '../data/gw2Api';
 import { ProgressBar } from './common/ui';
 import { formatCountdown, getEventZone } from '../data/events';
 import { useTranslation } from '../i18n';
@@ -42,15 +46,44 @@ interface AchievementsViewProps {
   onSwitchToEvents: () => void;
   accountInfo?: Gw2AccountInfo | null;
   userAchievements?: Map<number, Gw2AccountAchievement>;
+  dailyProgression?: Gw2DailyProgression | null;
   onOpenSettings?: () => void;
+  onRefreshProgression?: () => Promise<void>;
+  isRefreshing?: boolean;
 }
 
 const STORAGE_KEY_WATCHLIST = 'gw2_watchlist_achievements';
 
 interface CategoryTabOption {
-  id: 'all' | AchievementCategory | 'watchlist';
+  id: 'all' | 'daily' | AchievementCategory | 'watchlist';
   label: string;
 }
+
+const CORE_WORLD_BOSSES = [
+  { id: 'tequatl', apiId: 'tequatl_the_sunless', name: 'Tequatl der Sonnenlose', nameEn: 'Tequatl the Sunless', waypoint: '[&BNABAAA=]', zone: 'Funkenschwärmersumpf', zoneEn: 'Sparkfly Fen' },
+  { id: 'triple-trouble', apiId: 'triple_trouble_wurm', name: 'Großer Tropischer Wurm', nameEn: 'Great Jungle Wurm (Triple Trouble)', waypoint: '[&BKoBAAA=]', zone: 'Blutstrom-Küste', zoneEn: 'Bloodtide Coast' },
+  { id: 'shatterer', apiId: 'the_shatterer', name: 'Der Zerschmetterer', nameEn: 'The Shatterer', waypoint: '[&BE4DAAA=]', zone: 'Flammenkamm-Steppe', zoneEn: 'Blazeridge Steppes' },
+  { id: 'claw-of-jormag', apiId: 'claw_of_jormag', name: 'Klaue von Jormag', nameEn: 'Claw of Jormag', waypoint: '[&BHoCAAA=]', zone: 'Eisklamm-Sund', zoneEn: 'Frostgorge Sound' },
+  { id: 'shadow-behemoth', apiId: 'shadow_behemoth', name: 'Schatten-Behemoth', nameEn: 'Shadow Behemoth', waypoint: '[&BPcAAAA=]', zone: 'Königintal', zoneEn: 'Queensdale' },
+  { id: 'fire-elemental', apiId: 'fire_elemental', name: 'Feuerelementar', nameEn: 'Fire Elemental', waypoint: '[&BEcAAAA=]', zone: 'Provinz Metrica', zoneEn: 'Metrica Province' },
+  { id: 'jungle-wurm', apiId: 'great_jungle_wurm', name: 'Großer Dschungelwurm', nameEn: 'Great Jungle Wurm', waypoint: '[&BEEFAAA=]', zone: 'Caledon-Wald', zoneEn: 'Caledon Forest' },
+  { id: 'svanir-shaman', apiId: 'svanir_shaman_chief', name: 'Svanir-Schamane', nameEn: 'Svanir Shaman Chief', waypoint: '[&BMIDAAA=]', zone: 'Wanderer-Hügel', zoneEn: 'Wayfarer Foothills' },
+  { id: 'megadestroyer', apiId: 'megadestroyer', name: 'Megazerstörer', nameEn: 'Megadestroyer', waypoint: '[&BM0CAAA=]', zone: 'Mahlstromgipfel', zoneEn: 'Mount Maelstrom' },
+  { id: 'inquest-golem', apiId: 'inquest_golem_mark_ii', name: 'Inquestur-Golem Typ II', nameEn: 'Inquest Golem Mark II', waypoint: '[&BNQCAAA=]', zone: 'Mahlstromgipfel', zoneEn: 'Mount Maelstrom' },
+  { id: 'karka-queen', apiId: 'karka_queen', name: 'Karka-Königin', nameEn: 'Karka Queen', waypoint: '[&BNgGAAA=]', zone: 'Südlicht-Bucht', zoneEn: 'Southsun Cove' },
+  { id: 'taidha-covington', apiId: 'admiral_taidha_covington', name: 'Admiralin Taidha Covington', nameEn: 'Admiral Taidha Covington', waypoint: '[&BKgBAAA=]', zone: 'Blutstrom-Küste', zoneEn: 'Bloodtide Coast' },
+  { id: 'modniir-ulgoth', apiId: 'modniir_ulgoth', name: 'Ulgoth der Modniir', nameEn: 'Modniir Ulgoth', waypoint: '[&BLAAAAA=]', zone: 'Harathi-Hinterland', zoneEn: 'Harathi Hinterlands' },
+];
+
+const MAP_HERO_CHESTS = [
+  { id: 'tarir-octovine', apiId: 'auric_basin_heros_choice_chest', name: 'Tarir (Güldener Kessel)', nameEn: 'Tarir (Auric Basin)', waypoint: '[&BAIIAAA=]', zone: 'Güldener Kessel', zoneEn: 'Auric Basin' },
+  { id: 'chak-gerent', apiId: 'tangled_depths_heros_choice_chest', name: 'Chak-Gerent (Verschlungene Tiefen)', nameEn: 'Chak Gerent (Tangled Depths)', waypoint: '[&BPUHAAA=]', zone: 'Verschlungene Tiefen', zoneEn: 'Tangled Depths' },
+  { id: 'verdant-brink-night', apiId: 'verdant_brink_heros_choice_chest', name: 'Grasgrüne Klippen (Nacht-Meta)', nameEn: 'Verdant Brink (Night Bosses)', waypoint: '[&BAgIAAA=]', zone: 'Grasgrüne Klippen', zoneEn: 'Verdant Brink' },
+  { id: 'dragons-stand', apiId: 'dragons_stand_heros_choice_chest', name: 'Widerstand des Drachen', nameEn: 'Dragon\'s Stand (Mouth of Mordremoth)', waypoint: '[&BBAIAAA=]', zone: 'Widerstand des Drachen', zoneEn: 'Dragon\'s Stand' },
+  { id: 'choya-pinata', apiId: 'crystal_oasis_heros_choice_chest', name: 'Choya-Piñata (Kristalloase)', nameEn: 'Choya Piñata (Crystal Oasis)', waypoint: '[&BLsKAAA=]', zone: 'Kristalloase', zoneEn: 'Crystal Oasis' },
+  { id: 'maws-of-torment', apiId: 'the_desolation_heros_choice_chest', name: 'Schlund der Qualen (Ödland)', nameEn: 'Maws of Torment (The Desolation)', waypoint: '[&BKMKAAA=]', zone: 'Das Ödland', zoneEn: 'The Desolation' },
+  { id: 'serpents-ire', apiId: 'domain_of_vabbi_heros_choice_chest', name: 'Zorn der Schlange (Vabbi)', nameEn: 'Serpent\'s Ire (Domain of Vabbi)', waypoint: '[&BO8KAAA=]', zone: 'Domäne Vabbi', zoneEn: 'Domain of Vabbi' },
+];
 
 export const AchievementsView: React.FC<AchievementsViewProps> = ({
   upcomingInstances,
@@ -59,10 +92,13 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   onSwitchToEvents,
   accountInfo,
   userAchievements,
+  dailyProgression,
   onOpenSettings,
+  onRefreshProgression,
+  isRefreshing,
 }) => {
   const { t, lang } = useTranslation();
-  const [selectedCategory, setSelectedCategory] = useState<'all' | AchievementCategory | 'watchlist'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'daily' | AchievementCategory | 'watchlist'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'inprogress' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedObjectives, setExpandedObjectives] = useState<Record<string, boolean>>({});
@@ -79,6 +115,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
 
   const categoryTabs: CategoryTabOption[] = [
     { id: 'all', label: t('achievements.all') },
+    { id: 'daily', label: t('achievements.daily') },
     { id: 'watchlist', label: t('achievements.watchlist') },
     { id: 'worldboss', label: t('achievements.worldboss') },
     { id: 'hot', label: t('achievements.hot') },
@@ -113,6 +150,25 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   // Merge live user account progress into achievements
   const mergedAchievements = useMemo<GlobalAchievementItem[]>(() => {
     return GLOBAL_ACHIEVEMENTS.map((item) => {
+      // Special dynamic handling for daily-worldboss:
+      // ArenaNet retired achievement #1845, so we check real defeated world bosses from /v2/account/worldbosses!
+      if (item.id === 'daily-worldboss') {
+        const killedCount = dailyProgression?.worldBosses ? dailyProgression.worldBosses.length : 0;
+        const isDone = killedCount > 0;
+        return {
+          ...item,
+          isCompleted: isDone,
+          progressCurrent: Math.min(killedCount, 1),
+          progressMax: 1,
+          tierInfo: isDone
+            ? (lang === 'en' ? `${killedCount} bosses defeated today` : `${killedCount} Bosse heute besiegt`)
+            : (lang === 'en' ? '0 / 1 defeated today' : '0 / 1 heute besiegt'),
+          tierInfoEn: isDone
+            ? `${killedCount} bosses defeated today`
+            : '0 / 1 defeated today',
+        };
+      }
+
       // If user has a synced API key and record for this achievement: load REAL data!
       if (hasSyncedApiKey && item.gw2Id && userAchievements && userAchievements.has(item.gw2Id)) {
         const u = userAchievements.get(item.gw2Id)!;
@@ -122,7 +178,10 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
 
         let tierInfo = item.tierInfo;
         let tierInfoEn = item.tierInfoEn;
-        if (!tierInfo && isDone) {
+        if (u.repeated) {
+          tierInfo = `${u.repeated}x wiederholt`;
+          tierInfoEn = `Repeated ${u.repeated}x`;
+        } else if (!tierInfo && isDone) {
           tierInfo = 'Abgeschlossen';
           tierInfoEn = 'Completed';
         } else if (!tierInfo && cur > 0 && max > 1) {
@@ -161,7 +220,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
         })),
       };
     });
-  }, [userAchievements, hasSyncedApiKey, lang]);
+  }, [userAchievements, hasSyncedApiKey, dailyProgression, lang]);
 
   // Overall account stats
   const totalAvailableAp = useMemo(() => {
@@ -174,8 +233,10 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
 
   // Category counts
   const categoryCounts = useMemo(() => {
+    const dailyItemsCount = (dailyProgression?.wizardsVault?.objectives?.length ?? 4) + CORE_WORLD_BOSSES.length;
     const counts: Record<string, number> = {
       all: mergedAchievements.length,
+      daily: dailyItemsCount,
       watchlist: watchlist.length,
       worldboss: 0,
       hot: 0,
@@ -191,7 +252,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
       }
     }
     return counts;
-  }, [mergedAchievements, watchlist]);
+  }, [mergedAchievements, watchlist, dailyProgression]);
 
   // Filtered achievements list
   const filteredAchievements = useMemo(() => {
@@ -199,6 +260,8 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
       // Category filter
       if (selectedCategory === 'watchlist') {
         if (!watchlist.includes(item.id)) return false;
+      } else if (selectedCategory === 'daily') {
+        if (item.id !== 'daily-worldboss') return false;
       } else if (selectedCategory !== 'all') {
         if (item.category !== selectedCategory) return false;
       }
@@ -246,6 +309,23 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
     return map;
   }, [upcomingInstances]);
 
+  // Copy waypoint helper for daily world bosses
+  const handleCopyWaypoint = (code: string) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).catch(() => {});
+    }
+    const api = (window as unknown as { electronAPI?: { teleportWaypoint?: (c: string) => void; copyToClipboard?: (c: string) => void } }).electronAPI;
+    if (api?.teleportWaypoint) {
+      api.teleportWaypoint(code);
+    } else if (api?.copyToClipboard) {
+      api.copyToClipboard(code);
+    }
+  };
+
+  const dailyWorldBossesKilledCount = dailyProgression?.worldBosses?.length ?? 0;
+  const dailyMapChestsLootedCount = dailyProgression?.mapChests?.length ?? 0;
+  const wizardsVault = dailyProgression?.wizardsVault;
+
   return (
     <div className="gw2-achievements-panel">
       {/* 1. Heldin - Erfolgsübersicht Banner */}
@@ -289,8 +369,20 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
           </div>
         </div>
 
-        {/* Search & Status Filters */}
+        {/* Search, Live Refresh & Status Filters */}
         <div className="hero-filter-cluster">
+          {onRefreshProgression && (
+            <button
+              className="gw2-btn-outline sm btn-refresh-live"
+              onClick={onRefreshProgression}
+              disabled={isRefreshing}
+              title={t('achievements.refreshLive')}
+            >
+              <RefreshCw size={11} className={isRefreshing ? 'spin-anim' : ''} />
+              <span>{isRefreshing ? t('achievements.refreshing') : t('achievements.refreshLive')}</span>
+            </button>
+          )}
+
           <div className="gw2-achieve-search-box">
             <Search size={12} className="search-icon" />
             <input
@@ -355,11 +447,14 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
           return (
             <button
               key={tab.id}
-              className={`achieve-tab-btn ${isActive ? 'active' : ''}`}
+              className={`achieve-tab-btn ${isActive ? 'active' : ''} ${tab.id === 'daily' ? 'tab-daily-highlight' : ''}`}
               onClick={() => setSelectedCategory(tab.id)}
             >
               {tab.id === 'watchlist' && (
                 <Star size={11} className={`tab-star-icon ${watchlist.length > 0 ? 'gold' : ''}`} />
+              )}
+              {tab.id === 'daily' && (
+                <Sparkles size={11} className="tab-sparkle-icon gold" />
               )}
               <span className="tab-label font-serif">{tab.label}</span>
               <span className="tab-count font-mono">{count}</span>
@@ -368,9 +463,227 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
         })}
       </div>
 
-      {/* 3. Main Achievement Cards List */}
+      {/* 3. Main Achievement Scroll Area / Daily Dashboard */}
       <div className="gw2-achieve-scroll-area">
-        {filteredAchievements.length === 0 ? (
+        {/* Dedicated Daily / Wizard's Vault Dashboard */}
+        {selectedCategory === 'daily' ? (
+          <div className="gw2-daily-dashboard">
+            {/* ArenaNet System Information Notice */}
+            <div className="daily-explanation-card">
+              <div className="explanation-icon-col">
+                <Info size={16} className="info-icon gold" />
+              </div>
+              <div className="explanation-text-col">
+                <span className="explanation-title font-serif">
+                  {lang === 'en' ? 'How Guild Wars 2 Daily Tracking Works' : 'Hinweis zu täglichen Erfolgen & GW2-API'}
+                </span>
+                <p className="explanation-desc">
+                  {t('achievements.dailyExplanation')}
+                </p>
+              </div>
+            </div>
+
+            {/* Wizard's Vault (Gewölbe des Zauberers) Panel */}
+            <div className="daily-section-card">
+              <div className="daily-section-header">
+                <div className="section-header-left">
+                  <Sparkles size={14} className="gold" />
+                  <span className="section-title font-serif">{t('achievements.wizardsVault')}</span>
+                </div>
+                {wizardsVault && (
+                  <div className="section-header-right font-mono">
+                    <span className="vault-meta-tag">
+                      {wizardsVault.meta_progress_current} / {wizardsVault.meta_progress_complete}{' '}
+                      {wizardsVault.meta_progress_current >= wizardsVault.meta_progress_complete
+                        ? (lang === 'en' ? 'Meta Completed ✓' : 'Meta Abgeschlossen ✓')
+                        : (lang === 'en' ? 'Meta in Progress' : 'Meta in Arbeit')}
+                    </span>
+                    <span className="vault-acclaim-pill">
+                      +{wizardsVault.meta_reward_astral ?? 20} {t('achievements.astralAcclaim')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {wizardsVault?.objectives && wizardsVault.objectives.length > 0 ? (
+                <div className="vault-objectives-grid">
+                  {wizardsVault.objectives.map((obj) => {
+                    const isDone = obj.progress_current >= obj.progress_complete;
+                    return (
+                      <div
+                        key={obj.id}
+                        className={`vault-objective-item ${isDone ? 'is-complete' : ''} ${obj.claimed ? 'is-claimed' : ''}`}
+                      >
+                        <div className="vault-obj-top">
+                          <span className={`vault-track-badge track-${(obj.track || 'pve').toLowerCase()}`}>
+                            {obj.track}
+                          </span>
+                          <span className="vault-obj-title">{obj.title}</span>
+                          <div className="vault-obj-acclaim font-mono">
+                            <Sparkles size={10} className="gold" />
+                            <span>+{obj.acclaim} AA</span>
+                          </div>
+                        </div>
+
+                        <div className="vault-obj-bottom">
+                          <div className="vault-progress-row font-mono">
+                            <span className="vault-progress-nums">
+                              {obj.progress_current} / {obj.progress_complete}
+                            </span>
+                            <span className={`vault-status-pill ${obj.claimed ? 'claimed' : isDone ? 'ready' : 'open'}`}>
+                              {obj.claimed ? (
+                                <>
+                                  <Check size={10} />
+                                  <span>{t('achievements.claimed')}</span>
+                                </>
+                              ) : isDone ? (
+                                <>
+                                  <Gift size={10} />
+                                  <span>{lang === 'en' ? 'Ready' : 'Abholbereit'}</span>
+                                </>
+                              ) : (
+                                <span>{t('achievements.unclaimed')}</span>
+                              )}
+                            </span>
+                          </div>
+                          <ProgressBar
+                            value={obj.progress_complete > 0 ? obj.progress_current / obj.progress_complete : 0}
+                            tone={isDone ? 'gold' : 'green'}
+                            slim
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="vault-empty-note dim">
+                  {hasSyncedApiKey
+                    ? (lang === 'en'
+                        ? 'No active Wizard\'s Vault daily data returned by API. Ensure your key has "progression" permissions.'
+                        : 'Keine aktiven Gewölbe-Daten von der API empfangen. Stelle sicher, dass dein API-Schlüssel die Berechtigung "progression" besitzt.')
+                    : (lang === 'en'
+                        ? 'API key required to load your live Wizard\'s Vault daily tasks.'
+                        : 'API-Schlüssel erforderlich, um deine aktiven Gewölbe-des-Zauberers-Aufgaben live zu laden.')}
+                </div>
+              )}
+            </div>
+
+            {/* Daily World Bosses Panel (Bonus Chests) */}
+            <div className="daily-section-card">
+              <div className="daily-section-header">
+                <div className="section-header-left">
+                  <Trophy size={14} className="gold" />
+                  <span className="section-title font-serif">{t('achievements.todayWorldBosses')}</span>
+                </div>
+                <div className="section-header-right font-mono">
+                  <span className="worldboss-count-badge">
+                    <span className="gold">{dailyWorldBossesKilledCount}</span> / 13 {lang === 'en' ? 'Defeated Today' : 'Heute besiegt'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="daily-worldbosses-grid">
+                {CORE_WORLD_BOSSES.map((boss) => {
+                  const isKilled = dailyProgression?.worldBosses?.includes(boss.apiId) ?? false;
+                  return (
+                    <div
+                      key={boss.id}
+                      className={`daily-boss-item ${isKilled ? 'boss-killed' : 'boss-open'}`}
+                    >
+                      <div className="boss-item-left">
+                        {isKilled ? (
+                          <CheckCircle2 size={13} className="boss-status-icon green" />
+                        ) : (
+                          <Circle size={12} className="boss-status-icon dim" />
+                        )}
+                        <div className="boss-name-group">
+                          <span className="boss-name font-serif">
+                            {lang === 'en' ? boss.nameEn : boss.name}
+                          </span>
+                          <span className="boss-zone dim">
+                            {lang === 'en' ? boss.zoneEn : boss.zone}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="boss-item-right">
+                        <span className={`boss-state-pill font-mono ${isKilled ? 'killed' : 'open'}`}>
+                          {isKilled ? t('achievements.dailyBonusClaimed') : t('achievements.dailyBonusOpen')}
+                        </span>
+                        <button
+                          className="btn-action sm"
+                          onClick={() => handleCopyWaypoint(boss.waypoint)}
+                          title={`${boss.waypoint} in Chat senden`}
+                        >
+                          <Compass size={10} />
+                          <span>{t('achievements.waypoint')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Daily Meta-Event Hero's Choice Chests Panel */}
+            <div className="daily-section-card">
+              <div className="daily-section-header">
+                <div className="section-header-left">
+                  <Gift size={14} className="gold" />
+                  <span className="section-title font-serif">{t('achievements.todayMapChests')}</span>
+                </div>
+                <div className="section-header-right font-mono">
+                  <span className="worldboss-count-badge">
+                    <span className="gold">{dailyMapChestsLootedCount}</span> / {MAP_HERO_CHESTS.length} {lang === 'en' ? 'Claimed Today' : 'Heute geholt'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="daily-worldbosses-grid">
+                {MAP_HERO_CHESTS.map((chest) => {
+                  const isClaimed = dailyProgression?.mapChests?.includes(chest.apiId) ?? false;
+                  return (
+                    <div
+                      key={chest.id}
+                      className={`daily-boss-item ${isClaimed ? 'boss-killed' : 'boss-open'}`}
+                    >
+                      <div className="boss-item-left">
+                        {isClaimed ? (
+                          <CheckCircle2 size={13} className="boss-status-icon green" />
+                        ) : (
+                          <Circle size={12} className="boss-status-icon dim" />
+                        )}
+                        <div className="boss-name-group">
+                          <span className="boss-name font-serif">
+                            {lang === 'en' ? chest.nameEn : chest.name}
+                          </span>
+                          <span className="boss-zone dim">
+                            {lang === 'en' ? chest.zoneEn : chest.zone}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="boss-item-right">
+                        <span className={`boss-state-pill font-mono ${isClaimed ? 'killed' : 'open'}`}>
+                          {isClaimed ? t('achievements.dailyBonusClaimed') : t('achievements.dailyBonusOpen')}
+                        </span>
+                        <button
+                          className="btn-action sm"
+                          onClick={() => handleCopyWaypoint(chest.waypoint)}
+                          title={`${chest.waypoint} in Chat senden`}
+                        >
+                          <Compass size={10} />
+                          <span>{t('achievements.waypoint')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : filteredAchievements.length === 0 ? (
           <div className="achieve-empty-state">
             <Trophy size={28} className="dim" />
             <span className="empty-title font-serif">{t('achievements.emptyTitle')}</span>
@@ -444,7 +757,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                         <button
                           className={`btn-star-watch ${isWatched ? 'active' : ''}`}
                           onClick={() => toggleWatchlist(item.id)}
-                          title={isWatched ? 'Watchlist' : 'Watchlist'}
+                          title="Watchlist"
                         >
                           <Star size={12} className={isWatched ? 'fill-gold' : ''} />
                         </button>
@@ -643,3 +956,4 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
     </div>
   );
 };
+

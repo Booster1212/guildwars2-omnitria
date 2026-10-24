@@ -12,10 +12,13 @@ import { playCopyChime } from './data/audio';
 import { EventInstance, OverlaySettings, SortMode, OverlayTab } from './types';
 import {
   loadCachedApiData,
+  fetchAllAccountProgression,
   Gw2AccountInfo,
   Gw2AccountAchievement,
+  Gw2DailyProgression,
 } from './data/gw2Api';
 import { syncIfStale } from './data/gw2/account';
+import { progressActions } from './data/progressStore';
 import { ensureItems } from './data/gw2/items';
 import { DISCIPLINE_ICON_ITEM } from './components/common/labels';
 
@@ -49,13 +52,17 @@ export const App: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [clickThroughActive, setClickThroughActive] = useState<boolean>(false);
 
-  // Live GW2 API Account & Achievements state
+  // Live GW2 API Account, Achievements & Daily state
   const [accountInfo, setAccountInfo] = useState<Gw2AccountInfo | null>(() => {
     return loadCachedApiData().account;
   });
   const [userAchievements, setUserAchievements] = useState<Map<number, Gw2AccountAchievement>>(() => {
     return loadCachedApiData().achievements;
   });
+  const [dailyProgression, setDailyProgression] = useState<Gw2DailyProgression | null>(() => {
+    return loadCachedApiData().dailyProgression;
+  });
+  const [isRefreshingProgression, setIsRefreshingProgression] = useState<boolean>(false);
 
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -84,10 +91,41 @@ export const App: React.FC = () => {
     }
   }, [settings.sortMode]);
 
-  // Synchronisiere Accountdaten (Materialien, Handwerk, Rüstkammer), falls API-Schlüssel hinterlegt
+  // Full progression sync (Achievements, World Bosses, Map Chests, Wizard's Vault)
+  const handleRefreshProgression = async () => {
+    if (!settings.apiKey?.trim()) return;
+    setIsRefreshingProgression(true);
+    try {
+      const res = await fetchAllAccountProgression(settings.apiKey);
+      if (res.account) setAccountInfo(res.account);
+      const achMap = new Map<number, Gw2AccountAchievement>();
+      res.achievements.forEach((a) => achMap.set(a.id, a));
+      setUserAchievements(achMap);
+      setDailyProgression(res.dailyProgression);
+
+      // Auto-sync event completions with today's kills and repeatable achievements
+      progressActions.syncApiCompletions(
+        res.dailyProgression.worldBosses,
+        res.dailyProgression.mapChests,
+        achMap,
+      );
+    } catch (e) {
+      console.error('Failed to sync progression', e);
+    } finally {
+      setIsRefreshingProgression(false);
+    }
+  };
+
+  // Synchronisiere Accountdaten & Erfolge/Dailies bei Start und periodisch alle 5 Minuten
   useEffect(() => {
     if (settings.apiKey) {
       void syncIfStale(settings.apiKey);
+      void handleRefreshProgression();
+
+      const timer = setInterval(() => {
+        void handleRefreshProgression();
+      }, 5 * 60 * 1000);
+      return () => clearInterval(timer);
     }
   }, [settings.apiKey]);
 
@@ -332,6 +370,16 @@ export const App: React.FC = () => {
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 4000);
   };
 
+  // Action 3: Event-Abschluss erfassen
+  const handleLogEventCompletion = (eventId: string, newTotal: number) => {
+    if (settings.soundEnabled) {
+      playCopyChime(settings.soundVolume);
+    }
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(lang === 'en' ? `⚔️ Completion logged! Total: ${newTotal}x` : `⚔️ Abschluss erfasst! Insgesamt: ${newTotal}x`);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
+  };
+
   return (
     <div
       className="gw2-hero-window"
@@ -366,6 +414,8 @@ export const App: React.FC = () => {
           onTeleport={handleTeleport}
           copiedId={copiedId}
           onExpand={() => updateSettings({ widgetMode: false })}
+          dailyProgression={dailyProgression}
+          onLogCompletion={handleLogEventCompletion}
         />
       ) : (
         /* Full Heldin Panel Layout with Left NavRail */
@@ -422,6 +472,8 @@ export const App: React.FC = () => {
                           onTeleport={handleTeleport}
                           isJustCopied={copiedId === `${inst.event.id}_${inst.startTime.getTime()}`}
                           userAchievements={userAchievements}
+                          dailyProgression={dailyProgression}
+                          onLogCompletion={handleLogEventCompletion}
                         />
                       ))}
 
@@ -440,6 +492,8 @@ export const App: React.FC = () => {
                           onTeleport={handleTeleport}
                           isJustCopied={copiedId === `${inst.event.id}_${inst.startTime.getTime()}`}
                           userAchievements={userAchievements}
+                          dailyProgression={dailyProgression}
+                          onLogCompletion={handleLogEventCompletion}
                         />
                       ))}
                     </>
@@ -452,6 +506,8 @@ export const App: React.FC = () => {
                         onTeleport={handleTeleport}
                         isJustCopied={copiedId === `${inst.event.id}_${inst.startTime.getTime()}`}
                         userAchievements={userAchievements}
+                        dailyProgression={dailyProgression}
+                        onLogCompletion={handleLogEventCompletion}
                       />
                     ))
                   )}
@@ -471,7 +527,10 @@ export const App: React.FC = () => {
                 onSwitchToEvents={() => setCurrentTab('events')}
                 accountInfo={accountInfo}
                 userAchievements={userAchievements}
+                dailyProgression={dailyProgression}
                 onOpenSettings={() => setIsSettingsOpen(true)}
+                onRefreshProgression={handleRefreshProgression}
+                isRefreshing={isRefreshingProgression}
               />
             )}
           </div>
@@ -493,9 +552,13 @@ export const App: React.FC = () => {
         settings={settings}
         onUpdateSettings={updateSettings}
         isElectron={isElectron}
-        onApiDataSynced={(acc, achs) => {
+        onApiDataSynced={(acc, achs, daily) => {
           setAccountInfo(acc);
           setUserAchievements(achs);
+          if (daily) {
+            setDailyProgression(daily);
+            progressActions.syncApiCompletions(daily.worldBosses, daily.mapChests, achs);
+          }
           if (acc) {
             setToastMessage(`🔑 API verbunden: Account ${acc.name} (${achs.size} Erfolge synchronisiert)`);
           } else {

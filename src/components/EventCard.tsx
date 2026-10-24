@@ -41,7 +41,8 @@ import {
   LOOT_ITEM_ID_MAP,
 } from '../data/events';
 import { getAchievementsForEvent } from '../data/achievements';
-import { Gw2AccountAchievement } from '../data/gw2Api';
+import { Gw2AccountAchievement, Gw2DailyProgression } from '../data/gw2Api';
+import { useProgress, progressActions } from '../data/progressStore';
 import { useItems } from '../data/gw2/items';
 import { ItemIcon } from './common/ui';
 import { useTranslation } from '../i18n';
@@ -249,6 +250,8 @@ interface EventCardProps {
   onTeleport: (inst: EventInstance) => void;
   isJustCopied: boolean;
   userAchievements?: Map<number, Gw2AccountAchievement>;
+  dailyProgression?: Gw2DailyProgression | null;
+  onLogCompletion?: (eventId: string, newTotal: number) => void;
 }
 
 export const EventCard: React.FC<EventCardProps> = ({
@@ -257,11 +260,28 @@ export const EventCard: React.FC<EventCardProps> = ({
   onTeleport,
   isJustCopied,
   userAchievements,
+  dailyProgression,
+  onLogCompletion,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const { t, lang } = useTranslation();
   const { event, isActive, startsInSeconds, endsInSeconds } = instance;
+
+  const progress = useProgress();
+  const completionsCount = progress.eventCompletions[event.id] ?? 0;
+  const isCompletedToday = progressActions.isEventCompletedToday(
+    event.id,
+    dailyProgression?.worldBosses,
+    dailyProgression?.mapChests,
+  );
+
+  const handleLogCompletion = (delta = 1) => {
+    const nextVal = progressActions.recordEventCompletion(event.id, delta);
+    if (onLogCompletion) {
+      onLogCompletion(event.id, nextVal);
+    }
+  };
 
   const isImminent = !isActive && startsInSeconds <= 15 * 60;
   const achievements = useMemo(() => {
@@ -360,7 +380,7 @@ export const EventCard: React.FC<EventCardProps> = ({
             </div>
           </div>
 
-          {/* Sub-row: Location, Waypoint Name, Local Time */}
+          {/* Sub-row: Location, Waypoint Name, Local Time, Completion Badges */}
           <div className="gw2-card-sub-row">
             <div className="gw2-sub-location">
               <MapPin size={10} className="pin-icon" />
@@ -369,21 +389,52 @@ export const EventCard: React.FC<EventCardProps> = ({
               </span>
             </div>
 
-            {/* Achievements Chip Toggle */}
-            {achievements.length > 0 && (
-              <button
-                className={`gw2-achieve-pill-btn ${showAchievements ? 'active' : ''}`}
-                onClick={() => setShowAchievements(!showAchievements)}
-                title={t('events.achievements')}
+            {/* Right Badge Cluster: Account Completions, Today Done, Achievements */}
+            <div className="gw2-card-badges-cluster">
+              {/* Account Total Completions Badge */}
+              <div
+                className={`gw2-completions-badge ${completionsCount > 0 ? 'has-completions' : ''}`}
+                title={
+                  lang === 'en'
+                    ? `Account completions: ${completionsCount} times`
+                    : `Auf dem Account insgesamt: ${completionsCount}-mal abgeschlossen`
+                }
               >
-                <Trophy size={10} className="trophy-icon" />
-                <span>{achievements.length} {t('events.achievements')}</span>
-                {showAchievements ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-              </button>
-            )}
+                <Trophy size={10} className={`completion-icon ${completionsCount > 0 ? 'gold' : 'dim'}`} />
+                <span className="completion-count font-mono">{completionsCount}x</span>
+              </div>
+
+              {/* Today Done Pill if boss/meta completed today */}
+              {isCompletedToday && (
+                <span
+                  className="gw2-daily-done-pill font-mono"
+                  title={
+                    lang === 'en'
+                      ? 'Already defeated today (daily bonus chest looted)'
+                      : 'Heute bereits besiegt (tägliche Bonus-Truhe erhalten)'
+                  }
+                >
+                  <CheckCircle2 size={10} className="done-icon" />
+                  <span>{t('events.completedToday')}</span>
+                </span>
+              )}
+
+              {/* Achievements Chip Toggle */}
+              {achievements.length > 0 && (
+                <button
+                  className={`gw2-achieve-pill-btn ${showAchievements ? 'active' : ''}`}
+                  onClick={() => setShowAchievements(!showAchievements)}
+                  title={t('events.achievements')}
+                >
+                  <Award size={10} className="trophy-icon" />
+                  <span>{achievements.length} {t('events.achievements')}</span>
+                  {showAchievements ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Action buttons: "Nachricht senden" | "Zur Wegmarke Teleportieren" | "Info" */}
+          {/* Action buttons: "Nachricht senden" | "Zur Wegmarke Teleportieren" | "+1 Abschluss" | "Info" */}
           <div className="gw2-card-actions-row">
             {/* 1. Nachricht senden */}
             <button
@@ -407,6 +458,16 @@ export const EventCard: React.FC<EventCardProps> = ({
             >
               <Compass size={11} />
               <span>{t('events.copyWaypoint')}</span>
+            </button>
+
+            {/* 3. Abschluss erfassen (+1) */}
+            <button
+              className={`gw2-gw-btn log-complete-btn ${isCompletedToday ? 'done-today' : ''}`}
+              onClick={() => handleLogCompletion(1)}
+              title={t('events.logCompletionTooltip')}
+            >
+              <Check size={11} className={isCompletedToday ? 'text-green' : ''} />
+              <span>{t('events.logCompletion')}</span>
             </button>
 
             {/* Accordion Toggle for Taktik & Beute with Info Icon */}
@@ -479,6 +540,14 @@ export const EventCard: React.FC<EventCardProps> = ({
                           <span>{lang === 'en' ? `Title: ${achReward}` : `Titel: ${achReward}`}</span>
                         </span>
                       ) : null}
+
+                      {/* Repeatable achievement cycle count */}
+                      {userAch?.repeated ? (
+                        <span className="ach-status-pill repeated font-mono" title={lang === 'en' ? 'Repeatable cycles' : 'Erfolgs-Wiederholungen'}>
+                          <Sparkles size={9} />
+                          <span>{t('events.repeatCount', { count: userAch.repeated })}</span>
+                        </span>
+                      ) : null}
                     </div>
                     <div className="ach-item-desc">{achDesc}</div>
                   </div>
@@ -499,6 +568,39 @@ export const EventCard: React.FC<EventCardProps> = ({
       {/* Expandable Taktik & Beute Details */}
       {expanded && (
         <div className="gw2-card-tactics-drawer">
+          {/* Account-Abschlüsse & Zähler Stepper */}
+          <div className="gw2-completion-history-panel">
+            <div className="completion-history-left">
+              <Trophy size={14} className="history-trophy gold" />
+              <div className="history-text-col">
+                <span className="history-title font-serif">{t('events.completionHistory')}</span>
+                <span className="history-sub font-mono">
+                  {lang === 'en' ? 'Account Total: ' : 'Account Gesamt: '}
+                  <strong className="gold">{completionsCount}x</strong>
+                  {isCompletedToday ? ` • ${t('events.completedToday')} ✓` : ''}
+                </span>
+              </div>
+            </div>
+            <div className="completion-history-stepper">
+              <button
+                className="gw2-stepper-btn"
+                onClick={() => handleLogCompletion(-1)}
+                title="-1"
+                disabled={completionsCount <= 0}
+              >
+                -1
+              </button>
+              <span className="stepper-val font-mono">{completionsCount}</span>
+              <button
+                className="gw2-stepper-btn plus"
+                onClick={() => handleLogCompletion(1)}
+                title="+1"
+              >
+                +1
+              </button>
+            </div>
+          </div>
+
           {tacticsText && (
             <div className="gw2-tactics-card">
               <div className="gw2-tactics-card-header">

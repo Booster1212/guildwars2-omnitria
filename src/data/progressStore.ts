@@ -39,6 +39,10 @@ export interface ProgressState {
   tracked: number[];
   legendary: Record<string, LegendaryProgress>;
   crafting: Record<string, CraftingProgress>;
+  /** Gesamte Account-Abschlüsse je Event-ID (z. B. 'tequatl': 15) */
+  eventCompletions: Record<string, number>;
+  /** Zuletzt am UTC-Tag über API/Manuell als abgeschlossen registriert (z. B. 'tequatl': '2026-10-24') */
+  dailyCompletedDates: Record<string, string>;
 }
 
 export const DEFAULT_CRAFTING: CraftingProgress = {
@@ -52,7 +56,15 @@ export const DEFAULT_CRAFTING: CraftingProgress = {
 const emptyLegendary = (): LegendaryProgress => ({ doneNodes: [], doneMaterials: [], buyItems: [] });
 
 function fresh(): ProgressState {
-  return { version: SCHEMA_VERSION, savedAt: 0, tracked: [], legendary: {}, crafting: {} };
+  return {
+    version: SCHEMA_VERSION,
+    savedAt: 0,
+    tracked: [],
+    legendary: {},
+    crafting: {},
+    eventCompletions: {},
+    dailyCompletedDates: {},
+  };
 }
 
 interface ElectronStore {
@@ -84,6 +96,20 @@ function sanitize(raw: unknown): ProgressState | null {
         allowDiscovery: false,
         craftIntermediates: false,
       };
+    }
+  }
+  if (o.eventCompletions && typeof o.eventCompletions === 'object') {
+    for (const [k, v] of Object.entries(o.eventCompletions)) {
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        s.eventCompletions[k] = Math.max(0, Math.round(v));
+      }
+    }
+  }
+  if (o.dailyCompletedDates && typeof o.dailyCompletedDates === 'object') {
+    for (const [k, v] of Object.entries(o.dailyCompletedDates)) {
+      if (typeof v === 'string') {
+        s.dailyCompletedDates[k] = v;
+      }
     }
   }
   return s;
@@ -307,4 +333,191 @@ export const progressActions = {
       return { ...s, crafting: nextCrafting };
     });
   },
+
+  // ==========================================
+  // EVENT COMPLETIONS ACTIONS (ACCOUNT-WEIT)
+  // ==========================================
+  getEventCompletions(eventId: string): number {
+    return state.eventCompletions[eventId] ?? 0;
+  },
+
+  recordEventCompletion(eventId: string, delta = 1): number {
+    let nextVal = 0;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    update((s) => {
+      const cur = s.eventCompletions[eventId] ?? 0;
+      nextVal = Math.max(0, cur + delta);
+      const nextDates = { ...s.dailyCompletedDates };
+      if (delta > 0) {
+        nextDates[eventId] = todayStr;
+      }
+      return {
+        ...s,
+        eventCompletions: { ...s.eventCompletions, [eventId]: nextVal },
+        dailyCompletedDates: nextDates,
+      };
+    });
+    return nextVal;
+  },
+
+  setEventCompletions(eventId: string, count: number) {
+    update((s) => ({
+      ...s,
+      eventCompletions: { ...s.eventCompletions, [eventId]: Math.max(0, Math.round(count)) },
+    }));
+  },
+
+  isEventCompletedToday(
+    eventId: string,
+    worldBosses: string[] = [],
+    mapChests: string[] = [],
+  ): boolean {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (state.dailyCompletedDates[eventId] === todayStr) {
+      return true;
+    }
+    const wbKey = EVENT_TO_WORLD_BOSS_API_MAP[eventId];
+    if (wbKey && worldBosses.includes(wbKey)) {
+      return true;
+    }
+    const chestKey = EVENT_TO_MAP_CHEST_API_MAP[eventId];
+    if (chestKey && mapChests.includes(chestKey)) {
+      return true;
+    }
+    return false;
+  },
+
+  syncApiCompletions(
+    worldBosses: string[] = [],
+    mapChests: string[] = [],
+    achievements?: Map<number, { repeated?: number; done?: boolean }>,
+    todayUtcDateStr = new Date().toISOString().slice(0, 10),
+  ) {
+    update((s) => {
+      const nextCompletions = { ...s.eventCompletions };
+      const nextDates = { ...s.dailyCompletedDates };
+      let changed = false;
+
+      // 1. Core Weltenbosse heute getötet
+      for (const wbId of worldBosses) {
+        const eventId = WORLD_BOSS_API_MAP[wbId];
+        if (eventId) {
+          if (nextDates[eventId] !== todayUtcDateStr) {
+            nextDates[eventId] = todayUtcDateStr;
+            nextCompletions[eventId] = (nextCompletions[eventId] ?? 0) + 1;
+            changed = true;
+          }
+        }
+      }
+
+      // 2. Meta-Truhen (Hero's Choice Chests) heute geöffnet
+      for (const chestId of mapChests) {
+        const eventId = MAP_CHEST_API_MAP[chestId];
+        if (eventId) {
+          if (nextDates[eventId] !== todayUtcDateStr) {
+            nextDates[eventId] = todayUtcDateStr;
+            nextCompletions[eventId] = (nextCompletions[eventId] ?? 0) + 1;
+            changed = true;
+          }
+        }
+      }
+
+      // 3. Wiederholbare Erfolge (API repeated counts als Mindestwert)
+      if (achievements) {
+        for (const [eventId, gw2Id] of Object.entries(EVENT_ACHIEVEMENT_MAP)) {
+          const ach = achievements.get(gw2Id);
+          if (ach) {
+            const minCount = (ach.repeated ?? 0) + (ach.done ? 1 : 0);
+            if (minCount > (nextCompletions[eventId] ?? 0)) {
+              nextCompletions[eventId] = minCount;
+              changed = true;
+            }
+          }
+        }
+      }
+
+      if (!changed) return s;
+      return {
+        ...s,
+        eventCompletions: nextCompletions,
+        dailyCompletedDates: nextDates,
+      };
+    });
+  },
+};
+
+export const progressStore = progressActions;
+
+// ==========================================
+// MAPPINGS ZWISCHEN GW2 API UND EVENT-IDS
+// ==========================================
+export const WORLD_BOSS_API_MAP: Record<string, string> = {
+  'svanir_shaman_chief': 'svanir-shaman',
+  'fire_elemental': 'fire-elemental',
+  'great_jungle_wurm': 'jungle-wurm',
+  'shadow_behemoth': 'shadow-behemoth',
+  'admiral_taidha_covington': 'taidha-covington',
+  'megadestroyer': 'megadestroyer',
+  'the_shatterer': 'shatterer',
+  'modniir_ulgoth': 'modniir-ulgoth',
+  'inquest_golem_mark_ii': 'inquest-golem',
+  'claw_of_jormag': 'claw-of-jormag',
+  'tequatl_the_sunless': 'tequatl',
+  'karka_queen': 'karka-queen',
+  'triple_trouble_wurm': 'triple-trouble',
+};
+
+export const EVENT_TO_WORLD_BOSS_API_MAP: Record<string, string> = {
+  'svanir-shaman': 'svanir_shaman_chief',
+  'fire-elemental': 'fire_elemental',
+  'jungle-wurm': 'great_jungle_wurm',
+  'shadow-behemoth': 'shadow_behemoth',
+  'taidha-covington': 'admiral_taidha_covington',
+  'megadestroyer': 'megadestroyer',
+  'shatterer': 'the_shatterer',
+  'modniir-ulgoth': 'modniir_ulgoth',
+  'inquest-golem': 'inquest_golem_mark_ii',
+  'claw-of-jormag': 'claw_of_jormag',
+  'tequatl': 'tequatl_the_sunless',
+  'karka-queen': 'karka_queen',
+  'triple-trouble': 'triple_trouble_wurm',
+};
+
+export const MAP_CHEST_API_MAP: Record<string, string> = {
+  'auric_basin_heros_choice_chest': 'tarir-octovine',
+  'tangled_depths_heros_choice_chest': 'chak-gerent',
+  'verdant_brink_heros_choice_chest': 'verdant-brink-night',
+  'dragons_stand_heros_choice_chest': 'dragons-stand',
+  'crystal_oasis_heros_choice_chest': 'choya-pinata',
+  'the_desolation_heros_choice_chest': 'maws-of-torment',
+  'domain_of_vabbi_heros_choice_chest': 'serpents-ire',
+};
+
+export const EVENT_TO_MAP_CHEST_API_MAP: Record<string, string> = {
+  'tarir-octovine': 'auric_basin_heros_choice_chest',
+  'chak-gerent': 'tangled_depths_heros_choice_chest',
+  'verdant-brink-night': 'verdant_brink_heros_choice_chest',
+  'dragons-stand': 'dragons_stand_heros_choice_chest',
+  'choya-pinata': 'crystal_oasis_heros_choice_chest',
+  'maws-of-torment': 'the_desolation_heros_choice_chest',
+  'serpents-ire': 'domain_of_vabbi_heros_choice_chest',
+};
+
+export const EVENT_ACHIEVEMENT_MAP: Record<string, number> = {
+  'tequatl': 824,
+  'triple-trouble': 873,
+  'shatterer': 2841,
+  'claw-of-jormag': 170,
+  'shadow-behemoth': 165,
+  'inquest-golem': 172,
+  'tarir-octovine': 2450,
+  'chak-gerent': 2390,
+  'choya-pinata': 3858,
+  'maws-of-torment': 3861,
+  'serpents-ire': 3864,
+  'dragonstorm': 5882,
+  'drakkar': 5122,
+  'dragons-end': 6223,
+  'janthir-syntri-titans': 8190,
+  'castora-ruins-eternity': 8195,
 };

@@ -28,10 +28,12 @@ import { OverlaySettings, MessageTemplateType, Language } from '../types';
 import {
   validateApiKey,
   fetchAccountAchievements,
+  fetchAllAccountProgression,
   saveCachedApiData,
   loadCachedApiData,
   Gw2AccountInfo,
   Gw2AccountAchievement,
+  Gw2DailyProgression,
 } from '../data/gw2Api';
 import { syncAccountData, clearAccountData } from '../data/gw2/account';
 import { useTranslation } from '../i18n';
@@ -42,7 +44,11 @@ interface SettingsModalProps {
   settings: OverlaySettings;
   onUpdateSettings: (newSettings: Partial<OverlaySettings>) => void;
   isElectron: boolean;
-  onApiDataSynced?: (account: Gw2AccountInfo | null, achievements: Map<number, Gw2AccountAchievement>) => void;
+  onApiDataSynced?: (
+    account: Gw2AccountInfo | null,
+    achievements: Map<number, Gw2AccountAchievement>,
+    dailyProgression?: Gw2DailyProgression | null,
+  ) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -224,25 +230,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsValidating(true);
     setApiError(null);
 
-    // 1. Validate Account
-    const accResult = await validateApiKey(trimmed);
-    if (!accResult.success || !accResult.account) {
+    // 1. Fetch full progression (Account, Achievements, World Bosses, Map Chests, Wizard's Vault)
+    const progResult = await fetchAllAccountProgression(trimmed);
+    if (!progResult.account) {
       setIsValidating(false);
-      setApiError(accResult.error || (lang === 'en' ? 'Error validating API key.' : 'Fehler beim Überprüfen des API-Schlüssels.'));
+      setApiError(progResult.errors[0] || (lang === 'en' ? 'Error validating API key.' : 'Fehler beim Überprüfen des API-Schlüssels.'));
       return;
     }
 
-    // 2. Fetch Achievements
-    const achResult = await fetchAccountAchievements(trimmed);
-    const achievementsList = achResult.achievements || [];
-
-    // 3. Save Cache & Settings
     const achMap = new Map<number, Gw2AccountAchievement>();
-    achievementsList.forEach((a) => achMap.set(a.id, a));
+    progResult.achievements.forEach((a) => achMap.set(a.id, a));
 
-    saveCachedApiData(trimmed, accResult.account, achievementsList);
-    setAccountInfo(accResult.account);
-    setSyncedAchCount(achievementsList.length);
+    setAccountInfo(progResult.account);
+    setSyncedAchCount(progResult.achievements.length);
     onUpdateSettings({ apiKey: trimmed });
 
     try {
@@ -252,7 +252,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     if (onApiDataSynced) {
-      onApiDataSynced(accResult.account, achMap);
+      onApiDataSynced(progResult.account, achMap, progResult.dailyProgression);
     }
 
     setIsValidating(false);
@@ -264,10 +264,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setSyncedAchCount(0);
     setApiError(null);
     clearAccountData();
-    saveCachedApiData('', null, []);
+    saveCachedApiData('', null, [], null);
     onUpdateSettings({ apiKey: '' });
     if (onApiDataSynced) {
-      onApiDataSynced(null, new Map());
+      onApiDataSynced(null, new Map(), null);
     }
   };
 
