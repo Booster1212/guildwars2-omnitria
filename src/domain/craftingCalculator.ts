@@ -387,7 +387,7 @@ export function calculateCraftingPlan(
     let action: NodeAction = 'unknown';
 
     const p = prices.get(itemId);
-    const up = unitPrice(p);
+    const up = unitPrice(p, itemId);
 
     if (doCraft && recipe) {
       action = 'craft';
@@ -466,7 +466,7 @@ export function calculateCraftingPlan(
 
   for (const itemId of allItemIds) {
     const p = prices.get(itemId);
-    const up = unitPrice(p);
+    const up = unitPrice(p, itemId);
     const stockQty = options.stock?.get(itemId) ?? 0;
     const stockUsed = stockUsedPerItem.get(itemId) ?? 0;
 

@@ -45,9 +45,17 @@ export function categoryOf(recipeType: string | undefined): XpCategory | null {
 }
 
 /** Gewonnene Ränge pro Herstellung bei aktuellem Rang `rank` (0 = keine XP mehr / noch nicht freigeschaltet) */
-export function ranksPerCraft(category: XpCategory, rank: number, minRating: number): number {
+export function ranksPerCraft(
+  category: XpCategory,
+  rank: number,
+  minRating: number,
+  isDiscovery = false,
+): number {
   if (rank < minRating) return 0;
   const { multiplier, span } = XP_MODEL[category];
   const f = 1 - (rank - minRating) / span;
-  return f > 0 ? multiplier * f : 0;
+  if (f <= 0) return 0;
+  const base = multiplier * f;
+  // Entdeckungsrezepte erhalten in GW2 ca. 100% bis 200% Bonus-EP (Faktor 2.5)
+  return isDiscovery ? base * 2.5 : base;
 }

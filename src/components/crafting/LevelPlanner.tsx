@@ -610,25 +610,60 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                             return (
                               <React.Fragment key={`${st.key}-prep-${prep.outputId}-${pIdx}`}>
                                 {pIdx > 0 && <ChevronRight size={14} className="psp-arrow" />}
-                                <div
-                                  className="psp-step-node"
-                                  onClick={() => onOpenItem(prep.outputId)}
-                                  title={`${prepItem?.name ?? prep.outputId}: ${prep.crafts}× ${lang === 'en' ? 'craft' : 'herstellen'}`}
-                                >
-                                  <ItemIcon id={prep.outputId} count={totalYield} size="s" />
-                                  <div className="psp-node-info">
-                                    <span className="psp-node-name">{prepItem?.name ?? `#${prep.outputId}`}</span>
-                                    <div className="psp-node-meta">
-                                      <span className="psp-node-crafts">
-                                        {lang === 'en' ? `${prep.crafts}× craft` : `${prep.crafts}× herstellen`}
-                                      </span>
-                                      {prep.needsDiscovery && (
-                                        <span className="discovery-tag-mini" title="Discovery recipe">
-                                          {lang === 'en' ? 'Discovery' : 'Entdeckung'}
+                                <div className="psp-prep-card">
+                                  <div
+                                    className="psp-step-node"
+                                    onClick={() => onOpenItem(prep.outputId)}
+                                    title={`${prepItem?.name ?? prep.outputId}: ${prep.crafts}× ${lang === 'en' ? 'craft' : 'herstellen'}`}
+                                  >
+                                    <ItemIcon id={prep.outputId} count={totalYield} size="s" />
+                                    <div className="psp-node-info">
+                                      <span className="psp-node-name">{prepItem?.name ?? `#${prep.outputId}`}</span>
+                                      <div className="psp-node-meta">
+                                        <span className="psp-node-crafts">
+                                          {lang === 'en' ? `${prep.crafts}× craft` : `${prep.crafts}× herstellen`}
                                         </span>
-                                      )}
+                                        {prep.needsDiscovery && (
+                                          <span className="discovery-tag-mini" title="Discovery recipe">
+                                            {lang === 'en' ? 'Discovery' : 'Entdeckung'}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
+
+                                  {/* Sub-Ingredients / Rezept-Auflistung für dieses Zwischenprodukt */}
+                                  {prep.ingredients && prep.ingredients.length > 0 && (
+                                    <div className="psp-sub-ingredients">
+                                      <span className="psp-sub-label dim">
+                                        {lang === 'en' ? 'Recipe:' : 'Herstellung:'}
+                                      </span>
+                                      <div className="psp-sub-chips">
+                                        {prep.ingredients.map((pIng) => {
+                                          const ingItem = getItem(pIng.itemId);
+                                          const stock = account.stockMap.get(pIng.itemId) ?? 0;
+                                          const hasEnough = stock >= pIng.qty;
+                                          return (
+                                            <button
+                                              key={pIng.itemId}
+                                              type="button"
+                                              className={`psp-sub-chip ${account.hasStockData && hasEnough ? 'stock-ok' : ''}`}
+                                              onClick={() => onOpenItem(pIng.itemId)}
+                                              title={`${ingItem?.name ?? pIng.itemId}: ${pIng.qty}`}
+                                            >
+                                              <ItemIcon id={pIng.itemId} count={pIng.qty} size="s" />
+                                              <span className="psp-sub-name">{ingItem?.name ?? `#${pIng.itemId}`}</span>
+                                              {account.hasStockData && (
+                                                <span className={`psp-sub-stock ${hasEnough ? 'ok' : 'missing'}`}>
+                                                  {hasEnough ? `✓ ${stock}` : `${stock}/${pIng.qty}`}
+                                                </span>
+                                              )}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </React.Fragment>
                             );
@@ -708,22 +743,34 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
                     <div className="step-ings-line">
                       <span className="ings-label dim">
-                        {st.needsDiscovery
-                          ? lang === 'en' ? 'Total Materials:' : 'Gesamtbedarf:'
-                          : lang === 'en' ? 'Ingredients:' : 'Zutaten:'}
+                        {st.prepSteps && st.prepSteps.length > 0
+                          ? (lang === 'en' ? 'Raw Materials (Gather/Buy):' : 'Grundmaterialien (Einkauf / Lager):')
+                          : st.needsDiscovery
+                          ? (lang === 'en' ? 'Total Materials:' : 'Gesamtbedarf:')
+                          : (lang === 'en' ? 'Ingredients:' : 'Zutaten:')}
                       </span>
                       <div className="step-ings-wrap">
-                        {st.ingredients.map((ing) => {
+                        {(st.prepSteps && st.prepSteps.length > 0 && st.purchases && st.purchases.length > 0
+                          ? st.purchases
+                          : st.ingredients
+                        ).map((ing) => {
                           const it = getItem(ing.itemId);
+                          const stock = account.stockMap.get(ing.itemId) ?? 0;
+                          const hasEnough = stock >= ing.qty;
                           return (
                             <button
                               key={ing.itemId}
-                              className="step-ing-chip"
+                              className={`step-ing-chip ${account.hasStockData && hasEnough ? 'stock-ok' : ''}`}
                               onClick={() => onOpenItem(ing.itemId)}
                               title={`${it?.name ?? ing.itemId}: ${fmtInt(ing.qty)}`}
                             >
                               <ItemIcon id={ing.itemId} count={ing.qty} size="s" />
                               <span className="ing-name">{it?.name ?? `#${ing.itemId}`}</span>
+                              {account.hasStockData && (
+                                <span className={`pdr-ing-stock ${hasEnough ? 'ok' : 'missing'}`}>
+                                  {hasEnough ? `✓ ${stock}` : `${stock}/${ing.qty}`}
+                                </span>
+                              )}
                             </button>
                           );
                         })}

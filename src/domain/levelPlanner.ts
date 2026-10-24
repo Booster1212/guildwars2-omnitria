@@ -135,7 +135,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const mk = `${itemId}@${rank}`;
     const cached = memo.get(mk);
     if (cached) return cached;
-    const price = unitPrice(prices.get(itemId));
+    const price = unitPrice(prices.get(itemId), itemId);
     let best: Acq = { unit: price, via: price !== null ? 'buy' : 'unknown' };
     if (options.craftIntermediates && depth < 8 && !stack.has(itemId)) {
       stack.add(itemId);
@@ -170,16 +170,25 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     unknown: number;
   }
   const evalCandidate = (c: { recipe: Recipe; category: XpCategory }, rank: number): Choice | null => {
-    const rpc = ranksPerCraft(c.category, rank, c.recipe.rating);
+    const isDisc = !isLearned(c.recipe);
+    const rpc = ranksPerCraft(c.category, rank, c.recipe.rating, isDisc);
     if (rpc <= 0) return null;
     let cost = 0;
     let unknown = 0;
     for (const ing of c.recipe.ingredients) {
       const a = acq(ing.itemId, rank, 0, new Set());
-      if (a.unit === null) unknown++;
-      else cost += a.unit * ing.count;
+      if (a.unit === null) {
+        unknown++;
+        cost += 50;
+      } else {
+        cost += a.unit * ing.count;
+      }
     }
-    return { recipe: c.recipe, category: c.category, costPerRank: cost / rpc, unknown };
+    // Efficient Leveling: Rezepte, die mehr als 25 Ränge über ihrer Freischaltung gecraftet werden,
+    // verlieren in GW2 rapide an Erfahrung (gelbe/grüne Rezepte). Alterszuschlag fördert neue Stufenrezepte:
+    const age = rank - c.recipe.rating;
+    const agePenalty = age > 25 ? 1 + (age - 25) * 0.2 : 1;
+    return { recipe: c.recipe, category: c.category, costPerRank: (cost * agePenalty) / rpc, unknown };
   };
 
   interface RawStep {
@@ -201,11 +210,9 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       const ev = evalCandidate(c, n);
       if (!ev) continue;
       if (prev && c.recipe.id === prev.recipe.id) prevChoice = ev;
-      if (
-        !best ||
-        ev.unknown < best.unknown ||
-        (ev.unknown === best.unknown && ev.costPerRank < best.costPerRank)
-      ) {
+      const score = ev.costPerRank + ev.unknown * 150;
+      const bestScore = best ? best.costPerRank + best.unknown * 150 : Infinity;
+      if (!best || score < bestScore) {
         best = ev;
       }
     }
@@ -217,10 +224,17 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       continue;
     }
     let chosen = best;
-    if (prevChoice && prevChoice.unknown === best.unknown && prevChoice.costPerRank <= best.costPerRank * HYSTERESIS) {
+    // Hysterese gegen Flackern nur anwenden, wenn das vorherige Rezept noch im gleichen 25er-Rangband liegt
+    if (
+      prevChoice &&
+      (n - prevChoice.recipe.rating <= 25) &&
+      (prevChoice.costPerRank + prevChoice.unknown * 150) <= (best.costPerRank + best.unknown * 150) * HYSTERESIS
+    ) {
       chosen = prevChoice;
     }
-    const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating);
+    const isStepFirstCraft = !prev || prev.recipe.id !== chosen.recipe.id;
+    const isDisc = !isLearned(chosen.recipe) && isStepFirstCraft;
+    const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, isDisc);
     if (prev && prev.recipe.id === chosen.recipe.id && prev.toRank === n) {
       prev.toRank = n + 1;
       prev.craftsExact += 1 / rpc;
@@ -282,7 +296,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     let cost = 0;
     let unpricedCount = 0;
     for (const [itemId, qty] of stepPurchases) {
-      const u = unitPrice(prices.get(itemId));
+      const u = unitPrice(prices.get(itemId), itemId);
       if (u === null) {
         unpricedCount++;
         unpriced.add(itemId);
@@ -309,7 +323,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
 
   let totalCost = 0;
   for (const [itemId, qty] of purchases) {
-    const u = unitPrice(prices.get(itemId));
+    const u = unitPrice(prices.get(itemId), itemId);
     if (u !== null) totalCost += u * qty;
   }
   const totalCrafts =

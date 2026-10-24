@@ -700,3 +700,100 @@ test('Legendary & Quellen: Zweisprachige Lokalisierung Deutsch & Englisch', asyn
   assert.equal(gatherSource?.labelEn, 'Gatherable');
 });
 
+test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib) und Vorbereitungsauflistung', async () => {
+  const { unitPrice, KNOWN_VENDOR_PRICES } = await import('../src/domain/costs.ts');
+  const { planLevelRoute } = await import('../src/domain/levelPlanner.ts');
+
+  // 1. Händlerpreise für Basiszutaten
+  assert.equal(KNOWN_VENDOR_PRICES.get(12156), 16, 'Krug Wasser');
+  assert.equal(KNOWN_VENDOR_PRICES.get(12155), 16, 'Beutel Mehl');
+  assert.equal(KNOWN_VENDOR_PRICES.get(12158), 16, 'Paket Hefe');
+  assert.equal(KNOWN_VENDOR_PRICES.get(12132), 48, 'Brotlaib');
+
+  assert.equal(unitPrice(undefined, 12156), 16);
+  assert.equal(unitPrice(undefined, 12132), 48);
+
+  // 2. Koch-Route: Hamburger (12210) benötigt Wildfleisch (24359) + Brotlaib (12132)
+  // Brotlaib (12132) wird aus 12156 + 12155 + 12158 hergestellt
+  const rBread: Recipe = {
+    id: 'r-bread',
+    outputId: 12132,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Chef'],
+    rating: 0,
+    ingredients: [
+      { itemId: 12156, count: 1 },
+      { itemId: 12155, count: 1 },
+      { itemId: 12158, count: 1 },
+    ],
+    source: 'official',
+    flags: ['AutoLearned'],
+    type: 'Snack',
+  };
+
+  const rBurger: Recipe = {
+    id: 'r-burger',
+    outputId: 12210,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Chef'],
+    rating: 0,
+    ingredients: [
+      { itemId: 24359, count: 1 },
+      { itemId: 12132, count: 1 },
+    ],
+    source: 'official',
+    flags: [], // Entdeckungsrezept!
+    type: 'Meal',
+  };
+
+  const recipes = [rBread, rBurger];
+  const byOut = new Map<number, Recipe[]>();
+  recipes.forEach((r) => byOut.set(r.outputId, [...(byOut.get(r.outputId) ?? []), r]));
+
+  // Wildfleisch hat TP-Preis, Händlerzutaten haben Händlerpreise
+  const prices = new Map<number, PriceInfo>([
+    [24359, { sell: 50, buy: 40, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  const plan = planLevelRoute({
+    discipline: 'Chef',
+    fromRank: 0,
+    toRank: 25,
+    recipes,
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+    },
+  });
+
+  assert.ok(plan.steps.length > 0);
+  const burgerStep = plan.steps[0];
+  assert.equal(burgerStep.recipe.outputId, 12210);
+  assert.equal(burgerStep.needsDiscovery, true);
+
+  // Vorbereitungskette muss Brotlaib mit Unterzutaten auflisten
+  assert.equal(burgerStep.prepSteps.length, 1);
+  const breadPrep = burgerStep.prepSteps[0];
+  assert.equal(breadPrep.outputId, 12132, 'Brotlaib ist Vorbereitungsschritt');
+  assert.equal(breadPrep.ingredients.length, 3, 'Brotlaib listet Wasser, Mehl, Hefe auf');
+  assert.ok(breadPrep.ingredients.some((i) => i.itemId === 12156), 'Wasser vorhanden');
+  assert.ok(breadPrep.ingredients.some((i) => i.itemId === 12155), 'Mehl vorhanden');
+  assert.ok(breadPrep.ingredients.some((i) => i.itemId === 12158), 'Hefe vorhanden');
+
+  // Schritt-Einkäufe enthalten die echten Basismaterialien, nicht den fertigen Brotlaib
+  assert.ok(burgerStep.purchases.some((p) => p.itemId === 24359), 'Wildfleisch im Einkauf');
+  assert.ok(burgerStep.purchases.some((p) => p.itemId === 12156), 'Krug Wasser im Einkauf');
+  assert.ok(burgerStep.purchases.some((p) => p.itemId === 12155), 'Beutel Mehl im Einkauf');
+  assert.ok(burgerStep.purchases.some((p) => p.itemId === 12158), 'Paket Hefe im Einkauf');
+  assert.equal(burgerStep.purchases.some((p) => p.itemId === 12132), false, 'Brotlaib wird nicht gekauft');
+
+  // Keine unbepreisten Posten mehr dank Händlerpreisen
+  assert.equal(burgerStep.unpricedCount, 0, 'Alle Händler- und TP-Posten sind bepreist');
+  assert.ok(burgerStep.cost > 0, 'Kosten sind positiv');
+});
+
+

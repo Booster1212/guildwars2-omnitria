@@ -34,9 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Recursive Crafting & Leveling Calculator
 * **Prioritized Self-Crafting & Visual Preparation Chain**:
+  * **Intermediate Recipe Breakdown in Step Cards**: Preparation steps now directly display the recipe ingredients needed for each intermediate product (e.g., for `Brotlaib`: `Herstellung: 28× Krug Wasser + 28× Beutel Mehl + 28× Paket Hefe`), with clickable item icons, item names, and inventory stock indicators.
+  * **Raw Material Procurement Line**: When intermediate self-crafting is active, the card's material overview (`step-ings-line`) accurately displays the raw base materials to acquire (`st.purchases`) instead of intermediate components, preventing confusion between crafted and bought items.
+  * **Known Vendor Pricing Database**: Added `KNOWN_VENDOR_PRICES` covering Master Craftsman ingredients (flour, yeast, water, salt, vinegar, soy sauce, buttermilk, sugar, charcoal, tin, threads) to resolve unpriced vendor items accurately, eliminating false "unpriced" warnings and cost distortions.
+  * **Efficient Leveling Routes & Tier Transitions**:
+    * **Tier Aging Penalty**: Penalizes dragging obsolete recipes > 25 ranks beyond their rating, ensuring the planner smoothly transitions to newly unlocked recipes at rank 25, 50, 75, etc. (preventing redundant runs like 70× Fries).
+    * **Discovery XP Bonus Modeling**: Integrates GW2's +100% to +200% discovery bonus into `ranksPerCraft` and recipe evaluation, favoring discovery crafts for rapid, cost-effective leveling.
+    * **Balanced Cost Scoring**: Prevents recipes with vendor ingredients from being discarded due to strict unknown flags, prioritizing true lowest cost per rank gained.
   * **Self-Crafting Priority over TP Purchases**: When `craftIntermediates` is enabled (now active by default with `all_craft` strategy), the route planner strictly prioritizes crafting intermediate components within the discipline over buying from the Trading Post, even if TP prices are low or vendor components lack TP pricing.
   * **Extended Multi-Tier Depth**: Increased recursive acquisition search depth from 3 to 8 tiers, completely resolving multi-stage crafting pipelines (e.g. `Seidenfetzen => Seidenballen => Seiden-Insignie => Seiden-Wams` or `Holzstamm => Planke => Dübel => Inschrift => Waffe`).
-  * **Visual Preparation Flow in Step Cards**: Each step in the Level Planner now includes a dedicated preparation box (`planner-step-prep-box`) displaying the exact chronological sequence of intermediate products to craft beforehand, with item icons, exact craft counts, and flow arrows leading to the target product.
+  * **Visual Preparation Flow in Step Cards**: Each step in the Level Planner includes a dedicated preparation box (`planner-step-prep-box`) displaying the exact chronological sequence of intermediate products to craft beforehand, with item icons, exact craft counts, and flow arrows leading to the target product.
   * **Item Data Pre-Loading**: Updated `allNeededItemIds` and `collectPlannerItemIds` to ensure all intermediate and recursive ingredients are fully preloaded for tooltips and icon rendering.
 * **Multi-Tier Intermediate Product Tree Resolution**:
   * Implemented recursive material requirement calculation in `src/domain/craftingCalculator.ts`.
