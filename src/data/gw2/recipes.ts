@@ -3,7 +3,7 @@
  * danach in Blöcken à 200 (~66 Anfragen). Ergebnis wird kompakt in IndexedDB gehalten und nur bei neuer
  * Spielversion (/v2/build) oder nach 14 Tagen neu geladen.
  *
- * Hinweis: Mystische-Schmiede-Rezepte sind NICHT in dieser API (siehe docs/DATENQUELLEN.md).
+ * Hinweis: Mystische-Schmiede-Rezepte sind NICHT in dieser API (siehe docs/DATA_SOURCES.md).
  */
 import { useEffect, useSyncExternalStore } from 'react';
 import type { Recipe } from '../../domain/types';

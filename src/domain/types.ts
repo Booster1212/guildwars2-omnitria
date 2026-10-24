@@ -1,7 +1,7 @@
 /**
  * Gemeinsame Domänentypen für Handwerk & Legendäre Waffen.
  *
- * Datenherkunft (bewusst getrennt, siehe docs/DATENQUELLEN.md):
+ * Datenherkunft (bewusst getrennt, siehe docs/DATA_SOURCES.md):
  *   - "official"  : offizielle GW2-API (Items, Rezepte, Preise, Account)
  *   - "community" : vendorter, geprüfter Community-Datensatz (nur Mystische-Schmiede-Rezepte & Herkunfts-Tags)
  *   - "derived"   : berechnet (Summen, Schätzungen, Planer)
