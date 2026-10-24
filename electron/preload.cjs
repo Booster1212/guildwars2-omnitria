@@ -26,4 +26,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readStore: (name) => ipcRenderer.invoke('store-read', name),
   writeStore: (name, json) => ipcRenderer.send('store-write', name, json),
   openExternal: (url) => ipcRenderer.send('open-external', url),
+  getAppVersion: () => ipcRenderer.invoke('app-get-version'),
+  checkUpdate: () => ipcRenderer.invoke('app-check-update'),
+  applyUpdate: (downloadUrl) => ipcRenderer.invoke('app-apply-update', downloadUrl),
+  onUpdateProgress: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('update-progress', handler);
+    return () => ipcRenderer.removeListener('update-progress', handler);
+  },
 });

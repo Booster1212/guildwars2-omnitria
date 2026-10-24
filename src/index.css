@@ -5322,3 +5322,140 @@ button {
   color: #fde047;
   font-weight: 600;
 }
+
+/* ========================================================================= */
+/* AUTO-UPDATER & VERSION MANAGEMENT STYLES                                  */
+/* ========================================================================= */
+.update-card-panel {
+  border-color: rgba(212, 163, 89, 0.35);
+  background: linear-gradient(180deg, rgba(26, 29, 36, 0.95) 0%, rgba(18, 20, 26, 0.98) 100%);
+}
+
+.update-status-box {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.update-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 6px 10px;
+  background: rgba(15, 17, 23, 0.6);
+  border: 1px solid rgba(50, 55, 68, 0.6);
+  border-radius: 3px;
+  color: #cbd5e1;
+}
+
+.update-status-row.up-to-date {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+  color: #86efac;
+}
+
+.update-status-row.error {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+}
+
+.update-available-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(217, 119, 6, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  border-radius: 4px;
+}
+
+.update-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.update-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(234, 179, 8, 0.2);
+  color: #fef08a;
+  border: 1px solid rgba(234, 179, 8, 0.5);
+}
+
+.pulse-badge {
+  animation: pulse-gold 2.2s infinite;
+}
+
+@keyframes pulse-gold {
+  0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(234, 179, 8, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+}
+
+.update-date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.update-release-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.update-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.update-progress-bar-wrap {
+  width: 100%;
+  height: 8px;
+  background: #111318;
+  border: 1px solid #333844;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.update-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d97706 0%, #fbbf24 100%);
+  transition: width 0.25s ease-out;
+}
+
+.update-progress-text {
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+.update-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.update-refresh-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.update-status-msg {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+

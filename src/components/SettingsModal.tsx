@@ -19,6 +19,10 @@ import {
   Activity,
   Award,
   Globe,
+  Sparkles,
+  Download,
+  ArrowUpCircle,
+  PackageCheck,
 } from 'lucide-react';
 import { OverlaySettings, MessageTemplateType, Language } from '../types';
 import {
@@ -57,7 +61,136 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [syncedAchCount, setSyncedAchCount] = useState<number>(0);
   const [showKeyText, setShowKeyText] = useState<boolean>(false);
 
-  // Load existing cached API key info on open
+  // Auto-Updater State
+  const [currentVersion, setCurrentVersion] = useState<string>('0.1.0');
+  const [updateInfo, setUpdateInfo] = useState<{
+    ok: boolean;
+    currentVersion: string;
+    latestVersion?: string;
+    latestTag?: string;
+    hasUpdate?: boolean;
+    releaseName?: string;
+    releaseNotes?: string;
+    publishedAt?: string;
+    htmlUrl?: string;
+    downloadUrl?: string | null;
+    assetName?: string | null;
+    assetSize?: number;
+    isPackaged?: boolean;
+    devMode?: boolean;
+    error?: string;
+  } | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [isApplyingUpdate, setIsApplyingUpdate] = useState<boolean>(false);
+  const [updateProgress, setUpdateProgress] = useState<number>(0);
+  const [updateStatusText, setUpdateStatusText] = useState<string | null>(null);
+
+  const checkUpdates = async (forceManual = false) => {
+    setIsCheckingUpdate(true);
+    setUpdateStatusText(null);
+    try {
+      const api = (window as unknown as { electronAPI?: {
+        getAppVersion?: () => Promise<string>;
+        checkUpdate?: () => Promise<any>;
+      } }).electronAPI;
+
+      let version = currentVersion;
+      if (api?.getAppVersion) {
+        try {
+          const v = await api.getAppVersion();
+          if (v) {
+            version = v;
+            setCurrentVersion(v);
+          }
+        } catch (_) {}
+      }
+
+      if (api?.checkUpdate) {
+        const res = await api.checkUpdate();
+        setUpdateInfo(res);
+      } else {
+        // Fallback für Browser-Modus
+        const res = await fetch('https://api.github.com/repos/Booster1212/guildwars2-omnitria/releases/latest');
+        if (res.ok) {
+          const rel = await res.json();
+          const latestTag = rel.tag_name || '';
+          const latestVer = latestTag.replace(/^v/, '');
+          const cleanCur = version.replace(/^v/, '');
+          const hasUpdate = latestVer !== cleanCur;
+          const assets = Array.isArray(rel.assets) ? rel.assets : [];
+          const zipAsset = assets.find((a: any) => a.name?.toLowerCase().endsWith('.zip'));
+          setUpdateInfo({
+            ok: true,
+            currentVersion: version,
+            latestVersion: latestVer,
+            latestTag,
+            hasUpdate,
+            releaseName: rel.name || rel.tag_name,
+            releaseNotes: rel.body,
+            publishedAt: rel.published_at,
+            htmlUrl: rel.html_url,
+            downloadUrl: zipAsset ? zipAsset.browser_download_url : rel.html_url,
+            isPackaged: false,
+          });
+        } else {
+          setUpdateInfo({ ok: false, currentVersion: version, error: `GitHub API (${res.status})` });
+        }
+      }
+    } catch (e: any) {
+      setUpdateInfo({ ok: false, currentVersion, error: e.message });
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleApplyUpdate = async () => {
+    if (!updateInfo?.downloadUrl) return;
+    setIsApplyingUpdate(true);
+    setUpdateProgress(0);
+    setUpdateStatusText(t('settings.downloadingUpdate', { percent: 0 }));
+
+    const api = (window as unknown as { electronAPI?: {
+      applyUpdate?: (url: string) => Promise<{ ok: boolean; devMode?: boolean; error?: string }>;
+      onUpdateProgress?: (cb: (d: { percent: number }) => void) => () => void;
+      openExternal?: (url: string) => void;
+    } }).electronAPI;
+
+    let cleanupProgress: (() => void) | undefined;
+    if (api?.onUpdateProgress) {
+      cleanupProgress = api.onUpdateProgress(({ percent }) => {
+        setUpdateProgress(percent);
+        setUpdateStatusText(t('settings.downloadingUpdate', { percent }));
+      });
+    }
+
+    try {
+      if (api?.applyUpdate) {
+        const res = await api.applyUpdate(updateInfo.downloadUrl);
+        if (res.ok) {
+          setUpdateProgress(100);
+          setUpdateStatusText(t('settings.updateReady'));
+        } else if (res.devMode) {
+          if (api.openExternal && updateInfo.htmlUrl) {
+            api.openExternal(updateInfo.htmlUrl);
+          } else if (updateInfo.htmlUrl) {
+            window.open(updateInfo.htmlUrl, '_blank');
+          }
+          setUpdateStatusText(t('settings.devModeNotice'));
+        } else {
+          setUpdateStatusText(res.error || t('settings.updateError'));
+        }
+      } else if (updateInfo.htmlUrl) {
+        window.open(updateInfo.htmlUrl, '_blank');
+      }
+    } catch (err: any) {
+      setUpdateStatusText(err.message || t('settings.updateError'));
+    } finally {
+      if (cleanupProgress) cleanupProgress();
+      setIsApplyingUpdate(false);
+    }
+  };
+
+  // Load existing cached API key info on open & check updates
   useEffect(() => {
     if (isOpen) {
       const cached = loadCachedApiData();
@@ -73,6 +206,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setSyncedAchCount(cached.achievements.size);
       }
       setApiError(null);
+
+      // Beim Öffnen automatisch auf Updates prüfen
+      checkUpdates(false);
     }
   }, [isOpen, settings.apiKey]);
 
@@ -524,6 +660,110 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
             )}
+          </div>
+
+          {/* SECTION 7: App-Version & Automatische Aktualisierungen */}
+          <div className="settings-card-panel update-card-panel">
+            <div className="card-panel-header">
+              <ArrowUpCircle size={14} className="gold-accent" />
+              <span className="card-panel-title">{t('settings.updateTitle')}</span>
+            </div>
+            <div className="card-panel-desc">
+              {t('settings.currentVersion')}: <strong className="gold-accent">v{currentVersion.replace(/^v/, '')}</strong>
+            </div>
+
+            <div className="update-status-box">
+              {isCheckingUpdate ? (
+                <div className="update-status-row checking">
+                  <RefreshCw size={14} className="spin gold-accent" />
+                  <span>{t('settings.checkingUpdates')}</span>
+                </div>
+              ) : updateInfo?.hasUpdate ? (
+                <div className="update-available-card">
+                  <div className="update-badge-row">
+                    <span className="update-badge pulse-badge">
+                      <Sparkles size={12} />
+                      {t('settings.updateAvailable', { version: `v${updateInfo.latestVersion}` })}
+                    </span>
+                    {updateInfo.publishedAt && (
+                      <span className="update-date">
+                        {new Date(updateInfo.publishedAt).toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US')}
+                      </span>
+                    )}
+                  </div>
+
+                  {updateInfo.releaseName && updateInfo.releaseName !== updateInfo.latestTag && (
+                    <div className="update-release-name">{updateInfo.releaseName}</div>
+                  )}
+
+                  {isApplyingUpdate ? (
+                    <div className="update-progress-container">
+                      <div className="update-progress-bar-wrap">
+                        <div
+                          className="update-progress-bar-fill"
+                          style={{ width: `${updateProgress}%` }}
+                        />
+                      </div>
+                      <div className="update-progress-text">{updateStatusText}</div>
+                    </div>
+                  ) : (
+                    <div className="update-actions-row">
+                      {isElectron && !updateInfo.devMode ? (
+                        <button
+                          className="gw2-gw-btn send-btn"
+                          onClick={handleApplyUpdate}
+                          disabled={isApplyingUpdate}
+                        >
+                          <Download size={13} />
+                          <span>{t('settings.applyUpdate')}</span>
+                        </button>
+                      ) : (
+                        <button
+                          className="gw2-gw-btn send-btn"
+                          onClick={() => {
+                            const api = (window as any).electronAPI;
+                            if (api?.openExternal && updateInfo.htmlUrl) {
+                              api.openExternal(updateInfo.htmlUrl);
+                            } else if (updateInfo.htmlUrl) {
+                              window.open(updateInfo.htmlUrl, '_blank');
+                            }
+                          }}
+                        >
+                          <ExternalLink size={13} />
+                          <span>{t('settings.openReleases')}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {updateStatusText && !isApplyingUpdate && (
+                    <div className="update-status-msg">{updateStatusText}</div>
+                  )}
+                </div>
+              ) : updateInfo?.ok ? (
+                <div className="update-status-row up-to-date">
+                  <PackageCheck size={14} className="green-accent" />
+                  <span>{t('settings.upToDate')}</span>
+                </div>
+              ) : updateInfo?.error ? (
+                <div className="update-status-row error">
+                  <AlertCircle size={14} className="red-accent" />
+                  <span>{updateInfo.error}</span>
+                </div>
+              ) : null}
+
+              <div className="update-refresh-wrap">
+                <button
+                  className="gw2-gw-btn"
+                  onClick={() => checkUpdates(true)}
+                  disabled={isCheckingUpdate || isApplyingUpdate}
+                  title={t('settings.checkUpdates')}
+                >
+                  <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
+                  <span>{t('settings.checkUpdates')}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

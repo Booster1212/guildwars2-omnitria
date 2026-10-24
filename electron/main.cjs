@@ -505,6 +505,7 @@ const EXTERNAL_HOSTS = new Set([
   'account.arena.net',
   'www.guildwars2.com',
   'api.guildwars2.com',
+  'github.com',
 ]);
 ipcMain.on('open-external', (_event, url) => {
   try {
@@ -544,6 +545,172 @@ ipcMain.handle('gw2-api-fetch', async (_event, url) => {
   } catch (err) {
     log('gw2-api-fetch exception:', err.message);
     return { ok: false, status: 0, error: err.message };
+  }
+});
+
+// ==========================================
+// Omnitria Auto-Updater & Version Management
+// ==========================================
+function parseSemver(v) {
+  const clean = (v || '').trim().replace(/^v/, '');
+  const parts = clean.split('-')[0].split('.').map(p => parseInt(p, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  return parts;
+}
+
+function isNewerVersion(current, latest) {
+  const [cMaj, cMin, cPat] = parseSemver(current);
+  const [lMaj, lMin, lPat] = parseSemver(latest);
+  if (lMaj > cMaj) return true;
+  if (lMaj < cMaj) return false;
+  if (lMin > cMin) return true;
+  if (lMin < cMin) return false;
+  return lPat > cPat;
+}
+
+ipcMain.handle('app-get-version', () => {
+  return app.getVersion() || require('../package.json').version;
+});
+
+ipcMain.handle('app-check-update', async () => {
+  const currentVersion = app.getVersion() || require('../package.json').version;
+  log('app-check-update called. Current version:', currentVersion);
+  try {
+    const res = await fetch('https://api.github.com/repos/Booster1212/guildwars2-omnitria/releases/latest', {
+      headers: {
+        'User-Agent': `Omnitria-Overlay/${currentVersion}`,
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!res.ok) {
+      log('check-update non-ok status:', res.status, res.statusText);
+      return { ok: false, error: `GitHub API: ${res.status} ${res.statusText}`, currentVersion };
+    }
+
+    const release = await res.json();
+    const latestTag = release.tag_name || '';
+    const latestVersion = latestTag.replace(/^v/, '');
+    const hasUpdate = isNewerVersion(currentVersion, latestVersion);
+
+    // Suche Windows Standalone ZIP Release Asset
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const zipAsset = assets.find(a => a.name.toLowerCase().endsWith('.zip') && a.name.toLowerCase().includes('windows'))
+      || assets.find(a => a.name.toLowerCase().endsWith('.zip'));
+
+    log('Update check result: current =', currentVersion, 'latest =', latestVersion, 'hasUpdate =', hasUpdate);
+
+    return {
+      ok: true,
+      currentVersion,
+      latestVersion,
+      latestTag,
+      hasUpdate,
+      releaseName: release.name || release.tag_name,
+      releaseNotes: release.body || '',
+      publishedAt: release.published_at,
+      htmlUrl: release.html_url,
+      assetName: zipAsset ? zipAsset.name : null,
+      assetSize: zipAsset ? zipAsset.size : 0,
+      downloadUrl: zipAsset ? zipAsset.browser_download_url : null,
+      isPackaged: Boolean(app.isPackaged || !process.defaultApp),
+    };
+  } catch (err) {
+    log('app-check-update exception:', err.message);
+    return { ok: false, error: err.message, currentVersion };
+  }
+});
+
+ipcMain.handle('app-apply-update', async (_event, downloadUrl) => {
+  if (!downloadUrl || typeof downloadUrl !== 'string') {
+    return { ok: false, error: 'Keine gültige Download-URL' };
+  }
+
+  const isPackaged = Boolean(app.isPackaged || !process.defaultApp);
+  log('app-apply-update called. isPackaged =', isPackaged, 'url =', downloadUrl);
+
+  if (!isPackaged) {
+    return {
+      ok: false,
+      devMode: true,
+      error: 'Entwicklungsmodus aktiv. Bitte im Repository via Git oder manuell aktualisieren.',
+    };
+  }
+
+  try {
+    const updateDir = path.join(app.getPath('temp'), 'omnitria-update');
+    if (!fs.existsSync(updateDir)) fs.mkdirSync(updateDir, { recursive: true });
+
+    const zipPath = path.join(updateDir, 'update.zip');
+    const extractDir = path.join(updateDir, 'extracted');
+    if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
+    fs.mkdirSync(extractDir, { recursive: true });
+
+    log('Starting download to:', zipPath);
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      return { ok: false, error: `Download fehlgeschlagen (${response.status})` };
+    }
+
+    const totalBytes = parseInt(response.headers.get('content-length') || '0', 10);
+    let downloadedBytes = 0;
+
+    const fileStream = fs.createWriteStream(zipPath);
+    const reader = response.body.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      downloadedBytes += value.length;
+      fileStream.write(Buffer.from(value));
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const percent = totalBytes > 0 ? Math.round((downloadedBytes / totalBytes) * 100) : 0;
+        mainWindow.webContents.send('update-progress', { percent, downloaded: downloadedBytes, total: totalBytes });
+      }
+    }
+    fileStream.end();
+
+    await new Promise((resolve, reject) => {
+      fileStream.on('finish', resolve);
+      fileStream.on('error', reject);
+    });
+
+    log('Update ZIP downloaded. Generating update batch script...');
+
+    const appDir = path.dirname(process.execPath);
+    const updateBatPath = path.join(updateDir, 'apply-update.bat');
+
+    // Batch-Skript wartet kurz, entpackt die neue Version und startet Omnitria.exe neu
+    const batContent = `@echo off
+chcp 65001 >nul
+timeout /t 2 /nobreak >nul
+powershell -NoProfile -Command "Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${extractDir.replace(/'/g, "''")}' -Force"
+for /d %%D in ("${extractDir}\\Omnitria-*") do (
+  xcopy /s /e /y "%%D\\*" "${appDir}\\"
+)
+start "" "${process.execPath}"
+exit
+`;
+    fs.writeFileSync(updateBatPath, batContent, 'utf8');
+
+    log('Launching update batch script and quitting...');
+    const { spawn } = require('child_process');
+    const child = spawn('cmd.exe', ['/c', updateBatPath], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+
+    setTimeout(() => {
+      app.isQuitting = true;
+      app.quit();
+    }, 500);
+
+    return { ok: true };
+  } catch (err) {
+    log('app-apply-update exception:', err.message);
+    return { ok: false, error: err.message };
   }
 });
 

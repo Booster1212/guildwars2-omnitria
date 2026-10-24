@@ -395,6 +395,20 @@ export const TRANSLATIONS = {
     'settings.hotkeyClickthrough': 'Klick-Durchlässigkeit (Maus durchklicken):',
     'settings.resetPos': 'Standardposition über Chat (Unten-Links) wiederherstellen',
     'settings.doneClose': 'Fertig & Schließen',
+
+    // Updates & Version
+    'settings.updateTitle': 'Version & Automatische Aktualisierungen',
+    'settings.currentVersion': 'Installierte Version',
+    'settings.checkUpdates': 'Nach Updates suchen',
+    'settings.checkingUpdates': 'Prüfe auf GitHub nach neuen Releases...',
+    'settings.upToDate': 'Omnitria ist auf dem neuesten Stand!',
+    'settings.updateAvailable': 'Neue Version verfügbar: {version}',
+    'settings.applyUpdate': 'Jetzt automatisch aktualisieren',
+    'settings.downloadingUpdate': 'Update wird heruntergeladen ({percent}%)...',
+    'settings.updateReady': 'Download abgeschlossen! Starte App neu...',
+    'settings.updateError': 'Fehler bei der Update-Prüfung',
+    'settings.openReleases': 'Release auf GitHub öffnen',
+    'settings.devModeNotice': 'Entwicklungsmodus aktiv (Aktualisierung via Git oder Release-Download)',
   },
   en: {
     // Navigation
@@ -728,6 +742,20 @@ export const TRANSLATIONS = {
     'settings.hotkeyClickthrough': 'Click-through mode (Mouse click-through):',
     'settings.resetPos': 'Reset to default position above chat (Bottom-Left)',
     'settings.doneClose': 'Done & Close',
+
+    // Updates & Version
+    'settings.updateTitle': 'Version & Automatic Updates',
+    'settings.currentVersion': 'Installed Version',
+    'settings.checkUpdates': 'Check for Updates',
+    'settings.checkingUpdates': 'Checking GitHub for new releases...',
+    'settings.upToDate': 'Omnitria is up to date!',
+    'settings.updateAvailable': 'New version available: {version}',
+    'settings.applyUpdate': 'Update Automatically Now',
+    'settings.downloadingUpdate': 'Downloading update ({percent}%)...',
+    'settings.updateReady': 'Download complete! Restarting overlay...',
+    'settings.updateError': 'Error checking for updates',
+    'settings.openReleases': 'View release on GitHub',
+    'settings.devModeNotice': 'Development mode active (update via Git or manual download)',
   },
 } as const;
 
