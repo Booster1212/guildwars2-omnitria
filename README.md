@@ -224,9 +224,44 @@ npm test
 
 # 4. Build production bundle
 npm run build
+
+# 5. Package Windows standalone distribution locally
+npm run package:win
 ```
 
 For comprehensive details on architecture, data sources, and caching mechanisms, see [docs/DATENQUELLEN.md](docs/DATENQUELLEN.md).
+
+---
+
+## 🚀 CI/CD & Automatische Releases
+
+Omnitria nutzt **GitHub Actions** für Continuous Integration und automatisierte Windows-Releases:
+
+- **CI Pipeline (`.github/workflows/ci.yml`)**:
+  - Wird bei jedem Push oder Pull Request auf den Branch `main` ausgeführt.
+  - Prüft TypeScript-Typen (`npm run typecheck`), führt alle 38 Unit- und Domain-Tests aus (`npm test`) und validiert den Vite-Produktionsbuild (`npm run build`).
+- **Release Pipeline (`.github/workflows/release.yml`)**:
+  - Wird automatisch ausgelöst, sobald ein Git-Tag im Format `v*` (z. B. `v0.1.0`) gepusht wird.
+  - Läuft auf einem Windows-Runner (`windows-latest`), installiert Abhängigkeiten strikt anhand des Lockfiles (`npm ci`), führt Tests und den Build aus und bündelt das fertige Standalone-Paket (`Omnitria-vX.X.X-windows-x64.zip` inkl. SHA256-Prüfsumme).
+  - Erstellt vollautomatisch ein GitHub Release mit Changelog-Notizen und hängt alle Build-Artefakte an.
+  - Verhindert das versehentliche Überschreiben bestehender Releases.
+
+### 📦 Neue Version veröffentlichen (z. B. v0.1.0):
+
+1. Sicherstellen, dass alle Änderungen auf `main` committet und gepusht sind:
+   ```bash
+   git checkout main
+   git pull
+   ```
+2. Git-Tag mit der gewünschten Versionsnummer erstellen:
+   ```bash
+   git tag -a v0.1.0 -m "Release v0.1.0"
+   ```
+3. Tag zu GitHub pushen:
+   ```bash
+   git push origin v0.1.0
+   ```
+4. Die Pipeline startet automatisch unter **GitHub Actions**. Nach Abschluss (~1–2 Minuten) stehen die Windows-Dateien unter **Releases** zum Download bereit.
 
 ---
 

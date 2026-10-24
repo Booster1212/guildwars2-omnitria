@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag or Version to release (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+
+# Minimale Rechte für GITHUB_TOKEN zum Erstellen von Releases und Hochladen von Assets
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Windows Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies (reproducible from lockfile)
+        run: npm ci
+
+      - name: Type Check (TypeScript)
+        run: npm run typecheck
+
+      - name: Run Automated Tests
+        run: npm test
+
+      - name: Build Production Frontend
+        run: npm run build
+
+      - name: Determine Release Tag
+        id: vars
+        shell: pwsh
+        run: |
+          $tag = if ("${{ github.ref_name }}" -match '^v\d+') {
+            "${{ github.ref_name }}"
+          } elseif ($env:INPUT_TAG_NAME) {
+            $env:INPUT_TAG_NAME
+          } else {
+            "v" + (Get-Content package.json | ConvertFrom-Json).version
+          }
+          Write-Host "Determined Release Tag: $tag"
+          "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
+        env:
+          INPUT_TAG_NAME: ${{ inputs.tag_name }}
+
+      - name: Package Windows Standalone Build
+        run: node scripts/package-windows.mjs ${{ env.RELEASE_TAG }}
+
+      - name: Upload Build Artifacts to GitHub Actions Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnitria-${{ env.RELEASE_TAG }}-windows-x64
+          path: release/
+          if-no-files-found: error
+
+      - name: Check Existing Release & Publish to GitHub Releases
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tagName = "${{ env.RELEASE_TAG }}"
+          Write-Host "======================================================="
+          Write-Host " Release Publication Step for Tag: $tagName"
+          Write-Host "======================================================="
+
+          # Pruefen, ob ein GitHub Release fuer dieses Tag bereits existiert
+          $releaseExists = $false
+          try {
+            $null = gh release view "$tagName" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $releaseExists = $true
+            }
+          } catch {
+            $releaseExists = $false
+          }
+
+          if ($releaseExists) {
+            Write-Host "::warning::Release fuer Tag '$tagName' existiert bereits auf GitHub."
+            Write-Host "Der Veröffentlichungsschritt wird uebersprungen, um bestehende Releases nicht ungefragt zu ueberschreiben."
+            exit 0
+          }
+
+          # Sammle alle erzeugten Artefakte aus dem Ordner release/
+          $assets = Get-ChildItem -Path release -File | ForEach-Object { $_.FullName }
+          if (-not $assets -or $assets.Count -eq 0) {
+            Write-Error "Fehler: Keine Artefakte im Ordner release/ fuer das Release gefunden!"
+            exit 1
+          }
+
+          Write-Host "Folgende Artefakte werden als Release-Assets angehaengt:"
+          $assets | ForEach-Object { Write-Host " - $(Split-Path $_ -Leaf)" }
+
+          # Release automatisch erstellen und Assets anhaengen
+          gh release create "$tagName" $assets `
+            --title "Omnitria $tagName" `
+            --generate-notes

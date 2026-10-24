@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Minimale Rechte für GITHUB_TOKEN
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Typecheck, Test & Build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies (reproducible from lockfile)
+        run: npm ci
+
+      - name: Type Check (TypeScript)
+        run: npm run typecheck
+
+      - name: Run Automated Tests
+        run: npm test
+
+      - name: Build Production Frontend
+        run: npm run build
