@@ -309,6 +309,16 @@ export const TRANSLATIONS = {
     'legendary.colBuyNow': 'Sofortkauf',
     'legendary.colTotalCost': 'Gesamtkosten',
     'legendary.colSources': 'Beschaffungswege',
+    'legendary.sortCostDesc': 'Kosten: Höchste zuerst',
+    'legendary.sortMissingDesc': 'Menge: Größte zuerst',
+    'legendary.sortName': 'Name (A–Z)',
+    'legendary.sortDefault': 'Standard-Sortierung',
+    'legendary.filterBought': 'Direktkäufe ({count})',
+    'legendary.savedStockValue': 'Im Lager gespart:',
+    'legendary.resetAllPurchases': 'Alle Käufe rückgängig machen',
+    'legendary.undoBuy': 'Kauf rückgängig',
+    'legendary.boughtDirectly': 'Direktkauf',
+    'legendary.cheapestSource': 'Günstigste Beschaffung:',
 
     // Settings
     'settings.title': 'Omnitria • Einstellungen',
@@ -600,6 +610,16 @@ export const TRANSLATIONS = {
     'legendary.colBuyNow': 'Buy Now',
     'legendary.colTotalCost': 'Total Cost',
     'legendary.colSources': 'Acquisition',
+    'legendary.sortCostDesc': 'Cost: Highest first',
+    'legendary.sortMissingDesc': 'Missing: Highest quantity',
+    'legendary.sortName': 'Name (A–Z)',
+    'legendary.sortDefault': 'Default order',
+    'legendary.filterBought': 'Direct Purchases ({count})',
+    'legendary.savedStockValue': 'Saved from Stock:',
+    'legendary.resetAllPurchases': 'Reset All to Craft',
+    'legendary.undoBuy': 'Undo Buy',
+    'legendary.boughtDirectly': 'Direct Buy',
+    'legendary.cheapestSource': 'Best Source:',
 
     // Settings
     'settings.title': 'Omnitria • Settings',

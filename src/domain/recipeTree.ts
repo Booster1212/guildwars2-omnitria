@@ -31,6 +31,8 @@ export interface TreeNode {
   /** Benötigte Herstellungen (Erwartungswert bei Zufallsrezepten) */
   crafts: number;
   recipe?: Recipe;
+  /** Gibt an, ob für diesen Knoten ein Herstellungsrezept existiert (unabhängig davon, ob der Nutzer auf Direktkauf umgeschaltet hat) */
+  canCraft: boolean;
   children: TreeNode[];
   /** Vom Nutzer als erledigt markiert */
   done: boolean;
@@ -122,7 +124,9 @@ function runPass(
     const muted = parentMuted || done;
     const cyclic = path.includes(itemId);
     const bought = depth > 0 && opts.buyItems.has(itemId);
-    const recipe = cyclic || bought || depth >= opts.maxDepth ? undefined : provider.recipeFor(itemId);
+    const rawRecipe = provider.recipeFor(itemId);
+    const canCraft = Boolean(rawRecipe && !cyclic);
+    const recipe = cyclic || bought || depth >= opts.maxDepth ? undefined : rawRecipe;
 
     // Bestand verbrauchen (nur für nicht stumme Knoten)
     let fromStock = 0;
@@ -148,6 +152,7 @@ function runPass(
       missing,
       crafts: 0,
       recipe,
+      canCraft,
       children: [],
       done,
       muted,

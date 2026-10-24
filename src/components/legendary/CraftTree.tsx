@@ -4,7 +4,7 @@ import { getItem } from '../../data/gw2/items';
 import { progressActions } from '../../data/progressStore';
 import { ItemIcon, Check, ProgressBar } from '../common/ui';
 import { fmtInt } from '../common/labels';
-import { ChevronDown, ChevronRight, ShoppingCart, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronRight, ShoppingCart, Sparkles, RotateCcw } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 interface CraftTreeProps {
@@ -111,15 +111,19 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
             </div>
           </div>
 
-          {/* Buy Toggle for Sub-Components that have recipes */}
-          {node.depth > 0 && node.recipe && (
+          {/* Buy Toggle for Sub-Components that can be crafted */}
+          {node.depth > 0 && (node.canCraft || node.bought) && (
             <div className="node-buy-toggle-col">
               <button
-                className={`btn-tiny ${node.bought ? 'active' : ''}`}
+                className={`btn-tiny ${node.bought ? 'btn-bought-active' : ''}`}
                 onClick={() => progressActions.toggleBuy(weaponId, node.itemId)}
-                title={node.bought ? 'Toggle craft' : 'Toggle buy'}
+                title={
+                  node.bought
+                    ? (lang === 'en' ? 'Click to undo direct purchase (craft yourself)' : 'Direktkauf rückgängig machen: Klicke hier, um selbst herzustellen')
+                    : (lang === 'en' ? 'Click to mark as direct purchase on Trading Post' : 'Klicke hier, um diese Komponente direkt über die Handelsgesellschaft zu kaufen')
+                }
               >
-                <ShoppingCart size={10} />
+                {node.bought ? <RotateCcw size={10} className="icon-undo" /> : <ShoppingCart size={10} />}
                 <span>{node.bought ? t('legendary.craftOption') : t('legendary.buyOption')}</span>
               </button>
             </div>

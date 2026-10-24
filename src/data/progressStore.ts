@@ -246,6 +246,12 @@ export const progressActions = {
       return { ...s, legendary: { ...s.legendary, [weaponId]: { ...cur, buyItems: toggle(cur.buyItems, itemId) } } };
     });
   },
+  clearBuyItems(weaponId: number) {
+    update((s) => {
+      const cur = s.legendary[String(weaponId)] ?? emptyLegendary();
+      return { ...s, legendary: { ...s.legendary, [weaponId]: { ...cur, buyItems: [] } } };
+    });
+  },
   resetLegendary(weaponId: number) {
     update((s) => ({ ...s, legendary: { ...s.legendary, [weaponId]: emptyLegendary() } }));
   },

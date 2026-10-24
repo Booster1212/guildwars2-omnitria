@@ -94,11 +94,25 @@ test('Zyklen werden abgefangen', () => {
   assert.ok(r.bom.has(1));
 });
 
-test('buyItems macht Knoten zum Blatt', () => {
+test('buyItems macht Knoten zum Blatt und behält canCraft für Rückgängig-Button', () => {
   const p = provider([rec('w', 1, 1, [[2, 1]]), rec('a', 2, 1, [[10, 5]])]);
   const r = buildTree(1, 1, p, { buyItems: new Set([2]) });
   assert.equal(r.bom.get(2)!.total, 1);
   assert.equal(r.bom.has(10), false);
+
+  // Knoten 2 muss bought: true und canCraft: true haben (damit der Umschalt-Button sichtbar bleibt und rückgängig gemacht werden kann)
+  const child = r.root.children[0];
+  assert.equal(child.itemId, 2);
+  assert.equal(child.bought, true);
+  assert.equal(child.canCraft, true);
+
+  // Ohne buyItems ist canCraft weiterhin true, bought ist false, und Unterknoten sind vorhanden
+  const r2 = buildTree(1, 1, p);
+  const child2 = r2.root.children[0];
+  assert.equal(child2.bought, false);
+  assert.equal(child2.canCraft, true);
+  assert.equal(child2.children.length, 1);
+  assert.equal(child2.children[0].itemId, 10);
 });
 
 test('Community-Datensatz: jede Waffe löst sich auf, Mengen sind positiv', () => {
@@ -727,6 +741,16 @@ test('Legendary & Quellen: Zweisprachige Lokalisierung Deutsch & Englisch', asyn
   const gatherSource = sources.find((s) => s.kind === 'gather');
   assert.equal(gatherSource?.label, 'Direkt sammelbar');
   assert.equal(gatherSource?.labelEn, 'Gatherable');
+
+  // Spezialquellen für legendäre Kernkomponenten
+  const icyRunestone = resolveSources({ item: undefined, itemId: 19676, tags: ['vendor', 'trading_post'] });
+  assert.ok(icyRunestone.some((s) => s.label.includes('Händler') && s.detail.includes('Rojan')));
+
+  const obsidianShard = resolveSources({ item: undefined, itemId: 19925, tags: ['vendor'] });
+  assert.ok(obsidianShard.some((s) => s.label.includes('Karma') && s.detail.includes('Balthasar')));
+
+  const giftOfBattle = resolveSources({ item: undefined, itemId: 19677, tags: ['achievement'] });
+  assert.ok(giftOfBattle.some((s) => s.label.includes('WvW') && s.detail.includes('Belohnungspfad')));
 });
 
 test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib) und Vorbereitungsauflistung', async () => {
@@ -738,9 +762,11 @@ test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib
   assert.equal(KNOWN_VENDOR_PRICES.get(12155), 16, 'Beutel Mehl');
   assert.equal(KNOWN_VENDOR_PRICES.get(12158), 16, 'Paket Hefe');
   assert.equal(KNOWN_VENDOR_PRICES.get(12132), 48, 'Brotlaib');
+  assert.equal(KNOWN_VENDOR_PRICES.get(19676), 10000, 'Eisiger Runenstein (1g)');
 
   assert.equal(unitPrice(undefined, 12156), 16);
   assert.equal(unitPrice(undefined, 12132), 48);
+  assert.equal(unitPrice(undefined, 19676), 10000);
 
   // 2. Koch-Route: Hamburger (12210) benötigt Wildfleisch (24359) + Brotlaib (12132)
   // Brotlaib (12132) wird aus 12156 + 12155 + 12158 hergestellt

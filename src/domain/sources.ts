@@ -55,6 +55,7 @@ const UNLOCK_TAGS = new Set(Object.keys(UNLOCK_LABELS));
 
 export interface SourceContext {
   item: GameItem | undefined;
+  itemId?: number;
   tags: string[];
   /** Rezept, das diesen Gegenstand herstellt (Community oder offiziell) */
   recipe?: Recipe;
@@ -62,10 +63,109 @@ export interface SourceContext {
   price?: PriceInfo;
 }
 
+export const SPECIAL_LEGENDARY_SOURCES: Record<number, SourceInfo[]> = {
+  19676: [
+    {
+      kind: 'vendor',
+      label: 'Händler (Rojan)',
+      labelEn: 'Vendor (Rojan)',
+      origin: 'official',
+      detail: 'Gekauft bei Rojan dem Büßer im Eisensuper-Tal / Frostgipfel-Klamm für 1 Gold pro Stück. Festpreis.',
+      detailEn: 'Purchased from Rojan the Penitent in Frostgorge Sound for 1 Gold each. Fixed vendor price.',
+      amount: 'guaranteed',
+      caveats: [],
+      caveatsEn: [],
+    },
+  ],
+  19925: [
+    {
+      kind: 'vendor',
+      label: 'Karma / Fraktale',
+      labelEn: 'Karma / Fractals',
+      origin: 'official',
+      detail: 'Taktiker Durnolf im Tempel des Balthasar (2.100 Karma), Fraktal-Relikte, Silberwüsten-Banditentruhen oder Pakt-Vorratsnetzwerk.',
+      detailEn: 'Tactician Deathblade at Temple of Balthazar (2,100 Karma), Fractal Relics, or Silverwastes bandit chests.',
+      amount: 'guaranteed',
+      caveats: ['Am günstigsten über Karma oder Fraktal-Relikte.'],
+      caveatsEn: ['Cheapest via Karma or Fractal Relics.'],
+    },
+  ],
+  19970: [
+    {
+      kind: 'vendor',
+      label: 'Miyani (Geist-Scherben)',
+      labelEn: 'Miyani (Spirit Shards)',
+      origin: 'official',
+      detail: 'Bei Miyani an der Mystischen Schmiede in Löwenstein für 50 Geist-Scherben erhältlich.',
+      detailEn: 'Purchased from Miyani at the Mystic Forge in Lion\'s Arch for 50 Spirit Shards.',
+      amount: 'guaranteed',
+      caveats: ['Nicht mit Gold kaufbar – benötigt Geist-Scherben.'],
+      caveatsEn: ['Cannot be bought with gold – requires Spirit Shards.'],
+    },
+  ],
+  19677: [
+    {
+      kind: 'unlock',
+      label: 'WvW Belohnungspfad',
+      labelEn: 'WvW Reward Track',
+      origin: 'official',
+      detail: 'Schließt den WvW-Belohnungspfad „Geschenk des Kampfes“ in Welt-gegen-Welt ab (garantiert am Ende des Pfads).',
+      detailEn: 'Complete the Gift of Battle reward track in World vs. World (guaranteed at end of track).',
+      amount: 'guaranteed',
+      caveats: ['Nur über WvW erspielbar – nicht handelbar.'],
+      caveatsEn: ['Earned exclusively in WvW – untradable.'],
+    },
+  ],
+  19678: [
+    {
+      kind: 'unlock',
+      label: '100% Weltkarte',
+      labelEn: '100% Map Completion',
+      origin: 'official',
+      detail: '100% Kartenerkundung von Kern-Tyria. Gewährt 2x Geschenk der Erkundung pro Charakter.',
+      detailEn: '100% exploration of all Core Tyria maps. Awards 2x Gift of Exploration per character.',
+      amount: 'guaranteed',
+      caveats: ['Nur über vollständige Welterkundung erspielbar.'],
+      caveatsEn: ['Requires full Core Tyria world completion.'],
+    },
+  ],
+  19969: [
+    {
+      kind: 'forge',
+      label: 'Mystische Schmiede / Gewölbe',
+      labelEn: 'Mystic Forge / Vault',
+      origin: 'official',
+      detail: 'Mystische Schmiede (Kleeblatt-Rezept, ~31% Erfolgschance) oder garantiert über Gewölbe der Zauberer / WvW & PvP Pfade.',
+      detailEn: 'Mystic Forge (clover recipe, ~31% success rate) or guaranteed from Wizard\'s Vault / WvW & PvP tracks.',
+      amount: 'random',
+      caveats: ['Gewölbe der Zauberer und Belohnungspfade sparen viel Gold und Ektoplasma!'],
+      caveatsEn: ['Wizard\'s Vault and reward tracks save significant gold and ectoplasm!'],
+    },
+  ],
+  19675: [
+    {
+      kind: 'forge',
+      label: 'Mystische Schmiede / Gewölbe',
+      labelEn: 'Mystic Forge / Vault',
+      origin: 'official',
+      detail: 'Mystische Schmiede (Kleeblatt-Rezept, ~31% Erfolgschance) oder garantiert über Gewölbe der Zauberer / WvW & PvP Pfade.',
+      detailEn: 'Mystic Forge (clover recipe, ~31% success rate) or guaranteed from Wizard\'s Vault / WvW & PvP tracks.',
+      amount: 'random',
+      caveats: ['Gewölbe der Zauberer und Belohnungspfade sparen viel Gold und Ektoplasma!'],
+      caveatsEn: ['Wizard\'s Vault and reward tracks save significant gold and ectoplasm!'],
+    },
+  ],
+};
+
 export function resolveSources(ctx: SourceContext): SourceInfo[] {
   const { item, tags, recipe, vendorRecipe, price } = ctx;
   const out: SourceInfo[] = [];
   const has = (t: string) => tags.includes(t);
+
+  const targetId = ctx.itemId ?? ctx.item?.id;
+  if (targetId && SPECIAL_LEGENDARY_SOURCES[targetId]) {
+    out.push(...SPECIAL_LEGENDARY_SOURCES[targetId]);
+  }
 
   if (has('gathering')) {
     out.push({

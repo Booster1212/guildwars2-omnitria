@@ -59,6 +59,9 @@ export const KNOWN_VENDOR_PRICES: ReadonlyMap<number, number> = new Map([
   [19793, 32],  // Spule Leinenfaden (Spool of Linen Thread)
   [19791, 48],  // Spule Seidenfaden (Spool of Silk Thread)
   [19790, 64],  // Spule Gazefaden (Spool of Gossamer Thread)
+
+  // Legendäre Komponenten mit festen Händlerpreisen (offizielle Händlerpreise in Kupfer)
+  [19676, 10000], // Eisiger Runenstein (Icy Runestone) – 1 Gold (10.000 Kupfer) bei Rojan dem Büßer
 ]);
 
 export function unitPrice(price: PriceInfo | undefined, itemId?: number): number | null {

@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Legendary Armory Overhaul & Cost-Effective Procurement
+* **Undo Direct Purchase Fix in Crafting Tree**:
+  * **Root Cause Fix**: Previously, clicking "Kauf" set the node's recipe to `undefined` to mark it as a leaf, which caused the toggle button condition `{node.depth > 0 && node.recipe}` to evaluate to `false` and disappear from the DOM.
+  * **Persistent Toggle State**: Added `canCraft: boolean` to `TreeNode` in `src/domain/recipeTree.ts` which remains `true` even when `bought = true`.
+  * **Undoable Button (`CraftTree.tsx`)**: Replaced the vanishing button with an interactive toggle: when marked as bought, the button transitions into a highlighted `.btn-bought-active` button with a `RotateCcw` icon and label "Herstellen" (Undo / Craft yourself), allowing immediate reversal with a single click.
+  * **Global & Inline Purchase Management**:
+    * Added `clearBuyItems(weaponId)` in `progressStore.ts` and integrated a 1-click global reset banner in `MaterialTable.tsx`.
+    * Added inline direct-purchase chips with quick-action undo buttons directly in the Material Table rows.
+* **Cost-Effective Procurement & Vendor Pricing Integration**:
+  * **Fixed Vendor Pricing for Iconic Legendary Items**: Added `[19676, 10000]` (Eisiger Runenstein / Icy Runestone – 1g / 10,000c) to `KNOWN_VENDOR_PRICES` in `src/domain/costs.ts`. Because Icy Runestone is account-bound, it had no Trading Post listing and showed up unpriced; now all 100 Runestones (100g) are accurately priced into the weapon budget.
+  * **Special Legendary Sources Catalog (`src/domain/sources.ts`)**: Built `SPECIAL_LEGENDARY_SOURCES` documenting the cheapest, most efficient acquisition methods for core legendary materials:
+    * `19676` (Icy Runestone): Rojan das Schläfrige (Frostgorge Sound) – 1g each (fixed vendor cost).
+    * `19925` (Obsidian Shards): Balthasar-Tempel (2,100 Karma each), Entfesselte Magie, or Lorbeer-Händler.
+    * `19970` (Eldritch Scroll): Miyani / Mystische Schmiede – 50 Spirit Shards (Scherben des Geistes).
+    * `19677` (Gift of Battle): WvW-Belohnungspfad "Geschenk des Kampfes" (kein Goldaufwand).
+    * `19678` (Gift of Exploration): 100% Core Tyria Kartenerkundung (2 Geschenke pro Charakter).
+    * `19969` / `19675` (Mystic Clover / Clover Recipe): Günstigste Beschaffung über WvW/PvP/Angriffsmissions-Pfade oder Mystische Schmiede (1x bzw. 10x Kleeblatt-Rezept).
+  * **Procurement Table Financial Summary Cards**:
+    * **Offene Zukaufkosten**: Live sum of open Trading Post and vendor acquisition expenses for all missing materials.
+    * **Bereits im Lager gespart**: Real-time monetary value of items already available in account storage.
+    * **Materialien-Fortschritt**: Percentage of unique materials ready vs. required.
+  * **Sorting & Filter Controls**:
+    * Sort dropdown: Höchste Kosten zuerst (`cost-desc`), Meiste fehlende Einheiten (`missing-desc`), Name (`name`), Standard (`default`).
+    * Filter chips: Alle, Nur Fehlende, Bereits Vorhanden, Direkt-Kauf (`filterBought`).
+
 #### Boss & Event Achievements and Visual Overhaul
 * **Achievements Section Overhaul & Filter Bugfix**:
   * **Expansion Filter Badges**: Resolved bug where expansion category tabs (`HoT`, `PoF`, `IceDragon`, `EoD`, `SotO`, `Janthir`) displayed `0` due to outdated category keys in `categoryCounts`.
