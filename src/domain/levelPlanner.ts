@@ -41,6 +41,16 @@ export interface StepMaterial {
   qty: number;
 }
 
+export interface StepPrepItem {
+  recipe: Recipe;
+  outputId: number;
+  crafts: number;
+  outputCount: number;
+  depth: number;
+  ingredients: StepMaterial[];
+  needsDiscovery: boolean;
+}
+
 export interface PlanStep {
   key: string;
   recipe: Recipe;
@@ -50,6 +60,8 @@ export interface PlanStep {
   crafts: number;
   /** Direkte Zutaten (bereits mit Anzahl Herstellungen multipliziert) */
   ingredients: StepMaterial[];
+  /** Vorbereitende Eigenherstellungsschritte in Produktionsreihenfolge (z.B. Seidenballen => Seiden-Insignie) */
+  prepSteps: StepPrepItem[];
   /** Zu kaufende Basismaterialien dieses Schritts (inkl. Zwischenprodukt-Zutaten) */
   purchases: StepMaterial[];
   /** Summe bepreisbarer Einkäufe in Kupfer */
@@ -125,23 +137,22 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     if (cached) return cached;
     const price = unitPrice(prices.get(itemId));
     let best: Acq = { unit: price, via: price !== null ? 'buy' : 'unknown' };
-    if (options.craftIntermediates && depth < 3 && !stack.has(itemId)) {
+    if (options.craftIntermediates && depth < 8 && !stack.has(itemId)) {
       stack.add(itemId);
       for (const r of recipesByOutput.get(itemId) ?? []) {
         if (!r.disciplines.includes(discipline) || r.rating > rank || !isUsable(r)) continue;
         let sum = 0;
-        let ok = true;
+        let hasPricedIngredient = false;
         for (const ing of r.ingredients) {
           const a = acq(ing.itemId, rank, depth + 1, stack);
-          if (a.unit === null) {
-            ok = false;
-            break;
+          if (a.unit !== null) {
+            sum += a.unit * ing.count;
+            hasPricedIngredient = true;
           }
-          sum += a.unit * ing.count;
         }
-        if (!ok) continue;
-        const unit = sum / r.outputCount;
-        if (best.unit === null || unit < best.unit * CRAFT_PREFERENCE) {
+        const unit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
+        // Bevorzuge Eigenherstellung ('craft') vor Kauf ('buy'), solange herstellbar
+        if (best.via !== 'craft' || (unit !== null && (best.unit === null || unit < best.unit))) {
           best = { unit, via: 'craft', recipe: r };
         }
       }
@@ -228,13 +239,34 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const steps: PlanStep[] = raw.map((rs) => {
     const crafts = Math.max(1, Math.ceil(rs.craftsExact - 1e-9));
     const stepPurchases = new Map<number, number>();
+    const stepPrepMap = new Map<string, StepPrepItem>();
+
     const resolve = (itemId: number, qty: number, rank: number, depth: number) => {
       const a = acq(itemId, rank, depth, new Set());
       if (a.via === 'craft' && a.recipe) {
-        const k = Math.ceil(qty / a.recipe.outputCount - 1e-9);
+        const outCount = Math.max(1, a.recipe.outputCount);
+        const k = Math.ceil(qty / outCount - 1e-9);
         const ex = intermediateMap.get(a.recipe.id);
         intermediateMap.set(a.recipe.id, { recipe: a.recipe, crafts: (ex?.crafts ?? 0) + k });
-        for (const ing of a.recipe.ingredients) resolve(ing.itemId, ing.count * k, rank, depth + 1);
+
+        const prepEx = stepPrepMap.get(a.recipe.id);
+        const currentCrafts = (prepEx?.crafts ?? 0) + k;
+        stepPrepMap.set(a.recipe.id, {
+          recipe: a.recipe,
+          outputId: a.recipe.outputId,
+          crafts: currentCrafts,
+          outputCount: outCount,
+          depth,
+          ingredients: a.recipe.ingredients.map((ing) => ({
+            itemId: ing.itemId,
+            qty: ing.count * currentCrafts,
+          })),
+          needsDiscovery: !isLearned(a.recipe),
+        });
+
+        for (const ing of a.recipe.ingredients) {
+          resolve(ing.itemId, ing.count * k, rank, depth + 1);
+        }
       } else {
         stepPurchases.set(itemId, (stepPurchases.get(itemId) ?? 0) + qty);
         purchases.set(itemId, (purchases.get(itemId) ?? 0) + qty);
@@ -242,6 +274,10 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     };
     const ingredients: StepMaterial[] = rs.recipe.ingredients.map((i) => ({ itemId: i.itemId, qty: i.count * crafts }));
     for (const ing of ingredients) resolve(ing.itemId, ing.qty, rs.fromRank, 0);
+
+    // Sortierung in exakter Produktionsreihenfolge: tiefste Unterprodukte (z.B. Seidenballen) zuerst,
+    // darauf aufbauende Zwischenprodukte (z.B. Seiden-Insignie) danach
+    const prepSteps = Array.from(stepPrepMap.values()).sort((a, b) => b.depth - a.depth);
 
     let cost = 0;
     let unpricedCount = 0;
@@ -263,6 +299,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       toRank: rs.toRank,
       crafts,
       ingredients,
+      prepSteps,
       purchases: [...stepPurchases].map(([itemId, qty]) => ({ itemId, qty })),
       cost,
       unpricedCount,
@@ -300,7 +337,7 @@ export function collectPlannerItemIds(
     for (const ing of r.ingredients) {
       if (ids.has(ing.itemId) && depth > 0) continue;
       ids.add(ing.itemId);
-      if (depth < 3) {
+      if (depth < 8) {
         for (const r2 of recipesByOutput.get(ing.itemId) ?? []) {
           if (r2.disciplines.includes(discipline)) addIngredients(r2, depth + 1);
         }

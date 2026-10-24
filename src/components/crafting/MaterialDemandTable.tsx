@@ -3,7 +3,7 @@ import type { AggregatedMaterial, ItemProcurement } from '../../domain/craftingC
 import { getItem } from '../../data/gw2/items';
 import { fmtInt } from '../common/labels';
 import { Coin, ItemIcon } from '../common/ui';
-import { Search, Hammer, ShoppingCart, Check, AlertCircle } from 'lucide-react';
+import { Search, Hammer, ShoppingCart, Check, AlertCircle, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 interface MaterialDemandTableProps {
@@ -22,7 +22,11 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
 }) => {
   const { t, lang } = useTranslation();
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'missing' | 'base' | 'intermediates' | 'end'>('all');
+  const [filter, setFilter] = useState<'all' | 'missing' | 'base' | 'intermediates' | 'end' | 'discovery'>('all');
+
+  const discoveryCount = useMemo(() => {
+    return materials.filter((m) => m.needsDiscovery || m.requiredForDiscovery).length;
+  }, [materials]);
 
   const filteredMaterials = useMemo(() => {
     return materials.filter((m) => {
@@ -35,6 +39,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
       if (filter === 'base' && m.role !== 'base_material') return false;
       if (filter === 'intermediates' && m.role !== 'intermediate') return false;
       if (filter === 'end' && m.role !== 'end_product') return false;
+      if (filter === 'discovery' && !m.needsDiscovery && !m.requiredForDiscovery) return false;
       return true;
     });
   }, [materials, search, filter]);
@@ -43,14 +48,16 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
     let totalCost = 0;
     let missingCount = 0;
     let unpricedCount = 0;
+    let discoveryRecipesCount = 0;
     for (const m of materials) {
       if (m.netDemand > 0) missingCount++;
+      if (m.needsDiscovery) discoveryRecipesCount++;
       if (m.totalCost !== null) totalCost += m.totalCost;
       else if (m.netDemand > 0 && (m.action === 'buy' || m.role === 'base_material')) {
         unpricedCount++;
       }
     }
-    return { totalCost, missingCount, unpricedCount };
+    return { totalCost, missingCount, unpricedCount, discoveryRecipesCount };
   }, [materials]);
 
   const getRoleLabel = (role: AggregatedMaterial['role']) => {
@@ -136,6 +143,16 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
           >
             {t('crafting.roleEnd')} ({materials.filter((m) => m.role === 'end_product').length})
           </button>
+          {discoveryCount > 0 && (
+            <button
+              className={`mat-pill ${filter === 'discovery' ? 'active' : ''}`}
+              onClick={() => setFilter('discovery')}
+              title={lang === 'en' ? 'Show all discovery recipes and their required materials' : 'Zeigt alle Entdeckungsrezepte und deren benötigte Zutaten'}
+            >
+              <Sparkles size={11} className="inline mr-1 text-amber-400" />
+              {t('crafting.filterDiscovery')} ({discoveryCount})
+            </button>
+          )}
         </div>
       </div>
 
@@ -185,6 +202,24 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                           <span className={`role-badge role-${m.role}`}>
                             {getRoleLabel(m.role)}
                           </span>
+                          {m.needsDiscovery && (
+                            <span
+                              className="mat-badge badge-discovery"
+                              title={t('crafting.discoveryTooltip')}
+                            >
+                              <Sparkles size={9} className="mr-1 inline text-amber-400" />
+                              {t('crafting.discoveryBadge')}
+                            </span>
+                          )}
+                          {!m.needsDiscovery && m.requiredForDiscovery && (
+                            <span
+                              className="mat-badge badge-discovery-ing"
+                              title={t('crafting.discoveryIngredientTooltip')}
+                            >
+                              <Sparkles size={8} className="mr-1 inline text-amber-300/80" />
+                              {t('crafting.discoveryIngredientBadge')}
+                            </span>
+                          )}
                           {m.craftRuns > 0 && (
                             <span className="craft-runs-pill font-mono">
                               {t('crafting.craftRunsBadge', { count: m.craftRuns })}
@@ -295,7 +330,13 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                 {lang === 'en' ? 'Total (Purchasable Materials):' : 'Gesamtsumme (Einkaufsposten):'}
               </td>
               <td colSpan={3} className="num font-mono text-xs dim">
-                {summary.missingCount} {lang === 'en' ? 'positions missing' : 'Positionen offen'}
+                <span>{summary.missingCount} {lang === 'en' ? 'positions missing' : 'Positionen offen'}</span>
+                {summary.discoveryRecipesCount > 0 && (
+                  <span className="summary-discovery-note" style={{ marginLeft: '12px' }}>
+                    <Sparkles size={11} className="inline mr-1 text-amber-400" />
+                    {summary.discoveryRecipesCount} {lang === 'en' ? 'discoveries' : 'Entdeckungen'}
+                  </span>
+                )}
               </td>
               <td colSpan={2} />
               <td className="num font-bold">

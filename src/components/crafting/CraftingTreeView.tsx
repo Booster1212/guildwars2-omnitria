@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   FolderOpen,
   Folder,
+  Sparkles,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
@@ -112,6 +113,17 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
             {node.craftRuns > 0 && (
               <span className="craft-runs-tag font-mono">
                 {t('crafting.craftRunsBadge', { count: node.craftRuns })}
+              </span>
+            )}
+
+            {/* Entdeckungsrezept-Kennzeichnung */}
+            {node.needsDiscovery && (
+              <span
+                className="tree-pill pill-discovery"
+                title={t('crafting.discoveryTooltip')}
+              >
+                <Sparkles size={10} className="mr-1 inline text-amber-400" />
+                {t('crafting.discoveryBadge')}
               </span>
             )}
 

@@ -37,6 +37,7 @@ export interface TargetCraftItem {
   recipe?: Recipe;
   stepKey?: string;
   label?: string;
+  needsDiscovery?: boolean;
 }
 
 export interface CraftingCalculatorOptions {
@@ -45,6 +46,8 @@ export interface CraftingCalculatorOptions {
   stock?: ReadonlyMap<number, number> | null;
   prices?: ReadonlyMap<number, PriceInfo>;
   maxDepth?: number;
+  allowDiscovery?: boolean;
+  knownRecipeIds?: ReadonlySet<number> | null;
 }
 
 export type NodeAction =
@@ -75,6 +78,7 @@ export interface CraftingTreeNode {
   missingRecipe: boolean;
   unitPrice: number | null;
   lineCost: number | null;
+  needsDiscovery: boolean;
 }
 
 export interface AggregatedMaterial {
@@ -90,6 +94,8 @@ export interface AggregatedMaterial {
   unitPrice: number | null;
   totalCost: number | null;
   sourceInfo?: SourceInfo;
+  needsDiscovery: boolean;
+  requiredForDiscovery: boolean;
 }
 
 export interface CraftingCalculationResult {
@@ -101,6 +107,7 @@ export interface CraftingCalculationResult {
     totalCraftRuns: number;
     totalCost: number;
     unpricedCount: number;
+    totalDiscoveryCount: number;
   };
   strategy: CraftingStrategy;
   hasCycles: boolean;
@@ -108,6 +115,27 @@ export interface CraftingCalculationResult {
 }
 
 const EPS = 1e-9;
+
+/**
+ * Prüft, ob ein Rezept über das Handwerks-Entdeckungsfenster erforscht werden muss.
+ * Entdeckungsrezepte besitzen weder das Flag AutoLearned noch LearnedFromItem und sind dem Account noch nicht bekannt.
+ */
+export function isRecipeDiscovery(
+  recipe?: Recipe,
+  knownRecipeIds?: ReadonlySet<number> | null,
+): boolean {
+  if (!recipe) return false;
+  if (recipe.flags?.includes('AutoLearned')) return false;
+  if (recipe.flags?.includes('LearnedFromItem')) return false;
+  if (
+    knownRecipeIds !== null &&
+    knownRecipeIds !== undefined &&
+    knownRecipeIds.has(Number(recipe.id))
+  ) {
+    return false;
+  }
+  return true;
+}
 
 /**
  * Erstellt einen Provider für Rezepte einer bestimmten Handwerksdisziplin.
@@ -220,6 +248,21 @@ export function calculateCraftingPlan(
   let hasCycles = false;
   let hasMissingRecipes = false;
 
+  const recipesUsed = new Map<number, Recipe>();
+  const targetNeedsDiscoveryMap = new Map<number, boolean>();
+  const targetGrossDemand = new Map<number, number>();
+
+  targets.forEach((t) => {
+    if (t.recipe) recipesUsed.set(t.itemId, t.recipe);
+    if (t.needsDiscovery !== undefined) {
+      targetNeedsDiscoveryMap.set(t.itemId, t.needsDiscovery);
+    }
+    targetGrossDemand.set(t.itemId, (targetGrossDemand.get(t.itemId) ?? 0) + t.count);
+  });
+
+  const discoveryItemIds = new Set<number>();
+  const discoveryIngredientIds = new Set<number>();
+
   // =========================================================================
   // Pass 1: Theoretischer Gesamtbedarf (Gross) ohne Bestand / Markierungen
   // =========================================================================
@@ -242,13 +285,26 @@ export function calculateCraftingPlan(
     path: number[],
     depth: number,
     presetRecipe?: Recipe,
+    presetDiscovery?: boolean,
   ): GrossNodeInfo {
     const cyclic = path.includes(itemId);
     if (cyclic) hasCycles = true;
 
     const recipe = cyclic || depth >= maxDepth ? undefined : (presetRecipe ?? provider.recipeFor(itemId));
+    if (recipe) recipesUsed.set(itemId, recipe);
     const isCraftable = Boolean(recipe && recipe.ingredients && recipe.ingredients.length > 0 && recipe.outputCount > 0);
     const doCraft = depth === 0 ? isCraftable : isCraftable && shouldCraftIntermediate(itemId, strategy, options.itemOverrides);
+
+    const isDisc = doCraft && recipe
+      ? (presetDiscovery ?? (targetNeedsDiscoveryMap.get(itemId) ?? isRecipeDiscovery(recipe, options.knownRecipeIds)))
+      : false;
+
+    if (isDisc && recipe) {
+      discoveryItemIds.add(itemId);
+      for (const ing of recipe.ingredients) {
+        discoveryIngredientIds.add(ing.itemId);
+      }
+    }
 
     let craftRuns = 0;
     const children: GrossNodeInfo[] = [];
@@ -275,7 +331,7 @@ export function calculateCraftingPlan(
   // Pass 1 für alle Zielgegenstände ausführen
   targets.forEach((t) => {
     if (t.count > 0) {
-      visitGross(t.itemId, t.count, [], 0, t.recipe);
+      visitGross(t.itemId, t.count, [], 0, t.recipe, t.needsDiscovery);
     }
   });
 
@@ -294,12 +350,25 @@ export function calculateCraftingPlan(
     depth: number,
     stepKey: string,
     presetRecipe?: Recipe,
+    presetDiscovery?: boolean,
   ): CraftingTreeNode {
     const key = `${stepKey}:${path.length ? path.join('>') + '>' : ''}${itemId}`;
     const cyclic = path.includes(itemId);
     const recipe = cyclic || depth >= maxDepth ? undefined : (presetRecipe ?? provider.recipeFor(itemId));
+    if (recipe) recipesUsed.set(itemId, recipe);
     const isCraftable = Boolean(recipe && recipe.ingredients && recipe.ingredients.length > 0 && recipe.outputCount > 0);
     const doCraft = depth === 0 ? isCraftable : isCraftable && shouldCraftIntermediate(itemId, strategy, options.itemOverrides);
+
+    const isDisc = doCraft && recipe
+      ? (presetDiscovery ?? (targetNeedsDiscoveryMap.get(itemId) ?? isRecipeDiscovery(recipe, options.knownRecipeIds)))
+      : false;
+
+    if (isDisc && recipe) {
+      discoveryItemIds.add(itemId);
+      for (const ing of recipe.ingredients) {
+        discoveryIngredientIds.add(ing.itemId);
+      }
+    }
 
     // Bestand verbrauchen
     let fromStock = 0;
@@ -367,12 +436,13 @@ export function calculateCraftingPlan(
       missingRecipe: !isCraftable && depth > 0 && provider.recipeFor(itemId) === undefined,
       unitPrice: up,
       lineCost,
+      needsDiscovery: isDisc,
     };
   }
 
   const trees: CraftingTreeNode[] = targets.map((t, idx) => {
     const sKey = t.stepKey ?? `step-${idx}`;
-    return visitNet(t.itemId, t.count, [], 0, sKey, t.recipe);
+    return visitNet(t.itemId, t.count, [], 0, sKey, t.recipe, t.needsDiscovery);
   });
 
   // =========================================================================
@@ -400,7 +470,7 @@ export function calculateCraftingPlan(
     const stockQty = options.stock?.get(itemId) ?? 0;
     const stockUsed = stockUsedPerItem.get(itemId) ?? 0;
 
-    const r = provider.recipeFor(itemId);
+    const r = recipesUsed.get(itemId) ?? provider.recipeFor(itemId);
     const isCraftable = Boolean(r && r.ingredients && r.ingredients.length > 0 && r.outputCount > 0);
     const doCraft = shouldCraftIntermediate(itemId, strategy, options.itemOverrides);
 
@@ -421,9 +491,11 @@ export function calculateCraftingPlan(
 
     const cRuns = netCraftRuns.get(itemId) ?? 0;
     const gRuns = grossCraftRuns.get(itemId) ?? 0;
-    const grossDemand = action === 'craft' && r?.outputCount
-      ? gRuns * r.outputCount
-      : (grossTotals.get(itemId) ?? 0);
+    const grossDemand = isRoot && targetGrossDemand.has(itemId)
+      ? targetGrossDemand.get(itemId)!
+      : (action === 'craft' && r?.outputCount
+          ? gRuns * r.outputCount
+          : (grossTotals.get(itemId) ?? 0));
     const netDemand = action === 'craft' && r?.outputCount
       ? cRuns * r.outputCount
       : (netMissingTotals.get(itemId) ?? Math.max(0, grossDemand - stockUsed));
@@ -447,6 +519,11 @@ export function calculateCraftingPlan(
     const sources = resolveSources({ item: undefined, tags: [], price: p, recipe: r });
     const sourceInfo = sources[0];
 
+    const needsDiscovery =
+      discoveryItemIds.has(itemId) ||
+      Boolean(action === 'craft' && isRecipeDiscovery(r, options.knownRecipeIds));
+    const requiredForDiscovery = discoveryIngredientIds.has(itemId);
+
     materials.push({
       itemId,
       grossDemand,
@@ -460,6 +537,8 @@ export function calculateCraftingPlan(
       unitPrice: up,
       totalCost: lineCost,
       sourceInfo,
+      needsDiscovery,
+      requiredForDiscovery,
     });
   }
 
@@ -484,6 +563,7 @@ export function calculateCraftingPlan(
       totalCraftRuns,
       totalCost,
       unpricedCount,
+      totalDiscoveryCount: discoveryItemIds.size,
     },
     strategy,
     hasCycles,

@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Removed the standalone "Wegmarken" (Waypoints) section from the navigation rail and routing, focusing the overlay on Events, Achievements, Crafting, and Legendary weapons.
 
 #### Recursive Crafting & Leveling Calculator
+* **Prioritized Self-Crafting & Visual Preparation Chain**:
+  * **Self-Crafting Priority over TP Purchases**: When `craftIntermediates` is enabled (now active by default with `all_craft` strategy), the route planner strictly prioritizes crafting intermediate components within the discipline over buying from the Trading Post, even if TP prices are low or vendor components lack TP pricing.
+  * **Extended Multi-Tier Depth**: Increased recursive acquisition search depth from 3 to 8 tiers, completely resolving multi-stage crafting pipelines (e.g. `Seidenfetzen => Seidenballen => Seiden-Insignie => Seiden-Wams` or `Holzstamm => Planke => Dübel => Inschrift => Waffe`).
+  * **Visual Preparation Flow in Step Cards**: Each step in the Level Planner now includes a dedicated preparation box (`planner-step-prep-box`) displaying the exact chronological sequence of intermediate products to craft beforehand, with item icons, exact craft counts, and flow arrows leading to the target product.
+  * **Item Data Pre-Loading**: Updated `allNeededItemIds` and `collectPlannerItemIds` to ensure all intermediate and recursive ingredients are fully preloaded for tooltips and icon rendering.
 * **Multi-Tier Intermediate Product Tree Resolution**:
   * Implemented recursive material requirement calculation in `src/domain/craftingCalculator.ts`.
   * Fully resolves intermediate products down through all component tiers (e.g., Weapon → Inscription / Blade → Dowel / Ingot → Wood Log / Ore).
@@ -56,8 +61,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Hierarchical, collapsible tree structure showing step-by-step production flow.
   * Node-level badges for craft runs, gross requirement, available stock, and procurement action.
   * Quick-expand and collapse all controls.
+* **Discovery Recipes in Crafting Tree & Material Procurement**:
+  * Full end-to-end propagation of discovery recipes (`needsDiscovery`) and discovery ingredients (`requiredForDiscovery`) from `planLevelRoute` and `createDisciplineRecipeProvider` into `calculateCraftingPlan`, `CraftingTreeView`, and `MaterialDemandTable`.
+  * **Herstellungskette (`CraftingTreeView`)**: Added prominent `<Sparkles size={10} /> Entdeckung` / `Discovery` badges for all end products and intermediate components that require experimentation in the discovery tab at the crafting station.
+  * **Materialbeschaffungsliste (`MaterialDemandTable`)**:
+    * Added discovery badges (`Entdeckung` / `Discovery`) on discovery craft rows and ingredient indicators (`Entdeckungs-Zutat` / `Discovery Ingredient`) on all materials required to perform discoveries.
+    * Added dedicated `Entdeckungen` / `Discoveries` filter pill in the table toolbar to filter materials down to only items involved in discovery recipes.
+    * Summary footer displays the total count of discovery recipes in the planned route.
+  * **Accurate Recipe Mapping**: `calculateCraftingPlan` tracks `recipesUsed` across all traversal steps to prevent end-product demands or intermediate recipes from falling back to 0 when resolved via discovery.
+  * **Automated Unit Tests**: Added unit tests 11, 12, and 13 in `tests/craftingCalculator.test.ts` covering discovery end products, discovery intermediate components (e.g. Insignias/Inscriptions with `allowDiscovery: true` vs `false`), and account-unlocked recipes.
 * **Comprehensive Test Suite**:
-  * Added `tests/craftingCalculator.test.ts` (10 automated unit test cases) covering multi-level intermediates, multiple branches, output count rounding, stock coverage, buy override, partial intermediate stock, missing recipe dependency, cycle detection, and route updates.
+  * Added `tests/craftingCalculator.test.ts` (13 automated unit test cases) covering multi-level intermediates, multiple branches, output count rounding, stock coverage, buy override, partial intermediate stock, missing recipe dependency, cycle detection, route updates, and discovery recipes.
   * Added `tests/plannerRestart.test.ts` verifying restart state sanitation and discovery/intermediate resolution.
 
 ---

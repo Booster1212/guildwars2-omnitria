@@ -163,6 +163,93 @@ test('Levelplaner: Route ohne Lücken, Schritte lückenlos, Kosten/Materialien k
   assert.equal(maxRankOf('Armorsmith', recipes), 20);
 });
 
+test('Levelplaner: Vorherige Eigenherstellung von Zwischenprodukten (z.B. Seidenballen => Seiden-Insignie)', () => {
+  // 10: Seidenfetzen (Rohmaterial)
+  // 15: Spule Seidenfaden (Händler)
+  // 100: Seidenballen (Refinement: 3x Seidenfetzen)
+  // 200: Seiden-Insignie (Insignia: 3x Seidenballen + 1x Spule)
+  // 300: Seiden-Wams (Coat: 1x Seiden-Insignie)
+  const rRefine: Recipe = {
+    id: 'r-bolt',
+    outputId: 100,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Tailor'],
+    rating: 300,
+    ingredients: [{ itemId: 10, count: 3 }],
+    source: 'official',
+    flags: ['AutoLearned'],
+    type: 'Refinement',
+  };
+  const rInsignia: Recipe = {
+    id: 'r-insignia',
+    outputId: 200,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Tailor'],
+    rating: 300,
+    ingredients: [{ itemId: 100, count: 3 }, { itemId: 15, count: 1 }],
+    source: 'official',
+    flags: ['AutoLearned'],
+    type: 'Insignia',
+  };
+  const rCoat: Recipe = {
+    id: 'r-coat',
+    outputId: 300,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Tailor'],
+    rating: 300,
+    ingredients: [{ itemId: 200, count: 1 }],
+    source: 'official',
+    flags: ['AutoLearned'],
+    type: 'Coat',
+  };
+
+  const recipes = [rRefine, rInsignia, rCoat];
+  const byOut = new Map<number, Recipe[]>();
+  recipes.forEach((x) => byOut.set(x.outputId, [...(byOut.get(x.outputId) ?? []), x]));
+
+  const prices = new Map<number, PriceInfo>([
+    [10, { sell: 20, buy: 15, sellQty: 100, buyQty: 100 }],
+    [15, { sell: 64, buy: 64, sellQty: 100, buyQty: 100 }],
+    [100, { sell: 70, buy: 60, sellQty: 100, buyQty: 100 }],
+    // Selbst wenn die fertige Insignie auf dem TP billig ist, soll Eigenherstellung bevorzugt werden:
+    [200, { sell: 50, buy: 40, sellQty: 100, buyQty: 100 }],
+    [300, { sell: 500, buy: 400, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  const plan = planLevelRoute({
+    discipline: 'Tailor',
+    fromRank: 300,
+    toRank: 325,
+    recipes,
+    recipesByOutput: byOut,
+    prices,
+    options: { allowDiscovery: false, craftIntermediates: true },
+  });
+
+  assert.ok(plan.steps.length > 0);
+  const step = plan.steps[0];
+  assert.equal(step.recipe.outputId, 300);
+
+  // Vorbereitungsschritte: Seidenballen muss vor Seiden-Insignie stehen
+  assert.equal(step.prepSteps.length, 2);
+  assert.equal(step.prepSteps[0].outputId, 100, 'Seidenballen muss als Vorbereitung vor der Insignie hergestellt werden');
+  assert.equal(step.prepSteps[1].outputId, 200, 'Seiden-Insignie wird nach dem Seidenballen hergestellt');
+
+  // step.crafts Wämser benötigen jeweils 1x Insignie (28x Insignie) -> benötigt 3x Seidenballen pro Insignie (84x Seidenballen)
+  assert.equal(step.crafts, 28);
+  assert.equal(step.prepSteps[0].crafts, 84);
+  assert.equal(step.prepSteps[1].crafts, 28);
+
+  // Einkäufe dürfen nur die Rohstoffe enthalten (Seidenfetzen und Spule), nicht die fertigen Zwischenprodukte
+  assert.ok(plan.purchases.has(10), 'Seidenfetzen muss eingekauft werden');
+  assert.ok(plan.purchases.has(15), 'Spule muss eingekauft werden');
+  assert.equal(plan.purchases.has(100), false, 'Seidenballen wird selbst hergestellt');
+  assert.equal(plan.purchases.has(200), false, 'Seiden-Insignie wird selbst hergestellt');
+});
+
 test('Levelplaner: Lücken werden ausgewiesen statt erfunden', () => {
   const recipes = [rec('1', 5, 1, [[1, 1]], { kind: 'official', source: 'official', disciplines: ['Chef'], rating: 0, flags: ['AutoLearned'], type: 'Refinement' })];
   const plan = planLevelRoute({

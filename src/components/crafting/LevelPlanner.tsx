@@ -54,13 +54,13 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const [fromRank, setFromRank] = useState<number>(effectiveStart);
   const [toRank, setToRank] = useState<number>(initialTarget);
-  // Entdeckungs- und Zwischenschritt-Optionen standardmäßig inaktiv halten
+  // Entdeckungs- und Zwischenschritt-Optionen: Zwischenschritte standardmäßig selbst herstellen
   const [allowDiscovery, setAllowDiscovery] = useState<boolean>(false);
-  const [craftIntermediates, setCraftIntermediates] = useState<boolean>(false);
+  const [craftIntermediates, setCraftIntermediates] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'steps' | 'materials' | 'tree' | 'intermediates' | 'shopping'>('steps');
 
-  // Strategie für Eigenherstellung vs. Einkauf: Standard all_buy (keine Zwischenschritte)
-  const [strategy, setStrategy] = useState<CraftingStrategy>('all_buy');
+  // Strategie für Eigenherstellung vs. Einkauf: Standard all_craft (soweit wie möglich alles selbst herstellen)
+  const [strategy, setStrategy] = useState<CraftingStrategy>('all_craft');
   const [itemOverrides, setItemOverrides] = useState<Map<number, ItemProcurement>>(new Map());
   const [onlyOpenSteps, setOnlyOpenSteps] = useState<boolean>(false);
 
@@ -190,6 +190,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         recipe: st.recipe,
         stepKey: st.key,
         label: `Rang ${st.fromRank}–${st.toRank}`,
+        needsDiscovery: st.needsDiscovery,
       }));
   }, [plan, onlyOpenSteps, doneSteps]);
 
@@ -211,8 +212,20 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
       itemOverrides,
       stock: account.stockMap,
       prices: prices.map,
+      allowDiscovery,
+      knownRecipeIds: account.knownRecipeSet,
     });
-  }, [calculationTargets, recipeProvider, strategy, itemOverrides, account.stockMap, prices.map, recipeDb.status]);
+  }, [
+    calculationTargets,
+    recipeProvider,
+    strategy,
+    itemOverrides,
+    account.stockMap,
+    prices.map,
+    recipeDb.status,
+    allowDiscovery,
+    account.knownRecipeSet,
+  ]);
 
   // Ensure item details are loaded for plan items & recursive material tree
   const allNeededItemIds = useMemo(() => {
@@ -222,6 +235,10 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         ids.add(st.recipe.outputId);
         st.ingredients.forEach((i) => ids.add(i.itemId));
         st.recipe.ingredients.forEach((i) => ids.add(i.itemId));
+        st.prepSteps?.forEach((p) => {
+          ids.add(p.outputId);
+          p.ingredients.forEach((pi) => ids.add(pi.itemId));
+        });
       });
       for (const [id] of plan.purchases) ids.add(id);
       plan.intermediates.forEach((im) => ids.add(im.recipe.outputId));
@@ -364,7 +381,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               checked={craftIntermediates}
               onChange={handleToggleIntermediates}
               label={t('crafting.craftIntermediates')}
-              title="Crafts ingots, dowels etc. yourself when cheaper than buying from TP"
+              title={lang === 'en' ? 'Crafts intermediate items (ingots, planks, bolts, insignias) yourself as far as possible' : 'Stellt Zwischenprodukte (Barren, Planken, Ballen, Insignien) weitestgehend vorher selbst her'}
             />
           </div>
         </div>
@@ -574,6 +591,68 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                         </span>
                       )}
                     </div>
+
+                    {/* Vorher selbst herstellen (Vorbereitungskette) */}
+                    {st.prepSteps && st.prepSteps.length > 0 && (
+                      <div className="planner-step-prep-box">
+                        <div className="psp-header">
+                          <div className="psp-title">
+                            <Hammer size={13} className="text-emerald-400" />
+                            <span className="font-semibold">{t('crafting.prepHeader')}</span>
+                            <span className="psp-badge">{t('crafting.prepBadge', { count: st.prepSteps.length })}</span>
+                          </div>
+                        </div>
+
+                        <div className="psp-chain-row">
+                          {st.prepSteps.map((prep, pIdx) => {
+                            const prepItem = getItem(prep.outputId);
+                            const totalYield = prep.crafts * prep.outputCount;
+                            return (
+                              <React.Fragment key={`${st.key}-prep-${prep.outputId}-${pIdx}`}>
+                                {pIdx > 0 && <ChevronRight size={14} className="psp-arrow" />}
+                                <div
+                                  className="psp-step-node"
+                                  onClick={() => onOpenItem(prep.outputId)}
+                                  title={`${prepItem?.name ?? prep.outputId}: ${prep.crafts}× ${lang === 'en' ? 'craft' : 'herstellen'}`}
+                                >
+                                  <ItemIcon id={prep.outputId} count={totalYield} size="s" />
+                                  <div className="psp-node-info">
+                                    <span className="psp-node-name">{prepItem?.name ?? `#${prep.outputId}`}</span>
+                                    <div className="psp-node-meta">
+                                      <span className="psp-node-crafts">
+                                        {lang === 'en' ? `${prep.crafts}× craft` : `${prep.crafts}× herstellen`}
+                                      </span>
+                                      {prep.needsDiscovery && (
+                                        <span className="discovery-tag-mini" title="Discovery recipe">
+                                          {lang === 'en' ? 'Discovery' : 'Entdeckung'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+
+                          <ChevronRight size={14} className="psp-arrow psp-arrow-final" />
+
+                          {/* Target step product */}
+                          <div
+                            className="psp-step-node psp-target-node"
+                            onClick={() => onOpenItem(st.recipe.outputId)}
+                            title={`${outItem?.name ?? st.recipe.outputId}: ${st.crafts}× ${lang === 'en' ? 'craft' : 'herstellen'}`}
+                          >
+                            <ItemIcon id={st.recipe.outputId} count={st.crafts * (st.recipe.outputCount || 1)} size="s" />
+                            <div className="psp-node-info">
+                              <span className="psp-node-name font-semibold">{outItem?.name ?? `#${st.recipe.outputId}`}</span>
+                              <span className="psp-node-target-label">
+                                {t('crafting.prepTarget')} {lang === 'en' ? `${st.crafts}× craft` : `${st.crafts}× herstellen`}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Prominent Discovery Recipe Box */}
                     {st.needsDiscovery && (

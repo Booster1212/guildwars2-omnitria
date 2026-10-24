@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   calculateCraftingPlan,
+  createDisciplineRecipeProvider,
+  isRecipeDiscovery,
   type CraftingRecipeProvider,
   type TargetCraftItem,
 } from '../src/domain/craftingCalculator.ts';
@@ -357,4 +359,151 @@ test('10. Eine Änderung der Levelroute aktualisiert die Gesamtsummen korrekt', 
   // Material 20 kommt aus Schritt 2 hinzu: 3*2 = 6
   assert.equal(resultB.materials.find((m) => m.itemId === 20)?.grossDemand, 6);
   assert.equal(resultB.trees.length, 2);
+});
+
+// ============================================================================
+// Test 11: Endprodukt ist ein Entdeckungsrezept (needsDiscovery und requiredForDiscovery)
+// ============================================================================
+test('11. Endprodukt ist ein Entdeckungsrezept und markiert Zutaten als requiredForDiscovery', () => {
+  // Entdeckungsrezept für ein Eisenschwert: weder AutoLearned noch LearnedFromItem
+  const discRecipe: Recipe = {
+    ...makeRecipe('r-disc-schwert', 5000, 1, [[10, 2], [20, 1]]),
+    flags: [],
+  };
+  const provider = makeProvider([discRecipe]);
+
+  assert.equal(isRecipeDiscovery(discRecipe), true);
+
+  const targets: TargetCraftItem[] = [
+    { itemId: 5000, count: 1, recipe: discRecipe, needsDiscovery: true, stepKey: 'step-disc' },
+  ];
+  const result = calculateCraftingPlan(targets, provider, { allowDiscovery: true });
+
+  // 1. Baum-Prüfung
+  assert.equal(result.trees.length, 1);
+  const root = result.trees[0];
+  assert.equal(root.itemId, 5000);
+  assert.equal(root.needsDiscovery, true);
+  assert.equal(root.action, 'craft');
+
+  // 2. Materialbeschaffungsliste
+  const endProd = result.materials.find((m) => m.itemId === 5000);
+  assert.ok(endProd);
+  assert.equal(endProd.role, 'end_product');
+  assert.equal(endProd.needsDiscovery, true);
+  assert.equal(endProd.grossDemand, 1);
+  assert.equal(endProd.netDemand, 1);
+
+  // 3. Basiszutaten für die Entdeckung
+  const mat10 = result.materials.find((m) => m.itemId === 10);
+  assert.ok(mat10);
+  assert.equal(mat10.role, 'base_material');
+  assert.equal(mat10.needsDiscovery, false);
+  assert.equal(mat10.requiredForDiscovery, true);
+  assert.equal(mat10.grossDemand, 2);
+
+  const mat20 = result.materials.find((m) => m.itemId === 20);
+  assert.ok(mat20);
+  assert.equal(mat20.requiredForDiscovery, true);
+
+  // 4. Totals
+  assert.equal(result.totals.totalDiscoveryCount, 1);
+});
+
+// ============================================================================
+// Test 12: Zwischenprodukt erfordert Entdeckungsrezept (z. B. Insignie / Inschrift)
+// ============================================================================
+test('12. Zwischenprodukt erfordert Entdeckungsrezept: Auflösung bei allowDiscovery = true vs false', () => {
+  // Fertige Rüstung (1000, AutoLearned) benötigt Futter (101, AutoLearned) und Insignie (2050, Discovery)
+  // Insignie 2050 benötigt Jute (30) und Spule (31)
+  const armorRecipe = makeRecipe('r-armor', 1000, 1, [[101, 1], [2050, 1]]);
+  const paddingRecipe = makeRecipe('r-padding', 101, 1, [[30, 2]]);
+  const insigniaDiscoveryRecipe: Recipe = {
+    ...makeRecipe('r-insignia-disc', 2050, 1, [[30, 3], [31, 1]]),
+    flags: [], // Discovery!
+  };
+
+  const recipes = [armorRecipe, paddingRecipe, insigniaDiscoveryRecipe];
+  const byOutput = new Map<number, Recipe[]>();
+  recipes.forEach((r) => {
+    byOutput.set(r.outputId, [...(byOutput.get(r.outputId) ?? []), r]);
+  });
+
+  const prices = new Map<number, PriceInfo>([
+    [2050, { sell: 50, buy: 40 } as PriceInfo],
+  ]);
+
+  // Fall A: allowDiscovery = true
+  const providerWithDisc = createDisciplineRecipeProvider(byOutput, 'Weaponsmith', {
+    allowDiscovery: true,
+  });
+  const targetsA: TargetCraftItem[] = [{ itemId: 1000, count: 1, recipe: armorRecipe }];
+  const resultA = calculateCraftingPlan(targetsA, providerWithDisc, {
+    allowDiscovery: true,
+    prices,
+  });
+
+  // Insignie 2050 wird hergestellt und als Entdeckung markiert
+  const treeRootA = resultA.trees[0];
+  const insigniaNodeA = treeRootA.children.find((c) => c.itemId === 2050);
+  assert.ok(insigniaNodeA);
+  assert.equal(insigniaNodeA.action, 'craft');
+  assert.equal(insigniaNodeA.needsDiscovery, true);
+
+  // In Materialbeschaffungsliste
+  const matInsigniaA = resultA.materials.find((m) => m.itemId === 2050);
+  assert.ok(matInsigniaA);
+  assert.equal(matInsigniaA.role, 'intermediate');
+  assert.equal(matInsigniaA.needsDiscovery, true);
+
+  // Zutaten der Insignie als requiredForDiscovery
+  const mat31 = resultA.materials.find((m) => m.itemId === 31);
+  assert.ok(mat31);
+  assert.equal(mat31.requiredForDiscovery, true);
+
+  // Fall B: allowDiscovery = false
+  const providerWithoutDisc = createDisciplineRecipeProvider(byOutput, 'Weaponsmith', {
+    allowDiscovery: false,
+  });
+  const targetsB: TargetCraftItem[] = [{ itemId: 1000, count: 1, recipe: armorRecipe }];
+  const resultB = calculateCraftingPlan(targetsB, providerWithoutDisc, {
+    allowDiscovery: false,
+    prices,
+  });
+
+  const treeRootB = resultB.trees[0];
+  const insigniaNodeB = treeRootB.children.find((c) => c.itemId === 2050);
+  assert.ok(insigniaNodeB);
+  // Ohne Entdeckungserlaubnis kann das Rezept nicht erforscht/hergestellt werden -> Kaufaktion
+  assert.equal(insigniaNodeB.action, 'buy');
+  assert.equal(insigniaNodeB.needsDiscovery, false);
+});
+
+// ============================================================================
+// Test 13: Bekanntes Rezept im Account hebt Entdeckungs-Zwang auf
+// ============================================================================
+test('13. Account-bekanntes Rezept hebt needsDiscovery auf', () => {
+  const discRecipe: Recipe = {
+    ...makeRecipe('r-known-disc', 7000, 1, [[10, 1]]),
+    id: '4242',
+    flags: [],
+  };
+  const provider = makeProvider([discRecipe]);
+
+  // Wenn der Account das Rezept bereits freigeschaltet hat (ID 4242)
+  const known = new Set([4242]);
+  assert.equal(isRecipeDiscovery(discRecipe, known), false);
+
+  const targets: TargetCraftItem[] = [
+    { itemId: 7000, count: 1, recipe: discRecipe, needsDiscovery: false },
+  ];
+  const result = calculateCraftingPlan(targets, provider, {
+    allowDiscovery: true,
+    knownRecipeIds: known,
+  });
+
+  assert.equal(result.trees[0].needsDiscovery, false);
+  const mat = result.materials.find((m) => m.itemId === 7000);
+  assert.equal(mat?.needsDiscovery, false);
+  assert.equal(result.totals.totalDiscoveryCount, 0);
 });
