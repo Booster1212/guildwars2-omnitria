@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Boss & Event Achievements and Visual Overhaul
+* **Achievements Section Overhaul & Filter Bugfix**:
+  * **Expansion Filter Badges**: Resolved bug where expansion category tabs (`HoT`, `PoF`, `IceDragon`, `EoD`, `SotO`, `Janthir`) displayed `0` due to outdated category keys in `categoryCounts`.
+  * **Dedicated Icebrood Saga Filter (`IceDragon`)**: Separated `wb-dragonstorm` and `wb-drakkar` into their own `icedragon` category tab (`Eisbrut-Saga` / `Icebrood Saga`).
+  * **100% Event Coverage**: Added `wb-castora-ruins-eternity` (`Awakening of Eternity`) to complete authentic 1:1 boss achievements across all 35 world bosses and meta events.
+  * **Live Event Card Trophy Drawers**: Connected `getAchievementsForEvent(event.id)` in `EventCard.tsx`, activating the Trophy drawer for every event card with live AP progress and account completion checkmarks.
+  * **Bilingual Tab Labels**: Added localized i18n keys for all category filter tabs (`Alle Bosse`, `Verfolgt`, `Core Weltenbosse`, `Heart of Thorns`, `Path of Fire`, `Eisbrut-Saga`, `End of Dragons`, `Secrets of the Obscure`, `Janthir & Zukunft`).
 * **Visual Overhaul for Loot & Tactics (Event Cards)**:
   * Resolved text concatenation bug where loot highlights were squished together with zero spacing.
   * Added `<Info size={11} className="info-btn-glyph" />` icon to the card's Info toggle button with dynamic open/close state.

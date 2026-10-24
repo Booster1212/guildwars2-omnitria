@@ -1,6 +1,6 @@
 import type { BossAchievement } from '../types.ts';
 
-export type AchievementCategory = 'worldboss' | 'hot' | 'pof' | 'eod' | 'soto' | 'janthir';
+export type AchievementCategory = 'worldboss' | 'hot' | 'pof' | 'icedragon' | 'eod' | 'soto' | 'janthir';
 
 export interface AchievementObjective {
   id: string;
@@ -344,75 +344,98 @@ export const GLOBAL_ACHIEVEMENTS: GlobalAchievementItem[] = [
   },
 
   // ==========================================
-  // 3. PATH OF FIRE & EISBRUT-SAGA (POF)
+  // 3. PATH OF FIRE (POF)
   // ==========================================
   {
     id: 'wb-choya-pinata',
+    gw2Id: 3858,
     title: 'Festliche Piñata',
     titleEn: 'Festive Piñata',
     ap: 10,
     description: 'Zerschlagt die festliche Choya-Piñata nach dem Kasino-Blitz im Kristall-Oase Basar.',
     descriptionEn: 'Defeat the Choya Piñata at the conclusion of the Casino Blitz in Amnoon.',
     category: 'pof',
-    categoryLabel: 'Path of Fire & IBS',
-    categoryLabelEn: 'Path of Fire & IBS',
+    categoryLabel: 'Path of Fire',
+    categoryLabelEn: 'Path of Fire',
     eventId: 'choya-pinata',
   },
   {
     id: 'wb-maws-of-torment',
+    gw2Id: 3861,
     title: 'Tormentor-Bezwinger',
     titleEn: 'Tormentor Slayer',
     ap: 10,
     description: 'Schließt die Meta „Schlünde der Qual“ in der Einöde ab und schlagt die Dämonen zurück.',
     descriptionEn: 'Defeat the demonic incursions pouring out of the Maws of Torment.',
     category: 'pof',
-    categoryLabel: 'Path of Fire & IBS',
-    categoryLabelEn: 'Path of Fire & IBS',
+    categoryLabel: 'Path of Fire',
+    categoryLabelEn: 'Path of Fire',
     eventId: 'maws-of-torment',
   },
   {
     id: 'wb-serpents-ire',
+    gw2Id: 3864,
     title: 'Schlangenzorn-Eindämmung',
     titleEn: "Serpent's Ire Suppressor",
     ap: 15,
     description: 'Bezwingt Ysshi Hessani und Pekka Volt im Schlangenzorn der Domäne Vabbi.',
     descriptionEn: "Defeat Ysshi Hessani and Pekka Volt in the Serpent's Ire meta in Domain of Vabbi.",
     category: 'pof',
-    categoryLabel: 'Path of Fire & IBS',
-    categoryLabelEn: 'Path of Fire & IBS',
+    categoryLabel: 'Path of Fire',
+    categoryLabelEn: 'Path of Fire',
     rewardTitle: 'Zorn-Bändiger',
     rewardTitleEn: 'Wrath Tamer',
     eventId: 'serpents-ire',
   },
+
+  // ==========================================
+  // 4. EISBRUT-SAGA (ICEDRAGON)
+  // ==========================================
   {
     id: 'wb-dragonstorm',
+    gw2Id: 5882,
     title: 'Sturm auf die Champions',
     titleEn: 'Dragonstorm Champion',
     ap: 15,
     description: 'Kämpft an der Seite von Braham und Ryland, schwächt Jormag und Primordus und bannt die Drachenmagie.',
     descriptionEn: 'Confront the clash of Jormag and Primordus alongside champions of the elder races.',
-    category: 'pof',
-    categoryLabel: 'Path of Fire & IBS',
-    categoryLabelEn: 'Path of Fire & IBS',
+    category: 'icedragon',
+    categoryLabel: 'Eisbrut-Saga',
+    categoryLabelEn: 'Icebrood Saga',
+    rewardTitle: 'Drachen-Champion',
+    rewardTitleEn: 'Stormbreaker',
+    progressMax: 3,
     eventId: 'dragonstorm',
+    objectives: [
+      { id: 'ds-1', title: 'Aurenes Prismen aufgeladen', titleEn: 'Charged Aurene\'s prismatic forces', done: false },
+      { id: 'ds-2', title: 'Champions von Primordus und Jormag bezwungen', titleEn: 'Defeated champions of Primordus and Jormag', done: false },
+      { id: 'ds-3', title: 'Drachensturm-Meta erfolgreich abgeschlossen', titleEn: 'Successfully completed Dragonstorm meta', done: false },
+    ],
   },
   {
     id: 'wb-drakkar',
+    gw2Id: 5122,
     title: 'Stimme im Eis',
     titleEn: 'Voice in the Ice Broken',
     ap: 15,
     description: 'Zerstört die Eisschollen der Bjora-Sümpfe und bringt Drakkar, die Kreatur aus der Tiefe, zum Schweigen.',
     descriptionEn: 'Shatter Drakkar\'s icy protection and eliminate the Whisper of Jormag in Bjora Marches.',
-    category: 'pof',
-    categoryLabel: 'Path of Fire & IBS',
-    categoryLabelEn: 'Path of Fire & IBS',
+    category: 'icedragon',
+    categoryLabel: 'Eisbrut-Saga',
+    categoryLabelEn: 'Icebrood Saga',
     rewardTitle: 'Eisbrecher',
     rewardTitleEn: 'Icebreaker',
+    progressMax: 3,
     eventId: 'drakkar',
+    objectives: [
+      { id: 'drk-1', title: 'Raben-Schreine im Kampf aktiviert', titleEn: 'Activated Raven shrines during combat', done: false },
+      { id: 'drk-2', title: 'Gefallene Geisterchampions in der Schattensphäre bezwungen', titleEn: 'Defeated fallen spirit champions in shadow realm', done: false },
+      { id: 'drk-3', title: 'Drakkar auf dem Eissee besiegt', titleEn: 'Defeated Drakkar on the frozen lake', done: false },
+    ],
   },
 
   // ==========================================
-  // 4. END OF DRAGONS (EOD)
+  // 5. END OF DRAGONS (EOD)
   // ==========================================
   {
     id: 'wb-dragons-end',
@@ -571,15 +594,33 @@ export const GLOBAL_ACHIEVEMENTS: GlobalAchievementItem[] = [
   },
   {
     id: 'wb-castora-prime',
-    title: 'Wächter der Ewigkeit',
-    titleEn: 'Guardian of Eternity',
+    gw2Id: 8190,
+    title: 'Schatten im Sternenwald',
+    titleEn: 'Secrets of the Starlit Weald',
     ap: 15,
-    description: 'Aktiviert die drei Relikt-Altäre und bezwingt den uralten Inselwächter auf Castora.',
-    descriptionEn: 'Activate the three relic altars and defeat the primeval isle keeper on Castora.',
+    description: 'Infiltriert die Inquestur-Basis und deckt die Geheimnisse des Sternenwalds auf Castora auf.',
+    descriptionEn: 'Unravel the mysteries and ancient celestial energies across the shores of Castora.',
     category: 'janthir',
     categoryLabel: 'Janthir & Zukunft',
     categoryLabelEn: 'Janthir & Future',
+    rewardTitle: 'Insel-Pionier',
+    rewardTitleEn: 'Isle Pioneer',
     eventId: 'castora-starlit-weald',
+  },
+  {
+    id: 'wb-castora-ruins-eternity',
+    gw2Id: 8195,
+    title: 'Erwachen der Ewigkeit',
+    titleEn: 'Awakening of Eternity',
+    ap: 15,
+    description: 'Aktiviert die drei Relikt-Altäre in den Tempelruinen von Castora und bannt die uralten astralen Anomalien.',
+    descriptionEn: 'Activate the three relic altars in the temple ruins of Castora and banish the astral anomalies.',
+    category: 'janthir',
+    categoryLabel: 'Janthir & Zukunft',
+    categoryLabelEn: 'Janthir & Future',
+    rewardTitle: 'Hüter der Ewigkeit',
+    rewardTitleEn: 'Guardian of Eternity',
+    eventId: 'castora-ruins-eternity',
   },
 ];
 

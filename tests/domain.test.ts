@@ -627,8 +627,21 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   setLanguage('en');
 });
 
-test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch', () => {
-  assert.equal(GLOBAL_ACHIEVEMENTS.length, 35);
+test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch & Kategorie-Filter', () => {
+  assert.equal(GLOBAL_ACHIEVEMENTS.length, 36);
+
+  // Kategorien prüfen: worldboss, hot, pof, icedragon, eod, soto, janthir
+  const categoryCounts: Record<string, number> = {};
+  for (const a of GLOBAL_ACHIEVEMENTS) {
+    categoryCounts[a.category] = (categoryCounts[a.category] || 0) + 1;
+  }
+  assert.equal(categoryCounts['worldboss'], 14);
+  assert.equal(categoryCounts['hot'], 4);
+  assert.equal(categoryCounts['pof'], 3);
+  assert.equal(categoryCounts['icedragon'], 2);
+  assert.equal(categoryCounts['eod'], 4);
+  assert.equal(categoryCounts['soto'], 4);
+  assert.equal(categoryCounts['janthir'], 5);
 
   // Täglicher Weltenboss-Jäger (Wiederholbar-Tag)
   const dailyWb = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'daily-worldboss');
@@ -646,6 +659,22 @@ test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch', () => {
   assert.equal(getAchievementTitle(tequatl, 'de'), 'Der Sonnenlose');
   assert.equal(getAchievementTitle(tequatl, 'en'), 'The Sunless');
   assert.equal(getAchievementCategoryLabel(tequatl, 'en'), 'World Bosses');
+
+  // Eisbrut-Saga / IceDragon Erfolge
+  const dragonstorm = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'wb-dragonstorm');
+  assert.ok(dragonstorm);
+  assert.equal(dragonstorm.category, 'icedragon');
+  assert.equal(getAchievementCategoryLabel(dragonstorm, 'de'), 'Eisbrut-Saga');
+  assert.equal(getAchievementCategoryLabel(dragonstorm, 'en'), 'Icebrood Saga');
+
+  const drakkar = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'wb-drakkar');
+  assert.ok(drakkar);
+  assert.equal(drakkar.category, 'icedragon');
+
+  // Alle Erfolge müssen gültige Event-IDs besitzen (Nur Erfolge für Events)
+  for (const ach of GLOBAL_ACHIEVEMENTS) {
+    assert.ok(ach.eventId, `Erfolg ${ach.id} muss an ein Boss-Event gebunden sein`);
+  }
 
   // Keine fixen Testdaten in den Basisdaten
   for (const ach of GLOBAL_ACHIEVEMENTS) {

@@ -78,14 +78,15 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   });
 
   const categoryTabs: CategoryTabOption[] = [
-    { id: 'all', label: lang === 'en' ? 'All Bosses' : 'Alle Bosse' },
+    { id: 'all', label: t('achievements.all') },
     { id: 'watchlist', label: t('achievements.watchlist') },
-    { id: 'worldboss', label: lang === 'en' ? 'Core World Bosses' : 'Core Weltenbosse' },
-    { id: 'hot', label: 'Heart of Thorns' },
-    { id: 'pof', label: lang === 'en' ? 'Path of Fire & IBS' : 'Path of Fire & Eisbrut' },
-    { id: 'eod', label: 'End of Dragons' },
-    { id: 'soto', label: 'Secrets of the Obscure' },
-    { id: 'janthir', label: lang === 'en' ? 'Janthir & Future' : 'Janthir & Zukunft' },
+    { id: 'worldboss', label: t('achievements.worldboss') },
+    { id: 'hot', label: t('achievements.hot') },
+    { id: 'pof', label: t('achievements.pof') },
+    { id: 'icedragon', label: t('achievements.iceDragon') },
+    { id: 'eod', label: t('achievements.eod') },
+    { id: 'soto', label: t('achievements.soto') },
+    { id: 'janthir', label: t('achievements.janthir') },
   ];
 
   const toggleWatchlist = (achId: string) => {
@@ -176,11 +177,13 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
     const counts: Record<string, number> = {
       all: mergedAchievements.length,
       watchlist: watchlist.length,
-      daily: 0,
       worldboss: 0,
-      exploration: 0,
-      fractals: 0,
-      collections: 0,
+      hot: 0,
+      pof: 0,
+      icedragon: 0,
+      eod: 0,
+      soto: 0,
+      janthir: 0,
     };
     for (const a of mergedAchievements) {
       if (counts[a.category] !== undefined) {

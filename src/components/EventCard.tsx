@@ -40,6 +40,7 @@ import {
   getEventLootHighlights,
   LOOT_ITEM_ID_MAP,
 } from '../data/events';
+import { getAchievementsForEvent } from '../data/achievements';
 import { Gw2AccountAchievement } from '../data/gw2Api';
 import { useItems } from '../data/gw2/items';
 import { ItemIcon } from './common/ui';
@@ -263,7 +264,10 @@ export const EventCard: React.FC<EventCardProps> = ({
   const { event, isActive, startsInSeconds, endsInSeconds } = instance;
 
   const isImminent = !isActive && startsInSeconds <= 15 * 60;
-  const achievements = event.achievements || [];
+  const achievements = useMemo(() => {
+    if (event.achievements && event.achievements.length > 0) return event.achievements;
+    return getAchievementsForEvent(event.id);
+  }, [event.id, event.achievements]);
   const displayName = getEventName(event, lang);
   const displayZone = getEventZone(event, lang);
   const displayWaypoint = getEventWaypointName(event, lang);
