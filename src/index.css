@@ -1802,32 +1802,79 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 .summary-stat-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
   background: #11141a;
   border: 1px solid #232834;
   border-radius: 2px;
-  padding: 6px 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.summary-stat-card:hover {
+  border-color: var(--gw2-gold);
+  background: #151922;
+}
+.summary-stat-card.active-card {
+  border-color: var(--gw2-gold);
+  background: #1a202c;
+  box-shadow: 0 0 10px rgba(210, 178, 104, 0.15);
+}
+.summary-stat-card.card-must-buy-highlight.active-card {
+  border-color: #f59e0b;
+  background: #251a08;
+}
+.summary-stat-card.card-stock-highlight.active-card {
+  border-color: #22c55e;
+  background: #0f2316;
 }
 .stat-card-left {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 4px;
 }
 .stat-card-title {
   font-size: 11px;
+  font-weight: 600;
 }
 .stat-card-val {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--gw2-gold);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
 }
-.stat-card-val.green {
-  color: #4ade80;
+.stat-card-val.green { color: #4ade80; }
+.stat-card-val.gold { color: #fde047; }
+.stat-card-val.cyan { color: #38bdf8; }
+.stat-card-val.purple { color: #c084fc; }
+.card-sub-pct {
+  font-size: 10px;
+  color: var(--gw2-text-dim);
+  font-weight: 400;
+}
+.stat-card-mini-bar {
+  height: 3px;
+  background: #1a202c;
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 4px 0 3px 0;
+  width: 100%;
+}
+.stat-card-mini-bar .bar-fill.green-fill {
+  background: linear-gradient(90deg, #15803d, #4ade80);
+  height: 100%;
+  border-radius: 2px;
+}
+.stat-card-footer {
+  font-size: 9.5px;
+  color: var(--gw2-text-dim);
+  margin-top: 2px;
 }
 
 /* Bought Items Alert & Undo Button */
@@ -1897,6 +1944,262 @@ button {
 .btn-bought-active:hover {
   background: #2563eb !important;
   color: #fff !important;
+}
+
+/* Category Filter Chips & Highlights */
+.btn-chip.active-craftable {
+  background: #0c2d48;
+  border-color: #38bdf8;
+  color: #bae6fd;
+}
+.btn-chip.active-mustbuy {
+  background: #3b2308;
+  border-color: #f59e0b;
+  color: #fde68a;
+}
+.btn-chip.active-noncraftable {
+  background: #28123d;
+  border-color: #a855f7;
+  color: #e9d5ff;
+}
+
+/* Controls Right */
+.table-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.table-scope-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.table-scope-select {
+  padding: 2px 6px;
+  font-size: 11px;
+  background: #14161c;
+  border: 1px solid #353842;
+  color: #e2e8f0;
+  border-radius: 1px;
+}
+.group-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--gw2-text-dim);
+  user-select: none;
+}
+.group-toggle-label:hover {
+  color: #fff;
+}
+.group-toggle-label input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--gw2-gold);
+}
+
+/* Category Pills in Table Rows */
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  vertical-align: middle;
+}
+.cat-pill.cat-discipline_craft {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #7dd3fc;
+}
+.cat-pill.cat-mystic_forge {
+  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  color: #d8b4fe;
+}
+.cat-pill.cat-vendor_fixed {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fde047;
+}
+.cat-pill.cat-tp_buy {
+  background: rgba(251, 146, 60, 0.12);
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  color: #fed7aa;
+}
+.cat-pill.cat-account_reward {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+}
+.cat-pill.cat-raw_drop {
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #cbd5e1;
+}
+
+/* Stock & Progress Cell */
+.stock-progress-td {
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+.stock-progress-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stock-numbers-line {
+  font-size: 11px;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.stock-have {
+  font-weight: 700;
+  color: #fff;
+}
+.stock-sep {
+  color: var(--gw2-text-dim);
+}
+.stock-need {
+  color: var(--gw2-text-dim);
+}
+.stock-pct {
+  font-size: 10px;
+  margin-left: 3px;
+  font-weight: 600;
+}
+.stock-pct.good { color: #4ade80; }
+.stock-pct.amber { color: #f59e0b; }
+.stock-pct.dim { color: var(--gw2-text-dim); }
+
+.stock-bar-wrap {
+  height: 5px;
+  width: 100%;
+  background: #1a1e26;
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid #282f3d;
+}
+.stock-bar-fill {
+  height: 100%;
+  transition: width 0.2s ease;
+}
+.stock-bar-fill.bar-good {
+  background: linear-gradient(90deg, #15803d, #22c55e);
+}
+.stock-bar-fill.bar-amber {
+  background: linear-gradient(90deg, #b45309, #f59e0b);
+}
+.stock-bar-fill.bar-empty {
+  background: transparent;
+}
+
+.stock-status-tag {
+  display: flex;
+  align-items: center;
+  margin-top: 1px;
+}
+.stock-pill {
+  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+.stock-pill.pill-complete {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+.stock-pill.pill-partial {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.stock-pill.pill-empty {
+  background: rgba(100, 116, 139, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+/* Missing Column Pill */
+.missing-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  border-radius: 2px;
+  font-size: 11px;
+}
+.ready-tag {
+  font-size: 11px;
+  color: #86efac;
+}
+
+/* Grouped Sections */
+.grouped-material-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.category-section {
+  background: #0f1218;
+  border: 1px solid #232834;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.category-section.craftable-section {
+  border-left: 3px solid #38bdf8;
+}
+.category-section.must-buy-section {
+  border-left: 3px solid #f59e0b;
+}
+.category-section.non-craftable-section {
+  border-left: 3px solid #a855f7;
+}
+.section-header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #151922;
+  border-bottom: 1px solid #262c3a;
+}
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.section-count-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: #1e2430;
+  border: 1px solid #333d52;
+  border-radius: 2px;
+  color: #cbd5e1;
+}
+.section-count-badge.gold {
+  border-color: rgba(210, 178, 104, 0.4);
+  color: var(--gw2-gold);
+}
+.section-count-badge.purple {
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #d8b4fe;
+}
+.section-header-right {
+  font-size: 11px;
 }
 
 /* Vendor Hint Pill */

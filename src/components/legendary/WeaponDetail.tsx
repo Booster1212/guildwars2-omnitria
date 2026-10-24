@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { LegendaryModel, LegendaryWeapon } from '../../domain/legendary';
 import { getGenerationLabel, getSlotLabel, WEAPON_TYPE_DE, weaponSlot } from '../../domain/legendary';
-import { buildTree } from '../../domain/recipeTree';
+import { buildTree, flattenTree } from '../../domain/recipeTree';
 import { estimateCosts } from '../../domain/costs';
 import { getItem, useItems } from '../../data/gw2/items';
 import { usePrices } from '../../data/gw2/prices';
@@ -53,12 +53,15 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
     });
   }, [weapon.id, model, account.stockMap, doneNodes, doneMaterials, buyItems]);
 
-  // Collect all needed item IDs for items & prices
+  // Collect all needed item IDs for items & prices (both leaf BOM and intermediate components)
   const allTreeItemIds = useMemo(() => {
     const ids = new Set<number>([weapon.id]);
+    for (const node of flattenTree(treeResult.root)) {
+      ids.add(node.itemId);
+    }
     for (const [id] of treeResult.bom) ids.add(id);
     return Array.from(ids);
-  }, [weapon.id, treeResult.bom]);
+  }, [weapon.id, treeResult]);
 
   useItems(allTreeItemIds);
   const prices = usePrices(allTreeItemIds);
@@ -179,6 +182,7 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
         {activeTab === 'materials' && (
           <MaterialTable
             bom={treeResult.bom}
+            rootNode={treeResult.root}
             weaponId={weapon.id}
             model={model}
             onOpenItem={onOpenItem}

@@ -8,7 +8,7 @@ import type { CommunityDataset } from '../src/domain/legendary.ts';
 import { estimateCosts, splitCoins } from '../src/domain/costs.ts';
 import { ranksPerCraft, categoryOf } from '../src/domain/craftingXp.ts';
 import { planLevelRoute, maxRankOf } from '../src/domain/levelPlanner.ts';
-import { resolveSources } from '../src/domain/sources.ts';
+import { resolveSources, classifyMaterialProcurement } from '../src/domain/sources.ts';
 import type { Recipe, PriceInfo } from '../src/domain/types.ts';
 import {
   GLOBAL_ACHIEVEMENTS,
@@ -850,5 +850,66 @@ test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib
   assert.equal(burgerStep.unpricedCount, 0, 'Alle Händler- und TP-Posten sind bepreist');
   assert.ok(burgerStep.cost > 0, 'Kosten sind positiv');
 });
+
+test('Legendary Material-Klassifikation: Herstellbar, Nicht Herstellbar, Was gekauft werden MUSS', () => {
+  // 1. Herstellbar: Handwerksberuf
+  const craftRes = classifyMaterialProcurement({
+    itemId: 19621, // Gift of Metal
+    canCraft: true,
+    recipeKind: 'craft',
+    tags: ['crafting'],
+  });
+  assert.equal(craftRes.category, 'craftable');
+  assert.equal(craftRes.procurementType, 'discipline_craft');
+
+  // 2. Herstellbar: Mystische Schmiede
+  const mfRes = classifyMaterialProcurement({
+    itemId: 19675, // Mystic Clover
+    canCraft: true,
+    recipeKind: 'mf',
+    tags: ['mystic_forge'],
+  });
+  assert.equal(mfRes.category, 'craftable');
+  assert.equal(mfRes.procurementType, 'mystic_forge');
+
+  // 3. Was gekauft werden MUSS: Fester Händlerpreis (19676 Eisiger Runenstein)
+  const vendorRes = classifyMaterialProcurement({
+    itemId: 19676,
+    canCraft: false,
+    tags: ['vendor', 'trading_post'],
+  });
+  assert.equal(vendorRes.category, 'must_buy');
+  assert.equal(vendorRes.procurementType, 'vendor_fixed');
+
+  // 4. Was gekauft werden MUSS: Handelsposten-Rohstoffe (z.B. 24295 Mächtiges Blut)
+  const tpRes = classifyMaterialProcurement({
+    itemId: 24295,
+    canCraft: false,
+    tags: ['trading_post'],
+  });
+  assert.equal(tpRes.category, 'must_buy');
+  assert.equal(tpRes.procurementType, 'tp_buy');
+
+  // 5. Nicht herstellbar: Spiel-Belohnungen / Kontowährungen (z.B. 19677 Geschenk des Kampfes)
+  const rewardRes = classifyMaterialProcurement({
+    itemId: 19677,
+    canCraft: false,
+    tags: ['achievement', 'reward_track'],
+  });
+  assert.equal(rewardRes.category, 'non_craftable');
+  assert.equal(rewardRes.procurementType, 'account_reward');
+
+  // 6. Direktkauf-Override: wenn der Nutzer auf Direktkauf geschaltet hat
+  const boughtRes = classifyMaterialProcurement({
+    itemId: 19621,
+    canCraft: true,
+    recipeKind: 'craft',
+    isBought: true,
+    tags: ['crafting'],
+  });
+  assert.equal(boughtRes.category, 'must_buy');
+  assert.equal(boughtRes.procurementType, 'tp_buy');
+});
+
 
 

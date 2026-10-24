@@ -4,7 +4,7 @@ import { getItem } from '../../data/gw2/items';
 import { progressActions } from '../../data/progressStore';
 import { ItemIcon, Check, ProgressBar } from '../common/ui';
 import { fmtInt } from '../common/labels';
-import { ChevronDown, ChevronRight, ShoppingCart, Sparkles, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronRight, ShoppingCart, Sparkles, RotateCcw, Hammer, Package } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 interface CraftTreeProps {
@@ -81,11 +81,19 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
                 </span>
               )}
 
-              {node.bought && (
+              {node.bought ? (
                 <span className="bought-tag" title="Purchase directly">
                   <ShoppingCart size={10} /> {t('legendary.purchase')}
                 </span>
-              )}
+              ) : node.depth > 0 && node.canCraft ? (
+                <span className="cat-pill cat-discipline_craft" title={lang === 'en' ? 'Craftable component' : 'Herstellbare Komponente'}>
+                  <Hammer size={9} /> {t('legendary.categoryCraftable')}
+                </span>
+              ) : node.depth > 0 ? (
+                <span className="cat-pill cat-raw_drop" title={lang === 'en' ? 'Raw material / non-craftable' : 'Rohstoff / Nicht herstellbar'}>
+                  <Package size={9} /> {t('legendary.categoryNonCraftable')}
+                </span>
+              ) : null}
             </div>
 
             {/* Quantities: Demand / From Stock / Missing */}
@@ -93,14 +101,13 @@ export const CraftTree: React.FC<CraftTreeProps> = ({ rootNode, weaponId, onOpen
               <span className="q-item">
                 {t('legendary.demand')} <strong>{fmtInt(node.demand)}</strong>
               </span>
-              {node.fromStock > 0 && (
-                <span className="q-item good">
-                  {t('legendary.storage')} {fmtInt(node.fromStock)}
-                </span>
-              )}
+              <span className={`q-item ${node.fromStock >= node.demand ? 'good' : node.fromStock > 0 ? 'amber' : 'dim'}`}>
+                {t('legendary.storage')} <strong>{fmtInt(node.fromStock)}</strong> / {fmtInt(node.demand)}
+                {node.demand > 0 && ` (${Math.min(100, Math.round((node.fromStock / node.demand) * 100))} %)`}
+              </span>
               {node.missing > 0 && !node.muted && (
-                <span className="q-item bad">
-                  {t('legendary.open')} <strong>{fmtInt(node.missing)}</strong>
+                <span className="q-item bad font-bold">
+                  {t('legendary.open')} {fmtInt(node.missing)}
                 </span>
               )}
               {node.crafts > 0 && !node.muted && (

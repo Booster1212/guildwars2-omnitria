@@ -7,8 +7,9 @@
  *   - Berechnungen
  * stammen. Alles andere bleibt "unbekannt" und wird ausdrücklich so ausgewiesen.
  */
-import type { GameItem, PriceInfo, Recipe } from './types.ts';
+import type { GameItem, PriceInfo, Recipe, RecipeKind } from './types.ts';
 import { isUntradable } from './types.ts';
+import { KNOWN_VENDOR_PRICES } from './costs.ts';
 
 export type SourceKind = 'gather' | 'drop' | 'salvage' | 'craft' | 'forge' | 'unlock' | 'vendor' | 'trade';
 export type Origin = 'official' | 'community' | 'derived' | 'unknown';
@@ -356,3 +357,113 @@ export function resolveSources(ctx: SourceContext): SourceInfo[] {
   }
   return out.sort((a, b) => KIND_META[a.kind].order - KIND_META[b.kind].order);
 }
+
+export type MaterialCategory = 'craftable' | 'must_buy' | 'non_craftable';
+
+export type ProcurementType =
+  | 'discipline_craft'
+  | 'mystic_forge'
+  | 'vendor_fixed'
+  | 'tp_buy'
+  | 'account_reward'
+  | 'raw_drop';
+
+export interface ProcurementClassification {
+  category: MaterialCategory;
+  procurementType: ProcurementType;
+  label: string;
+  labelEn: string;
+}
+
+/**
+ * Präzise Klassifikation von Materialien in:
+ * - 'craftable': Herstellbar (Handwerk / Mystische Schmiede)
+ * - 'must_buy': Was gekauft werden MUSS (feste Händlerpreise wie Eisiger Runenstein, Handelsposten-Rohstoffe, Direktkäufe)
+ * - 'non_craftable': Nicht herstellbar (Drops, Erkundung, Belohnungen, Kontowährungen)
+ */
+export function classifyMaterialProcurement(params: {
+  itemId: number;
+  canCraft: boolean;
+  recipeKind?: RecipeKind;
+  isBought?: boolean;
+  tags?: string[];
+  item?: GameItem;
+}): ProcurementClassification {
+  const { itemId, canCraft, recipeKind, isBought, tags = [], item } = params;
+
+  // 1. Wenn Nutzer diesen Schritt explizit auf Direktkauf gestellt hat
+  if (isBought) {
+    return {
+      category: 'must_buy',
+      procurementType: 'tp_buy',
+      label: 'Direktkauf (TP)',
+      labelEn: 'Direct Buy (TP)',
+    };
+  }
+
+  // 2. Herstellbar (Handwerksberuf oder Mystische Schmiede)
+  if (canCraft && recipeKind !== 'vendor') {
+    if (recipeKind === 'mf') {
+      return {
+        category: 'craftable',
+        procurementType: 'mystic_forge',
+        label: 'Mystische Schmiede',
+        labelEn: 'Mystic Forge',
+      };
+    }
+    return {
+      category: 'craftable',
+      procurementType: 'discipline_craft',
+      label: 'Handwerk (Eigenfertigung)',
+      labelEn: 'Crafting Discipline',
+    };
+  }
+
+  // 3. Fester Händlerkauf (z.B. Eisiger Runenstein 19676 oder Vendor-Zutaten)
+  if (KNOWN_VENDOR_PRICES.has(itemId) || (tags.includes('vendor') && !tags.includes('trading_post'))) {
+    return {
+      category: 'must_buy',
+      procurementType: 'vendor_fixed',
+      label: 'Händler (Festpreis)',
+      labelEn: 'Vendor Purchase',
+    };
+  }
+
+  // 4. Nicht kaufbare Belohnungen / Währungen / Erkundung
+  const untradable = item ? isUntradable(item) : false;
+  const isAccountReward =
+    tags.includes('reward_track') ||
+    tags.includes('achievement') ||
+    tags.includes('collection') ||
+    tags.includes('map_completion') ||
+    tags.includes('currency') ||
+    (untradable && !KNOWN_VENDOR_PRICES.has(itemId));
+
+  if (isAccountReward) {
+    return {
+      category: 'non_craftable',
+      procurementType: 'account_reward',
+      label: 'Konto / Belohnung / Erkundung',
+      labelEn: 'Account / Reward / Map',
+    };
+  }
+
+  // 5. Handelsposten (kann nicht hergestellt werden, muss am TP gekauft werden falls nicht im Lager)
+  if (tags.includes('trading_post') || (!untradable && item !== undefined)) {
+    return {
+      category: 'must_buy',
+      procurementType: 'tp_buy',
+      label: 'Handelsposten (Zukauf)',
+      labelEn: 'Trading Post Buy',
+    };
+  }
+
+  // 6. Sonstiges Nicht-Herstellbar (Drop / Sammelgut)
+  return {
+    category: 'non_craftable',
+    procurementType: 'raw_drop',
+    label: 'Rohstoff / Beute',
+    labelEn: 'Raw Material / Drop',
+  };
+}
+

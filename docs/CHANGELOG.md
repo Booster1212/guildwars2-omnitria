@@ -12,29 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Legendary Armory Overhaul & Cost-Effective Procurement
+* **Kristallklare Strukturierung (Herstellbar / Nicht herstellbar / Was gekauft werden MUSS / Wie viel ich bereits habe)**:
+  * **🔨 Herstellbar (Eigenfertigung)**: Saubere Erfassung und Filterung aller Komponenten und Gaben (Gabe der Beherrschung, Gabe des Schicksals, Gabe des Metalls, Mystische Kleeblätter, Vorläufer-Waffen), die in Handwerksberufen oder der Mystischen Schmiede selbst hergestellt werden können.
+  * **🛒 Was gekauft werden MUSS**: Dedizierte Hervorhebung aller Posten, die zwingend gekauft werden müssen – aufgeteilt in feste Händler-Pflichtkäufe (z.B. 100g für 100 Eisige Runensteine bei Rojan), Handelsposten-Zukäufe (T6-Trophäen, Ectos, Münzen) und manuell auf Direktkauf gesetzte Zwischenstufen.
+  * **📦 Nicht herstellbar (Belohnungen & Rohstoffe)**: Getrennte Erfassung von accountgebundenen Erkundungs- und Spielbelohnungen (Gabe der Erkundung über 100% Core Tyria, Gabe des Kampfes über WvW-Pfad, Obsidianscherben über Karma) und Basis-Rohstoffen.
+  * **📊 Wie viel ich bereits habe (Klarer visueller Account-Bestand)**:
+    * Dedizierte Tabellenspalte mit dynamischer Mini-Fortschrittsleiste, exakter Zahlenanzeige (`Vorhanden / Benötigt (XX%)`) und klaren Farbstatus-Pills (`Vollständig (100%)`, `Teilweise (+X im Lager)`, `Fehlt komplett (0%)`).
+    * 4 interaktive Header-Karten zur Sofort-Übersicht: Gesamtbestand mit Fortschrittsbalken und Goldwert, Gesamte Zukaufkosten mit Händler/TP-Aufschlüsselung, Herstellbare Komponenten, Nicht-herstellbare Posten.
+    * **Gruppierte Ansicht & Schnellfilter**: Umschaltung zwischen strukturierter Kategorien-Unterteilung (mit Zwischensummen pro Sektion) und flacher Tabelle mit Filterchips (`Alle`, `🔨 Herstellbar`, `🛒 Muss gekauft werden`, `📦 Nicht herstellbar`, `✅ Bereits im Lager`, `⏳ Noch offen`).
+    * **Detail-Umfang (Scope)**: Wählbar zwischen „Vollständig (Inkl. Gaben & Zwischenstufen)“ und „Grund-BOM (Stückliste)“.
 * **Undo Direct Purchase Fix in Crafting Tree**:
-  * **Root Cause Fix**: Previously, clicking "Kauf" set the node's recipe to `undefined` to mark it as a leaf, which caused the toggle button condition `{node.depth > 0 && node.recipe}` to evaluate to `false` and disappear from the DOM.
-  * **Persistent Toggle State**: Added `canCraft: boolean` to `TreeNode` in `src/domain/recipeTree.ts` which remains `true` even when `bought = true`.
-  * **Undoable Button (`CraftTree.tsx`)**: Replaced the vanishing button with an interactive toggle: when marked as bought, the button transitions into a highlighted `.btn-bought-active` button with a `RotateCcw` icon and label "Herstellen" (Undo / Craft yourself), allowing immediate reversal with a single click.
+  * **Root Cause Fix**: Zuvor setzte ein Klick auf „Kauf“ das `recipe` des Knotens auf `undefined`, wodurch die Button-Bedingung `{node.depth > 0 && node.recipe}` fehlschlug und der Button aus dem DOM verschwand.
+  * **Persistent Toggle State**: Ergänzung von `canCraft: boolean` auf dem `TreeNode`, wodurch die Herstellbarkeit auch bei Direktkauf erhalten bleibt.
+  * **Undoable Button (`CraftTree.tsx`)**: Der Kauf-Button transformiert bei Direktkauf in einen hervorgehobenen „Herstellen“-Button mit `RotateCcw`-Icon, wodurch der Kauf per Klick sofort rückgängig gemacht wird.
   * **Global & Inline Purchase Management**:
-    * Added `clearBuyItems(weaponId)` in `progressStore.ts` and integrated a 1-click global reset banner in `MaterialTable.tsx`.
-    * Added inline direct-purchase chips with quick-action undo buttons directly in the Material Table rows.
+    * Globaler 1-Klick-Reset-Banner in `MaterialTable.tsx` (`clearBuyItems`).
+    * Inline-Kauf-Badges mit Schnell-Rückgängig-Button direkt in den Materialzeilen.
 * **Cost-Effective Procurement & Vendor Pricing Integration**:
-  * **Fixed Vendor Pricing for Iconic Legendary Items**: Added `[19676, 10000]` (Eisiger Runenstein / Icy Runestone – 1g / 10,000c) to `KNOWN_VENDOR_PRICES` in `src/domain/costs.ts`. Because Icy Runestone is account-bound, it had no Trading Post listing and showed up unpriced; now all 100 Runestones (100g) are accurately priced into the weapon budget.
-  * **Special Legendary Sources Catalog (`src/domain/sources.ts`)**: Built `SPECIAL_LEGENDARY_SOURCES` documenting the cheapest, most efficient acquisition methods for core legendary materials:
-    * `19676` (Icy Runestone): Rojan das Schläfrige (Frostgorge Sound) – 1g each (fixed vendor cost).
-    * `19925` (Obsidian Shards): Balthasar-Tempel (2,100 Karma each), Entfesselte Magie, or Lorbeer-Händler.
-    * `19970` (Eldritch Scroll): Miyani / Mystische Schmiede – 50 Spirit Shards (Scherben des Geistes).
-    * `19677` (Gift of Battle): WvW-Belohnungspfad "Geschenk des Kampfes" (kein Goldaufwand).
-    * `19678` (Gift of Exploration): 100% Core Tyria Kartenerkundung (2 Geschenke pro Charakter).
-    * `19969` / `19675` (Mystic Clover / Clover Recipe): Günstigste Beschaffung über WvW/PvP/Angriffsmissions-Pfade oder Mystische Schmiede (1x bzw. 10x Kleeblatt-Rezept).
-  * **Procurement Table Financial Summary Cards**:
-    * **Offene Zukaufkosten**: Live sum of open Trading Post and vendor acquisition expenses for all missing materials.
-    * **Bereits im Lager gespart**: Real-time monetary value of items already available in account storage.
-    * **Materialien-Fortschritt**: Percentage of unique materials ready vs. required.
-  * **Sorting & Filter Controls**:
-    * Sort dropdown: Höchste Kosten zuerst (`cost-desc`), Meiste fehlende Einheiten (`missing-desc`), Name (`name`), Standard (`default`).
-    * Filter chips: Alle, Nur Fehlende, Bereits Vorhanden, Direkt-Kauf (`filterBought`).
+  * **Fixed Vendor Pricing for Iconic Legendary Items**: Ergänzung von `[19676, 10000]` (Eisiger Runenstein / Icy Runestone – 1g / 10.000c) in `KNOWN_VENDOR_PRICES` ([costs.ts](file:///e:/GW2-Overlay/src/domain/costs.ts)). Da der Runenstein seelengebunden ist und kein Handelsposten-Listing hat, fehlte er bisher im Budget; nun fließen alle 100 Runensteine (100g) fest in die Kalkulation ein.
+  * **Special Legendary Sources Catalog (`src/domain/sources.ts`)**: Spezial-Katalog `SPECIAL_LEGENDARY_SOURCES` für die günstigsten Beschaffungswege (Eisiger Runenstein bei Rojan, Obsidianscherben über Karma am Balthasar-Tempel, Eldritch Scroll über 50 Geisterscherben, Gabe des Kampfes über WvW, Gabe der Erkundung über Welterkundung, Mystische Kleeblätter über Schmiede/WvW/PvP).
 
 #### Boss & Event Achievements and Visual Overhaul
 * **Achievements Section Overhaul & Filter Bugfix**:
