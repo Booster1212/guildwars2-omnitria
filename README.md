@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Omnitria Hero Banner](docs/screenshots/hero-board.png)
+![Omnitria In-Game Overlay](docs/Introduction.png)
 
 [![GitHub Release](https://img.shields.io/github/v/release/Booster1212/guildwars2-omnitria?color=d4a359&label=Release&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=CI%20Status&color=22c55e&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/actions)
@@ -87,10 +87,10 @@ Level any of the 8 crafting disciplines (*Armorsmith, Weaponsmith, Artificer, Je
 
 Comprehensive blueprint database for crafting legendary weapons across all generations (*Gen 1, Gen 2, Gen 3 / Aurene, and Gen 4 / Janthir Wilds*).
 
-| Legendary Weapons Catalog | Hierarchical Mystic Forge Tree |
-| :---: | :---: |
-| [![Legendary Armory](docs/screenshots/legendary-armory.png)](docs/screenshots/legendary-armory.png) | [![Mystic Forge Tree](docs/screenshots/legendary-tree.png)](docs/screenshots/legendary-tree.png) |
-| *Browse all legendary weapons filtered by generation, weapon type, and expansion.* | *Recursive node tree with live TP prices and toggleable Craft vs. Buy actions.* |
+| Legendary Weapons Catalog | Hierarchical Mystic Forge Tree | Bill of Materials (BOM) & TP Prices |
+| :---: | :---: | :---: |
+| [![Legendary Armory](docs/screenshots/legendary-armory.png)](docs/screenshots/legendary-armory.png) | [![Mystic Forge Tree](docs/screenshots/legendary-tree.png)](docs/screenshots/legendary-tree.png) | [![Bill of Materials](docs/screenshots/legendary-materials.png)](docs/screenshots/legendary-materials.png) |
+| *Browse all legendary weapons filtered by generation, weapon type, and expansion.* | *Recursive node tree with 4 Mystic Forge branches and ingredient icons.* | *Comprehensive BOM shopping list with live TP buy/sell prices & inventory deduction.* |
 
 * **Hierarchical Node Tree:** Visual breakdown of the 4 primary Mystic Forge components down to basic raw materials.
 * **Live Black Lion Trading Post Prices:** Real-time buy-order and instant-sell prices fetched from `/v2/commerce/prices` with total gold, silver, and copper calculations.
