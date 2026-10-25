@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.1.4] - 2026-10-25
+
+### Fixed
+* **Legendary Armory Component Tree Storage Depletion**:
+  * Fixed depth-first traversal stock allocation bug where raw leaf materials shared across multiple legendary sub-branches (such as `Obsidian Shard` and `Glob of Ectoplasm` demanded by both *Mystic Clovers* and *Gift of Mastery*) starved lower branches, causing the lower node to show `Storage: 0 / 250` instead of account stock (`29 / 230`).
+  * Non-craftable leaf materials now evaluate available account storage dynamically (`Math.min(demand, totalStock)`), ensuring all sub-branches display authentic account inventory while the overall Bill of Materials (BOM) cleanly aggregates net missing quantities without double-counting.
+
+### Added
+* **Crafting: Learned & Relevant Recipe Catalog (Rezeptbuch)**:
+  * Complete overhaul of the *Gelehrte / Relevante Rezepte* tab in Discipline details.
+  * Search by item name and rating/level requirement.
+  * Tier & Level filter chips (T1 0–74, T2 75–149, T3 150–224, T4 225–299, T5 300–399, T6 400+, Ascended 500).
+  * Recipe type chips (Components, Refinement, Armor, Weapons, Consumables, Bags, Feasts, Trinkets).
+  * Status badges indicating whether a recipe is directly craftable with current inventory (`Direkt herstellbar`), auto-learned (`Automatisch`), recipe-sheet bound (`Rezeptbogen`), or discovery-based (`Entdeckung`).
+  * Live inventory ingredient badges with green/red stock counts, real-time Trading Post crafting cost estimation, and clean pagination.
+* **Branding & Documentation**:
+  * Centered official high-resolution Omnitria logo (`docs/screenshots/icon.png`) in `README.md`.
+
+---
+
+## [0.1.3] - 2026-10-24
 
 ### Added
 

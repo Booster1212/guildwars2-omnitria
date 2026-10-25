@@ -1,14 +1,20 @@
-# ✨ Omnitria • Guild Wars 2 In-Game Overlay
-
 <div align="center">
 
-![Omnitria In-Game Overlay](docs/Introduction.png)
+<img src="docs/screenshots/icon.png" alt="Omnitria Logo" width="170" />
+
+# ✨ Omnitria • Guild Wars 2 In-Game Overlay
 
 [![GitHub Release](https://img.shields.io/github/v/release/Booster1212/guildwars2-omnitria?color=d4a359&label=Release&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=CI%20Status&color=22c55e&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/actions)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?logo=windows&style=for-the-badge)](#-system-requirements)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Bilingual](https://img.shields.io/badge/Language-English%20%7C%20Deutsch-orange?style=for-the-badge)](#-bilingual-support)
+
+<br/>
+
+![Omnitria In-Game Overlay](docs/Introduction.png)
+
+<br/>
 
 **Omnitria** is a high-performance, immersive in-game companion and overlay for **Guild Wars 2**.  
 Seamlessly hovering above your in-game chat box as a compact mini-HUD or expanding into a full-screen Hero Board.  
@@ -80,6 +86,7 @@ Level any of the 8 crafting disciplines (*Armorsmith, Weaponsmith, Artificer, Je
 * **Automatic Inventory Deduction:** When connected with your API key, items stored in your Material Storage, Bank, and Character Bags are subtracted from the Bill of Materials (BOM).
 * **Embedded Discovery Helper:** When leveling requires discovery combinations, ingredient sets and discovery instructions are displayed directly on the step card.
 * **Discovery Explorer:** Dedicated catalog of all undiscovered recipes with search filters by discipline, tier, and ingredient.
+* **Learned & Relevant Recipe Book:** Complete discipline recipe database with tier navigation, live account unlock status, instant craftability checks against material storage, and Trading Post valuation.
 
 ---
 

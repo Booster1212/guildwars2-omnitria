@@ -3,13 +3,13 @@ import type { DisciplineId } from '../../domain/types';
 import { useAccountState } from '../../data/gw2/account';
 import { useRecipeDb } from '../../data/gw2/recipes';
 import { useProgress } from '../../data/progressStore';
-import { getDisciplineName, getRecipeTypeName } from '../common/labels';
-import { DisciplineIcon, ItemIcon, ProgressBar, Tabs } from '../common/ui';
+import { getDisciplineName } from '../common/labels';
+import { DisciplineIcon, ProgressBar, Tabs } from '../common/ui';
 import { LevelPlanner } from './LevelPlanner';
 import { DiscoveryView } from './DiscoveryView';
+import { LearnedRecipesView } from './LearnedRecipesView';
 import { CURATED_DISCOVERIES } from '../../data/crafting/curatedDiscoveries';
 import { isDiscoveryRecipe } from '../../domain/discovery';
-import { getItem } from '../../data/gw2/items';
 import { User } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
@@ -41,14 +41,13 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
     return list.filter((r) => r.disciplines.includes(discipline) && isDiscoveryRecipe(r)).length;
   }, [recipeDb.recipes, recipeDb.status, discipline]);
 
-  // Recipes relevant for this discipline around current rank
-  const relevantRecipes = React.useMemo(() => {
-    if (recipeDb.status !== 'ready') return [];
-    return recipeDb.recipes
-      .filter((r) => r.disciplines.includes(discipline) && r.rating <= currentRank + 25)
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 50);
-  }, [recipeDb.recipes, recipeDb.status, discipline, currentRank]);
+  // All recipes count for this discipline
+  const allDisciplineRecipesCount = React.useMemo(() => {
+    const list = recipeDb.status === 'ready' && recipeDb.recipes.length > 0
+      ? recipeDb.recipes
+      : CURATED_DISCOVERIES;
+    return list.filter((r) => r.disciplines.includes(discipline)).length;
+  }, [recipeDb.recipes, recipeDb.status, discipline]);
 
   const discName = getDisciplineName(discipline, lang);
 
@@ -93,7 +92,7 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
           tabs={[
             { id: 'planner', label: t('crafting.plannerTab') },
             { id: 'discovery', label: `${t('crafting.discoveryTab')} (${discoveryRecipesCount})` },
-            { id: 'recipes', label: `${t('crafting.recipesTab')} (${relevantRecipes.length})` },
+            { id: 'recipes', label: `${t('crafting.recipesTab')} (${allDisciplineRecipesCount})` },
           ]}
           value={activeTab}
           onChange={(tab) => setActiveTab(tab as 'planner' | 'discovery' | 'recipes')}
@@ -114,53 +113,12 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
           />
         )}
         {activeTab === 'recipes' && (
-          <div className="discipline-recipes-view">
-            <div className="recipes-intro-bar">
-              <span className="dim">
-                {t('crafting.recipesIntro', { disc: discName, rank: currentRank + 25 })}
-              </span>
-            </div>
-
-            <div className="recipes-grid">
-              {relevantRecipes.map((r) => {
-                const outItem = getItem(r.outputId);
-                const typeLabel = r.type ? getRecipeTypeName(r.type, lang) : '';
-                return (
-                  <div key={r.id} className="recipe-card">
-                    <div className="rc-header">
-                      <ItemIcon id={r.outputId} size="m" onClick={() => onOpenItem(r.outputId)} />
-                      <div className="rc-info">
-                        <span
-                          className="rc-title font-serif cursor-pointer"
-                          onClick={() => onOpenItem(r.outputId)}
-                        >
-                          {outItem?.name ?? `#${r.outputId}`}
-                        </span>
-                        <div className="rc-rating-meta">
-                          <span className="rc-rating">{lang === 'en' ? `Rank ${r.rating}` : `Rang ${r.rating}`}</span>
-                          {typeLabel && <span className="rc-type dim">({typeLabel})</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rc-ingredients">
-                      {r.ingredients.map((ing) => (
-                        <button
-                          key={ing.itemId}
-                          className="rc-ing-btn"
-                          onClick={() => onOpenItem(ing.itemId)}
-                          title={`${getItem(ing.itemId)?.name ?? ing.itemId}: ${ing.count}×`}
-                        >
-                          <ItemIcon id={ing.itemId} count={ing.count} size="s" />
-                          <span className="ing-label dim">{getItem(ing.itemId)?.name ?? `#${ing.itemId}`}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <LearnedRecipesView
+            discipline={discipline}
+            maxRank={maxRank}
+            currentRank={currentRank}
+            onOpenItem={onOpenItem}
+          />
         )}
       </div>
     </div>

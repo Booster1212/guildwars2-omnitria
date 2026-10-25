@@ -4617,10 +4617,30 @@ button {
   box-shadow: 0 0 6px rgba(245, 158, 11, 0.2);
 }
 
-.status-pill.discovered.active {
+.status-pill.discovered.active,
+.status-pill.learned.active {
   background: rgba(34, 197, 94, 0.18);
   border-color: #22c55e;
   color: #86efac;
+}
+
+.status-pill.craftable.active {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10b981;
+  color: #a7f3d0;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+}
+
+.status-pill.auto.active {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+.status-pill.sheet.active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fde68a;
 }
 
 .type-filter-group {
@@ -4735,6 +4755,12 @@ button {
   border-left: 3px solid #22c55e;
 }
 
+.discovery-recipe-card.is-craftable {
+  border-left: 3px solid #10b981;
+  background: linear-gradient(180deg, #151d1a 0%, #111516 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.12);
+}
+
 /* Card Header */
 .drc-header {
   display: flex;
@@ -4815,6 +4841,39 @@ button {
   background: #222632;
   border: 1px solid #353c4e;
   color: #cbd5e1;
+}
+
+.disc-status-badge.craftable {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.6);
+  color: #6ee7b7;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.25);
+}
+
+.disc-status-badge.auto {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+
+.disc-status-badge.sheet {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fde68a;
+}
+
+.craftable-highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 2px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 /* Card Ingredients Box */

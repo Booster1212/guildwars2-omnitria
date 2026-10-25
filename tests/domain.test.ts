@@ -56,6 +56,12 @@ test('Bestand wird als gemeinsamer Pool verbraucht (keine Doppelzählung)', () =
   // Gesamtbedarf 8, vorhanden 6 -> fehlend 2 (nicht 0, nicht 5)
   assert.equal(r.bom.get(10)!.total, 8);
   assert.equal(r.bom.get(10)!.missing, 2);
+
+  // Beide Baumknoten zeigen den vorhandenen Lagerbestand für ihren jeweiligen Teilschritt
+  const nodeA = r.root.children[0].children[0];
+  const nodeB = r.root.children[1].children[0];
+  assert.equal(nodeA.fromStock, 5); // Bedarf 5, Lager 6 -> 5
+  assert.equal(nodeB.fromStock, 3); // Bedarf 3, Lager 6 -> 3 (nicht künstlich 0 oder 1!)
 });
 
 test('Vorhandene Zwischenprodukte sparen Unterbedarf', () => {
@@ -909,6 +915,26 @@ test('Legendary Material-Klassifikation: Herstellbar, Nicht Herstellbar, Was gek
   });
   assert.equal(boughtRes.category, 'must_buy');
   assert.equal(boughtRes.procurementType, 'tp_buy');
+});
+
+test('Rezeptbuch / Learned & Relevant Recipes: Status-Klassifikation und Lokalisierung', async () => {
+  const { t, setLanguage } = await import('../src/i18n/index.ts');
+
+  setLanguage('de');
+  assert.equal(t('crafting.recipesTab'), 'Erlernte / Relevante Rezepte');
+  assert.equal(t('crafting.statusCraftable'), 'Sofort herstellbar');
+  assert.equal(t('crafting.statusLearned'), 'Erlernt');
+  assert.equal(t('crafting.statusAutoLearned'), 'Basisrezepte');
+  assert.equal(t('crafting.statusRecipeSheet'), 'Rezeptbögen');
+  assert.equal(t('crafting.learnedCatalogTitle'), 'Rezeptkatalog & Freischaltungen');
+
+  setLanguage('en');
+  assert.equal(t('crafting.recipesTab'), 'Learned / Relevant Recipes');
+  assert.equal(t('crafting.statusCraftable'), 'Craftable Now');
+  assert.equal(t('crafting.statusLearned'), 'Learned');
+  assert.equal(t('crafting.statusAutoLearned'), 'Auto-Learned');
+  assert.equal(t('crafting.statusRecipeSheet'), 'Recipe Sheets');
+  assert.equal(t('crafting.learnedCatalogTitle'), 'Recipe Catalog & Unlocks');
 });
 
 

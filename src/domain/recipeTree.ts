@@ -128,15 +128,22 @@ function runPass(
     const canCraft = Boolean(rawRecipe && !cyclic);
     const recipe = cyclic || bought || depth >= opts.maxDepth ? undefined : rawRecipe;
 
-    // Bestand verbrauchen (nur für nicht stumme Knoten)
+    // Bestand ermitteln
     let fromStock = 0;
     if (!muted && opts.stock) {
-      const avail = pool.get(itemId) ?? 0;
-      fromStock = Math.min(demand, avail);
-      if (fromStock > 0) pool.set(itemId, avail - fromStock);
+      if (recipe) {
+        // Zwischenprodukte verbrauchen den Pool sequenziell, um Unterbedarf korrekt zu reduzieren
+        const avail = pool.get(itemId) ?? 0;
+        fromStock = Math.min(demand, avail);
+        if (fromStock > 0) pool.set(itemId, avail - fromStock);
+      } else {
+        // Blatt-Materialien: Jeder Knoten zeigt den tatsächlich im Account vorhandenen Bestand für diesen Schritt
+        const totalStock = opts.stock.get(itemId) ?? 0;
+        fromStock = Math.min(demand, totalStock);
+      }
     }
 
-    let missing = muted ? 0 : demand - fromStock;
+    let missing = muted ? 0 : Math.max(0, demand - fromStock);
     if (!recipe && !muted && opts.doneMaterials.has(itemId)) {
       // Blatt wurde manuell als "vollständig" markiert
       fromStock = demand;
@@ -188,8 +195,8 @@ function runPass(
         };
         node.children.forEach(mark);
       }
-    } else if (!muted && missing > 0) {
-      total.set(itemId, (total.get(itemId) ?? 0) + missing);
+    } else if (!muted) {
+      total.set(itemId, (total.get(itemId) ?? 0) + demand);
     }
     return node;
   };
@@ -250,16 +257,25 @@ export function buildTree(
 
   const bom = new Map<number, BomEntry>();
   for (const [itemId, totalQty] of gross.total) {
+    const activeDemand = net.total.get(itemId) ?? 0;
+    const stockQty = options.stock?.get(itemId) ?? 0;
+    const isDoneMat = options.doneMaterials?.has(itemId);
+    const missing = isDoneMat || activeDemand === 0 ? 0 : Math.max(0, activeDemand - stockQty);
     bom.set(itemId, {
       itemId,
       total: totalQty,
-      missing: net.total.get(itemId) ?? 0,
+      missing,
       estimated: gross.estimated.has(itemId),
     });
   }
   // Material, das nur im Netto-Pass auftaucht (kann nicht passieren, aber robust bleiben)
   for (const [itemId, qty] of net.total) {
-    if (!bom.has(itemId)) bom.set(itemId, { itemId, total: qty, missing: qty, estimated: net.estimated.has(itemId) });
+    if (!bom.has(itemId)) {
+      const stockQty = options.stock?.get(itemId) ?? 0;
+      const isDoneMat = options.doneMaterials?.has(itemId);
+      const missing = isDoneMat || qty === 0 ? 0 : Math.max(0, qty - stockQty);
+      bom.set(itemId, { itemId, total: qty, missing, estimated: net.estimated.has(itemId) });
+    }
   }
 
   const comps = net.root.children;
