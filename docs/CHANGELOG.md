@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.6] - 2026-10-27
+
+### Added
+
+#### Comprehensive Meta-Events Expansion (57 Events Total)
+* **Core Tyria & Orr Temple Metas**:
+  * Added **Ley-Line Anomaly** (`ley-line-anomaly`) with 2-hour schedule (`xx:20 UTC`) for guaranteed daily Mystic Coin tracking.
+  * Added all missing Orr Temple Metas: **Cathedral of Glorious Anticipation** (Temple of Balthazar), **Cathedral of Silence** (Temple of Grenth), **Cathedral of Verdance** (Temple of Melandru), and **The Gates of Arah**.
+* **Path of Fire (PoF) Expansion Metas**:
+  * Added **The Path to Ascension & Branded Doppelganger** (`augury-rock`) in Elon Riverlands.
+  * Added **Forged with Fire** (`forged-with-fire`) with the Hounds of Balthazar in Domain of Vabbi.
+  * Added **Buried Treasure** (`buried-treasure`) across Desert Highlands.
+  * Added **Junundu Rising** (`junundu-rising`) in The Desolation.
+* **End of Dragons & Secrets of the Obscure**:
+  * Added **Gyala Delve** (`gyala-delve`) - The Jade Miner Crisis & The Haze.
+  * Added **Inner Nayos: Heitor's Gate** (`nayos-heitors-gate`) - The Fangs That Gnash / Knaebelag.
+* **Janthir Wilds**:
+  * Added **Bava Nisos** (`janthir-bava-nisos`) - A Titanic Voyage.
+* **The Icebrood Saga (IBS) - Dedicated Category**:
+  * Added **Drizzlewood Coast: Assault on the Fort (South Meta)** (`drizzlewood-south`).
+  * Added **Drizzlewood Coast: Frost Citadel & Claw of Jormag (North Meta)** (`drizzlewood-north`).
+  * Added **Grothmar Valley: Metal Legion Concert** (`grothmar-metal-concert`).
+  * Recategorized **Dragonstorm** and **Drakkar** from EoD into the dedicated `ibs` category.
+* **Living World Seasons (LWS) - Dedicated Category**:
+  * Added **The Silverwastes** (`silverwastes-vinewrath`) - The Vinewrath & The Breach (RIBA / Obsidian Shard farm).
+  * Added **Dry Top** (`dry-top-sandstorm`) - Hourly Sandstorm Tier 1-6.
+  * Added **Domain of Istan: Palawadan, Jewel of Istan** (`palawadan-jewel`).
+  * Added **Jahai Bluffs: Death-Branded Shatterer** (`death-branded-shatterer`).
+  * Added **Thunderhead Peaks: Thunderhead Keep & Oil Floes** (`thunderhead-peaks`).
+  * Added **The Twisted Marionette** (`twisted-marionette`) - Public instance timer in Eye of the North.
+
+#### UI & Category Filter Enhancements
+* Added dedicated **`IBS`** and **`LW`** filter chips in `BossFilterBar`.
+* Added distinctive badge color schemes in `index.css` for `.category-ibs` (cyan/sky blue) and `.category-lws` (amber gold).
+
+### Fixed
+* **"Gangs of Echovald" Naming & Search Resolution**:
+  * Updated German name to official in-game and community title **"Der Bandenkrieg von Echowald"** and English name to **"The Gang War of Echovald (The Gangs of Echovald)"**.
+  * Searching for "Bandenkrieg", "Banden", "Gangs", or "Echowald" now matches immediately in all views.
+* **EoD / IBS Categorization Alignment**:
+  * Corrected Dragonstorm and Drakkar from being listed as EoD to authentic Icebrood Saga grouping.
+
+---
+
 ## [0.1.5] - 2026-10-27
 
 ### Added

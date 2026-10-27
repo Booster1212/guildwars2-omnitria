@@ -4,7 +4,7 @@
 
 # ✨ Omnitria • Guild Wars 2 In-Game Overlay
 
-[![Latest Release](https://img.shields.io/badge/Release-v0.1.5-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.5)
+[![Latest Release](https://img.shields.io/badge/Release-v0.1.6-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.6)
 [![GitHub Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=CI%20Status&color=22c55e&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/actions)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?logo=windows&style=for-the-badge)](#-system-requirements)
@@ -21,22 +21,22 @@
 Seamlessly hovering above your in-game chat box as a compact mini-HUD or expanding into a full-screen Hero Board.  
 Crafted with authentic Guild Wars 2 visual aesthetics: dark slate backdrop, antique bronze & gold borders, GW2 rarity color palettes, and official ArenaNet artwork.
 
-[📥 Download v0.1.5 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.5) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
+[📥 Download v0.1.6 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.6) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
 
 </div>
 
 > [!TIP]
-> ### 🚀 Omnitria v0.1.5 Released
-> * **⚔️ WvW Tactical Assistant:** Real-time strategic objective scoring, Righteous Indignation (RI) timers, interactive vector radar maps, and live EU & NA match standings.
-> * **🏛️ Orr Temple Meta-Events:** Cathedral of Zephyrs (Dwayna) and Cathedral of Eternal Radiance (Lyssa) with 2-hour rotation schedules, fast-travel waypoints, and 1-click map chat broadcasts.
-> * **⚡ Quick Minimize:** Press `[Esc]` to instantly minimize back to Guild Wars 2.
+> ### 🚀 Omnitria v0.1.6 Released
+> * **🌍 Comprehensive Meta-Events Expansion (57 Events):** Complete rotation timers and waypoints for Core Tyria, all Orr Temples (Balthazar, Grenth, Melandru, Arah), PoF, EoD (Gyala Delve), SotO (Heitor's Gate), Janthir Wilds (Bava Nisos), plus dedicated categories for The Icebrood Saga (Drizzlewood Coast, Grothmar Concert) and Living World Seasons (Silverwastes Vinewrath, Dry Top Sandstorm, Palawadan, Death-Branded Shatterer, Thunderhead Peaks, Marionette).
+> * **🎯 Bandenkrieg von Echowald Search Fix:** Official German and English titles updated so searching for "Bandenkrieg", "Gangs", or "Echowald" immediately resolves.
+> * **🔐 GPG Verified:** All releases and commits are cryptographically GPG-signed.
 > * View the full list of changes in the **[Changelog](docs/CHANGELOG.md)**.
 
 ---
 
 ## 🌟 Key Highlights
 
-* 🕒 **Second-Accurate Rotation Schedule:** Continuous live countdowns across all expansions (*Core, HoT, PoF, EoD, SotO, Janthir Wilds, Visions of Eternity*), including Orr Temple Meta-Events (Cathedral of Zephyrs / Dwayna and Cathedral of Eternal Radiance / Lyssa).
+* 🕒 **Second-Accurate Rotation Schedule (57 Events):** Continuous live countdowns across all expansions (*Core, HoT, PoF, EoD, SotO, Janthir Wilds, Visions of Eternity*), Living World Seasons, and The Icebrood Saga with 1-click fast-travel waypoints and chat broadcasts.
 * ⚔️ **WvW Tactical Assistant:** Real-time strategic objective scoring, Righteous Indignation (RI) countdown timers, interactive vector radar map, live EU/NA match standings, and automated team detection.
 * 💬 **1-Click Game Chat Callouts:** Broadcast waypoint chat codes and remaining boss countdowns directly into map chat (`/m`).
 * 🔨 **Intelligent 0–500 Crafting Level Planner:** Optimal, algorithmically generated lowest-cost routes with embedded discovery recipes and automatic material storage deductions.
@@ -206,7 +206,7 @@ Omnitria communicates exclusively with official **ArenaNet API servers** (`https
 ### Installation Options
 
 #### Option A: Standalone Release (Recommended for Players)
-1. Download the latest release archive (`Omnitria-v0.1.5-windows-x64.zip`) from **[Releases](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.5)**.
+1. Download the latest release archive (`Omnitria-v0.1.6-windows-x64.zip`) from **[Releases](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.6)**.
 2. Extract the archive into any folder of your choice (e.g. `C:\Games\Omnitria`).
 3. Launch Omnitria:
    * **Silent Background Mode (Recommended):** Double-click `Omnitria-Silent.vbs` (runs quietly in tray without a terminal window).
@@ -233,7 +233,7 @@ npm run overlay
 # Run TypeScript typechecks
 npm run typecheck
 
-# Run automated domain & calculation test suite (63 tests)
+# Run automated domain & calculation test suite (64 tests)
 npm test
 
 # Build production client bundle
