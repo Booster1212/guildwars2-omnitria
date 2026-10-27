@@ -265,6 +265,15 @@ export const WvwObjectiveDetail: React.FC<WvwObjectiveDetailProps> = ({
             </div>
           </div>
         )}
+
+        {/* Data Source & Compliance Note */}
+        <div className="wvw-detail-section mt-3 pt-2" style={{ borderTop: '1px solid #2a2c35' }}>
+          <div className="dim text-2xs leading-normal">
+            {isGerman
+              ? 'Quelle: Offizielle ArenaNet WvW-API. Berechnete Heuristik/Schätzung. Gegnerische Spielerzahlen/Zerg-Positionen sind in der API nicht enthalten.'
+              : 'Source: Official ArenaNet WvW API. Heuristic estimate. Enemy player counts and zerg positions are not provided by the API.'}
+          </div>
+        </div>
       </div>
 
       {/* Aktionen unten */}
@@ -273,7 +282,7 @@ export const WvwObjectiveDetail: React.FC<WvwObjectiveDetailProps> = ({
           type="button"
           className="gw2-btn-primary flex-1"
           onClick={() => onSendChat(objective)}
-          title={t('wvw.sendChat')}
+          title={isGerman ? 'Taktik-Aufruf in die Zwischenablage kopieren' : 'Copy tactical callout to clipboard'}
         >
           <MessageSquare size={14} className="inline mr-1.5" />
           <span>{t('wvw.sendChat')}</span>

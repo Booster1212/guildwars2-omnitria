@@ -330,29 +330,39 @@ export const App: React.FC = () => {
     return { bossList: bosses, metaList: metas };
   }, [processedInstances, sortMode]);
 
-  // Action 1: Nachricht senden (Sends waypoint + remaining time into GW2 chat)
-  const handleSendMessage = useCallback((inst: EventInstance) => {
+  // Action 1: Chat-Aufruf kopieren (Copies waypoint + remaining time into clipboard for manual pasting)
+  const handleSendMessage = useCallback(async (inst: EventInstance) => {
     const textToCopy = formatCallout(inst, settings.messageTemplate, lang);
+    let copySuccessful = false;
 
-    // 1. Copy to clipboard
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(textToCopy).catch((err) => {
-        console.error('Clipboard copy failed', err);
-      });
-    }
-
-    // 2. Send directly into GW2 chat if running in Electron
+    // 1. Copy via Electron IPC if available
     const api = (window as unknown as {
       electronAPI?: {
-        copyToClipboard?: (t: string) => void;
-        sendChatMessage?: (t: string) => void;
+        copyToClipboard?: (t: string) => Promise<{ success: boolean; error?: string }> | void;
       };
     }).electronAPI;
 
-    if (api?.sendChatMessage) {
-      api.sendChatMessage(textToCopy);
-    } else if (api?.copyToClipboard) {
-      api.copyToClipboard(textToCopy);
+    if (api?.copyToClipboard) {
+      try {
+        const res = await api.copyToClipboard(textToCopy);
+        if (res && typeof res === 'object' && 'success' in res) {
+          copySuccessful = Boolean(res.success);
+        } else {
+          copySuccessful = true;
+        }
+      } catch (err) {
+        console.error('Electron clipboard copy failed', err);
+      }
+    }
+
+    // 2. Fallback to browser navigator.clipboard
+    if (!copySuccessful && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        copySuccessful = true;
+      } catch (err) {
+        console.error('Navigator clipboard copy failed', err);
+      }
     }
 
     // 3. Audio & Visuals
@@ -366,33 +376,55 @@ export const App: React.FC = () => {
     }, 2000);
 
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(lang === 'en' ? `💬 Chat message sent: ${textToCopy}` : `💬 Chat-Nachricht gesendet: ${textToCopy}`);
+    if (copySuccessful) {
+      setToastMessage(
+        lang === 'en'
+          ? `📋 Chat callout copied to clipboard: ${textToCopy} (Paste in game with [Enter] + [Ctrl+V])`
+          : `📋 Chat-Aufruf in die Zwischenablage kopiert: ${textToCopy} (Im Spiel mit [Enter] + [Strg+V] einfügen)`
+      );
+    } else {
+      setToastMessage(
+        lang === 'en'
+          ? `⚠️ Failed to copy to clipboard. Please check application permissions.`
+          : `⚠️ Fehler beim Kopieren in die Zwischenablage. Bitte Berechtigungen prüfen.`
+      );
+    }
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
   }, [settings.messageTemplate, settings.soundEnabled, settings.soundVolume, lang]);
 
-  // Action 2: Zur Wegmarke Teleportieren (Sends waypoint link to GW2 chat)
-  const handleTeleport = useCallback((inst: EventInstance) => {
+  // Action 2: Wegmarken-Code kopieren (Copies waypoint chat code into clipboard for manual travel)
+  const handleTeleport = useCallback(async (inst: EventInstance) => {
     const waypointTag = inst.event.waypoint;
+    let copySuccessful = false;
 
-    // 1. Copy to clipboard
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(waypointTag).catch((err) => {
-        console.error('Clipboard copy failed', err);
-      });
-    }
-
-    // 2. Send waypoint to GW2 chat
+    // 1. Copy via Electron IPC if available
     const api = (window as unknown as {
       electronAPI?: {
-        copyToClipboard?: (t: string) => void;
-        teleportWaypoint?: (w: string) => void;
+        copyToClipboard?: (t: string) => Promise<{ success: boolean; error?: string }> | void;
       };
     }).electronAPI;
 
-    if (api?.teleportWaypoint) {
-      api.teleportWaypoint(waypointTag);
-    } else if (api?.copyToClipboard) {
-      api.copyToClipboard(waypointTag);
+    if (api?.copyToClipboard) {
+      try {
+        const res = await api.copyToClipboard(waypointTag);
+        if (res && typeof res === 'object' && 'success' in res) {
+          copySuccessful = Boolean(res.success);
+        } else {
+          copySuccessful = true;
+        }
+      } catch (err) {
+        console.error('Electron clipboard copy failed', err);
+      }
+    }
+
+    // 2. Fallback to browser navigator.clipboard
+    if (!copySuccessful && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(waypointTag);
+        copySuccessful = true;
+      } catch (err) {
+        console.error('Navigator clipboard copy failed', err);
+      }
     }
 
     // 3. Audio & Visuals
@@ -401,7 +433,19 @@ export const App: React.FC = () => {
     }
 
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(lang === 'en' ? `📍 Waypoint ${waypointTag} sent! Click in game chat to teleport!` : `📍 Wegmarke ${waypointTag} gesendet! Klicke im Spiel-Chat zum Teleportieren!`);
+    if (copySuccessful) {
+      setToastMessage(
+        lang === 'en'
+          ? `📍 Waypoint code copied: ${waypointTag} (Paste in game chat with [Enter] + [Ctrl+V] to travel)`
+          : `📍 Wegmarken-Code kopiert: ${waypointTag} (Im Spiel-Chat mit [Enter] + [Strg+V] einfügen zum Reisen)`
+      );
+    } else {
+      setToastMessage(
+        lang === 'en'
+          ? `⚠️ Failed to copy waypoint code to clipboard.`
+          : `⚠️ Fehler beim Kopieren des Wegmarken-Codes.`
+      );
+    }
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 4000);
   }, [settings.soundEnabled, settings.soundVolume, lang]);
 

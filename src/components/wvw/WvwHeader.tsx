@@ -142,16 +142,23 @@ export const WvwHeader: React.FC<WvwHeaderProps> = ({
             <Sliders size={14} />
           </button>
 
-          <button
-            type="button"
-            className={`wvw-refresh-btn ${isFetching ? 'is-spinning' : ''}`}
-            onClick={onRefresh}
-            title={`${t('wvw.refreshNow')} (${t('wvw.lastUpdated')}: ${timeString})`}
-            disabled={isFetching}
-          >
-            <RotateCw size={14} />
-            <span className="text-xs font-mono">{timeString}</span>
-          </button>
+          {(() => {
+            const isStale = !lastUpdated || (Date.now() - lastUpdated.getTime() > 90_000);
+            return (
+              <button
+                type="button"
+                className={`wvw-refresh-btn ${isFetching ? 'is-spinning' : ''} ${isStale ? 'is-stale' : ''}`}
+                onClick={onRefresh}
+                title={`${isStale ? (lang === 'de' ? '⚠️ Daten veraltet! ' : '⚠️ Stale data! ') : ''}${t('wvw.refreshNow')} (${t('wvw.lastUpdated')}: ${timeString})`}
+                disabled={isFetching}
+              >
+                <RotateCw size={14} className={isStale ? 'text-amber-400' : ''} />
+                <span className={`text-xs font-mono ${isStale ? 'text-amber-300 font-bold' : ''}`}>
+                  {isStale ? `⚠️ ${timeString}` : timeString}
+                </span>
+              </button>
+            );
+          })()}
         </div>
       </div>
 

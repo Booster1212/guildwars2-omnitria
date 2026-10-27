@@ -4,7 +4,7 @@
 
 # ✨ Omnitria • Guild Wars 2 In-Game Overlay
 
-[![Latest Release](https://img.shields.io/badge/Release-v0.1.6-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.6)
+[![Latest Release](https://img.shields.io/badge/Release-v0.1.7-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.7)
 [![GitHub Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=CI%20Status&color=22c55e&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/actions)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?logo=windows&style=for-the-badge)](#-system-requirements)
@@ -21,30 +21,31 @@
 Seamlessly hovering above your in-game chat box as a compact mini-HUD or expanding into a full-screen Hero Board.  
 Crafted with authentic Guild Wars 2 visual aesthetics: dark slate backdrop, antique bronze & gold borders, GW2 rarity color palettes, and official ArenaNet artwork.
 
-[📥 Download v0.1.6 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.6) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
+[📥 Download v0.1.7 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.7) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
 
 </div>
 
 > [!TIP]
-> ### 🚀 Omnitria v0.1.6 Released
-> * **🌍 Comprehensive Meta-Events Expansion (57 Events):** Complete rotation timers and waypoints for Core Tyria, all Orr Temples (Balthazar, Grenth, Melandru, Arah), PoF, EoD (Gyala Delve), SotO (Heitor's Gate), Janthir Wilds (Bava Nisos), plus dedicated categories for The Icebrood Saga (Drizzlewood Coast, Grothmar Concert) and Living World Seasons (Silverwastes Vinewrath, Dry Top Sandstorm, Palawadan, Death-Branded Shatterer, Thunderhead Peaks, Marionette).
-> * **🎯 Bandenkrieg von Echowald Search Fix:** Official German and English titles updated so searching for "Bandenkrieg", "Gangs", or "Echowald" immediately resolves.
-> * **🔐 GPG Verified:** All releases and commits are cryptographically GPG-signed.
+> ### 🚀 Omnitria v0.1.7 Released
+> * **🛡️ Security & ToS Compliance Overhaul:** Keystroke and chat automation completely removed in favor of a 1-click clipboard-only workflow (`[Enter] + [Ctrl+V]`).
+> * **⚔️ WvW Tactical Assistant Transparency:** Added 90s staleness warnings, adaptive exponential backoff on API outages, and explicit estimation labeling.
+> * **🔒 Electron Security Hardening:** Strict URL allowlisting for external links, auto-updater download validation, and navigation prevention.
+> * **📖 Comprehensive Compliance Guide:** Completely restructured [docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md) detailing technical architecture and data boundaries.
 > * View the full list of changes in the **[Changelog](docs/CHANGELOG.md)**.
 
 ---
 
 ## 🌟 Key Highlights
 
-* 🕒 **Second-Accurate Rotation Schedule (57 Events):** Continuous live countdowns across all expansions (*Core, HoT, PoF, EoD, SotO, Janthir Wilds, Visions of Eternity*), Living World Seasons, and The Icebrood Saga with 1-click fast-travel waypoints and chat broadcasts.
+* 🕒 **Second-Accurate Rotation Schedule (57 Events):** Continuous live countdowns across all expansions (*Core, HoT, PoF, EoD, SotO, Janthir Wilds, Visions of Eternity*), Living World Seasons, and The Icebrood Saga with 1-click fast-travel waypoints and chat callouts.
 * ⚔️ **WvW Tactical Assistant:** Real-time strategic objective scoring, Righteous Indignation (RI) countdown timers, interactive vector radar map, live EU/NA match standings, and automated team detection.
-* 💬 **1-Click Game Chat Callouts:** Broadcast waypoint chat codes and remaining boss countdowns directly into map chat (`/m`).
+* 💬 **1-Click Clipboard Callouts:** Copy formatted waypoint chat codes and remaining boss countdowns to the clipboard for fast manual in-game pasting (`[Enter] + [Strg+V]`).
 * 🔨 **Intelligent 0–500 Crafting Level Planner:** Optimal, algorithmically generated lowest-cost routes with embedded discovery recipes and automatic material storage deductions.
 * 🗡️ **Interactive Legendary Armory:** Hierarchical Mystic Forge recipe trees, live Black Lion Trading Post material pricing, and step-by-step precursor achievement tracking.
 * 🏆 **Hero Panel & Achievements:** Pin achievements to a custom watchlist, track sub-objectives with interactive checkboxes, and view tier rewards with Mastery Point badges.
 * ⚡ **Seamless In-Game Workflow:** Quick minimize with `[Esc]`, instant `[F9]` toggle, click-through mode with `[F10]`, and over-chat dock anchoring.
-* 🔄 **Built-in Auto-Updater:** Seamless in-app version checks against GitHub Releases with 1-click background downloading and automated restart.
-* 🛡️ **100% Safe & Read-Only:** Official ArenaNet API key integration stored locally on your machine. Zero tracking, zero telemetry, zero modifications to game files.
+* 🔄 **Built-in Auto-Updater:** In-app version checks against official GitHub Releases with 1-click background downloading and automated restart.
+* 🛡️ **Read-Only & Transparent:** Official ArenaNet REST API integration stored locally on your machine. Zero tracking, zero telemetry, zero memory manipulation or file modifications.
 * 🌐 **Bilingual Support:** Instant 1-click toggle between **English** and **Deutsch** throughout the entire application.
 
 ---
@@ -62,7 +63,7 @@ Stay on top of every meta-event, world boss, and timed group activity in Tyria w
 
 * **Deterministic Second-by-Second Accuracy:** Calculations are computed locally against Tyria's fixed 2-hour rotation schedule — guaranteed zero lag, zero server desync.
 * **Temple Meta-Events:** Integrated coverage for Malchor's Leap temple metas: Cathedral of Zephyrs (Dwayna) and Cathedral of Eternal Radiance (Lyssa).
-* **1-Click Map Chat Broadcasts:** Click the send icon to automatically paste waypoints and countdown timers into your game chat.
+* **1-Click Clipboard Callouts:** Click the copy icon to copy waypoints and countdown timers to your clipboard, ready for manual pasting with `[Enter] + [Strg+V]`.
 * **Waypoint Fast Travel:** Click any waypoint code to immediately copy it to your clipboard for instant in-game map navigation.
 * **Boss Cheat Sheets:** Expand any card for boss mechanics, defiance bar (CC) triggers, phase timings, and rare drop highlights.
 
@@ -150,17 +151,17 @@ Configure appearance, customize chat callouts, sync your account credentials, an
 
 ---
 
-## 🔑 Guild Wars 2 API Key Integration (Official & Safe)
+## 🔑 Guild Wars 2 API Key Integration (Official & Read-Only)
 
-Omnitria communicates exclusively with official **ArenaNet API servers** (`https://api.guildwars2.com/v2/`).
+Omnitria communicates directly with official **ArenaNet API servers** (`https://api.guildwars2.com/v2/`).
 
 > [!IMPORTANT]
-> ### 🛡️ 100% Safe, Read-Only & ToS-Compliant
-> - **100% Policy Compliant:** Operates without memory manipulation, DLL injection, or gameplay automation. Read our full technical breakdown in **[docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md)**.
-> - **Cannot Modify Your Account:** ArenaNet API keys are **strictly read-only**. No third-party application can spend your gold, delete items, move characters, or access account credentials.
-> - **Stored Locally Only:** Your API key is stored exclusively in your local machine's encrypted application storage.
+> ### 🛡️ Read-Only Architecture & Policy Transparency
+> - **Designed for Policy Compliance:** Operates strictly externally without memory manipulation, DLL injection, or keystroke simulation. Read our full technical breakdown in **[docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md)**.
+> - **Cannot Modify Your Account:** ArenaNet API keys are **strictly read-only**. No third-party application can spend gold, delete items, move characters, or access account credentials via the API.
+> - **Stored Locally Only:** Your API key is stored locally in your client application data (`localStorage`). It is never transmitted to any third-party server.
 > - **Zero Third-Party Servers:** Omnitria operates without intermediate backend servers or telemetry tracking.
-> - **Optional:** Omnitria is 100% functional without an API key for event timers, waypoints, database exploration, and leveling guides.
+> - **Optional:** Core features (event timers, waypoints, offline database exploration, leveling routes) work fully without an API key.
 
 ### Recommended ArenaNet Scopes & Permissions Matrix
 
@@ -206,7 +207,7 @@ Omnitria communicates exclusively with official **ArenaNet API servers** (`https
 ### Installation Options
 
 #### Option A: Standalone Release (Recommended for Players)
-1. Download the latest release archive (`Omnitria-v0.1.6-windows-x64.zip`) from **[Releases](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.6)**.
+1. Download the latest release archive (`Omnitria-v0.1.7-windows-x64.zip`) from **[Releases](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.7)**.
 2. Extract the archive into any folder of your choice (e.g. `C:\Games\Omnitria`).
 3. Launch Omnitria:
    * **Silent Background Mode (Recommended):** Double-click `Omnitria-Silent.vbs` (runs quietly in tray without a terminal window).
@@ -250,4 +251,4 @@ For complete technical documentation on the data acquisition architecture, API e
 ## 📜 Legal & ArenaNet Notice
 
 Guild Wars 2, ArenaNet, and all associated logos and designs are trademarks or registered trademarks of NCsoft Corporation.  
-Omnitria is an independent, fan-made open-source overlay companion and is not affiliated with or endorsed by ArenaNet or NCsoft. All in-game art, icons, weapon renderings, and lore assets are property of ArenaNet and NCsoft.
+Omnitria is an independent, fan-made open-source overlay companion and is not affiliated with, endorsed by, or certified by ArenaNet or NCsoft. Third-party applications are used at your own risk. For a detailed analysis of our technical architecture, clipboard-only input, and third-party policy considerations, refer to **[docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md)**. All in-game art, icons, weapon renderings, and lore assets are property of ArenaNet and NCsoft.

@@ -455,27 +455,27 @@ export const WvwAdvisorView: React.FC<WvwAdvisorViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Aktionen-Leiste */}
-                  <div className="wvw-rec-actions">
-                    <button
-                      type="button"
-                      className="wvw-btn-action-primary"
-                      onClick={() => onSendChat(obj)}
-                      title={t('wvw.sendChat')}
-                    >
-                      <MessageSquare size={13} />
-                      <span>{t('wvw.sendChat')}</span>
-                    </button>
+                    {/* Aktionen-Leiste */}
+                    <div className="wvw-rec-actions">
+                      <button
+                        type="button"
+                        className="wvw-btn-action-primary"
+                        onClick={() => onSendChat(obj)}
+                        title={isGerman ? 'Taktik-Aufruf in die Zwischenablage kopieren (im Spiel mit [Enter] & [Strg+V] einfügen)' : 'Copy tactical callout to clipboard (paste in game with [Enter] & [Ctrl+V])'}
+                      >
+                        <MessageSquare size={13} />
+                        <span>{t('wvw.sendChat')}</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      className="wvw-btn-action-secondary"
-                      onClick={() => handleCopy(obj)}
-                      title={t('wvw.copyChatLink')}
-                    >
-                      {isJustCopied ? <Check size={13} className="good" /> : <Copy size={13} />}
-                      <span>{isJustCopied ? (isGerman ? 'Kopiert!' : 'Copied!') : t('wvw.copyChatLink')}</span>
-                    </button>
+                      <button
+                        type="button"
+                        className="wvw-btn-action-secondary"
+                        onClick={() => handleCopy(obj)}
+                        title={t('wvw.copyChatLink')}
+                      >
+                        {isJustCopied ? <Check size={13} className="good" /> : <Copy size={13} />}
+                        <span>{isJustCopied ? (isGerman ? 'Kopiert!' : 'Copied!') : t('wvw.copyChatLink')}</span>
+                      </button>
 
                     <button
                       type="button"
@@ -616,7 +616,7 @@ export const WvwAdvisorView: React.FC<WvwAdvisorViewProps> = ({
                             type="button"
                             className="wvw-table-icon-btn"
                             onClick={() => onSendChat(o)}
-                            title={t('wvw.sendChat')}
+                            title={isGerman ? 'Taktik-Aufruf in die Zwischenablage kopieren' : 'Copy tactical callout to clipboard'}
                           >
                             <MessageSquare size={12} />
                           </button>

@@ -43,10 +43,31 @@ let sessionFlips: WvwObservedFlip[] = [];
 // Emitter for reactive subscriptions
 const wvwEmitter = createEmitter();
 
-// Polling-Timer
-let pollIntervalMs: number = 30_000; // 30 Sekunden
-let pollTimer: ReturnType<typeof setInterval> | null = null;
+// Polling & Staleness Constants
+export const WVW_STALENESS_THRESHOLD_MS = 90_000; // 90 Sekunden
+export const WVW_BASE_POLL_INTERVAL_MS = 30_000;  // 30 Sekunden
+export const WVW_MAX_BACKOFF_MS = 300_000;        // 5 Minuten
+
+// Polling-Timer & Fehler-Zähler
+let basePollIntervalMs: number = WVW_BASE_POLL_INTERVAL_MS;
+let pollIntervalMs: number = WVW_BASE_POLL_INTERVAL_MS;
+let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let isPollingActive: boolean = false;
+let consecutiveFailures: number = 0;
+
+export function isWvwDataStale(date: Date | number | null): boolean {
+  if (!date) return true;
+  const time = typeof date === 'number' ? date : date.getTime();
+  return Date.now() - time > WVW_STALENESS_THRESHOLD_MS;
+}
+
+export function computeNextPollInterval(failures: number, baseInterval = WVW_BASE_POLL_INTERVAL_MS): number {
+  if (failures <= 0) return baseInterval;
+  if (failures === 1) return 45_000;
+  if (failures === 2) return 60_000;
+  if (failures === 3) return 120_000;
+  return WVW_MAX_BACKOFF_MS;
+}
 
 export interface WvwServiceSnapshot {
   matchId: string;
@@ -59,6 +80,8 @@ export interface WvwServiceSnapshot {
   sessionFlips: WvwObservedFlip[];
   staticObjectivesCount: number;
   worldsCount: number;
+  isStale: boolean;
+  consecutiveFailures: number;
 }
 
 // Referentially stable snapshot for useSyncExternalStore
@@ -69,13 +92,16 @@ let cachedSnapshot: WvwServiceSnapshot = {
   lastError: null,
   isFetching: false,
   isPolling: false,
-  pollIntervalMs: 30_000,
+  pollIntervalMs: WVW_BASE_POLL_INTERVAL_MS,
   sessionFlips: [],
   staticObjectivesCount: 0,
   worldsCount: 0,
+  isStale: true,
+  consecutiveFailures: 0,
 };
 
 function updateSnapshot(): void {
+  const isStale = isWvwDataStale(lastSuccessfulFetch);
   cachedSnapshot = {
     matchId: currentMatchId,
     match: lastValidMatch,
@@ -87,6 +113,8 @@ function updateSnapshot(): void {
     sessionFlips,
     staticObjectivesCount: Math.max(inMemoryObjectivesDe.size, inMemoryObjectivesEn.size),
     worldsCount: Math.max(inMemoryWorldsDe.size, inMemoryWorldsEn.size),
+    isStale,
+    consecutiveFailures,
   };
   wvwEmitter.emit();
 }
@@ -271,6 +299,7 @@ export async function refreshMatchData(matchId = currentMatchId): Promise<WvwMat
   try {
     const res = await apiGet<WvwMatch>(buildUrl(`wvw/matches/${matchId}`));
     if (res.ok && res.data && res.data.id) {
+      consecutiveFailures = 0;
       detectFlips(lastValidMatch, res.data);
       lastValidMatch = res.data;
       lastSuccessfulFetch = new Date();
@@ -294,9 +323,11 @@ export async function refreshMatchData(matchId = currentMatchId): Promise<WvwMat
         });
       }
     } else {
+      consecutiveFailures++;
       lastError = res.error || `HTTP ${res.status}`;
     }
   } catch (e) {
+    consecutiveFailures++;
     lastError = e instanceof Error ? e.message : 'Netzwerkfehler';
   } finally {
     isFetchingMatch = false;
@@ -376,22 +407,38 @@ export function buildCombinedObjectives(
   return list;
 }
 
+function scheduleNextPoll(): void {
+  if (!isPollingActive) return;
+  if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+  const nextInterval = computeNextPollInterval(consecutiveFailures, basePollIntervalMs);
+  pollIntervalMs = nextInterval;
+  updateSnapshot();
+
+  pollTimer = setTimeout(async () => {
+    if (!isPollingActive) return;
+    await refreshMatchData(currentMatchId);
+    scheduleNextPoll();
+  }, nextInterval);
+}
+
 /**
- * Starts automatic polling for WvW match data.
+ * Starts automatic polling for WvW match data with adaptive backoff on API errors.
  */
-export function startWvwPolling(matchId?: string, intervalMs = 30_000): void {
+export function startWvwPolling(matchId?: string, intervalMs = WVW_BASE_POLL_INTERVAL_MS): void {
   if (matchId) currentMatchId = matchId;
-  pollIntervalMs = Math.max(15_000, intervalMs);
+  basePollIntervalMs = Math.max(15_000, intervalMs);
+  pollIntervalMs = basePollIntervalMs;
 
   stopWvwPolling();
   isPollingActive = true;
 
-  // Immediately fetch once
-  void refreshMatchData(currentMatchId);
-
-  pollTimer = setInterval(() => {
-    void refreshMatchData(currentMatchId);
-  }, pollIntervalMs);
+  // Immediately fetch once, then schedule next poll with backoff awareness
+  void refreshMatchData(currentMatchId).then(() => {
+    scheduleNextPoll();
+  });
 }
 
 /**
@@ -399,7 +446,7 @@ export function startWvwPolling(matchId?: string, intervalMs = 30_000): void {
  */
 export function stopWvwPolling(): void {
   if (pollTimer) {
-    clearInterval(pollTimer);
+    clearTimeout(pollTimer);
     pollTimer = null;
   }
   isPollingActive = false;

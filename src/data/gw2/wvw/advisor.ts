@@ -59,12 +59,14 @@ function analyzeMatchStandings(match: WvwMatch, playerTeam: WvwTeam) {
 /**
  * Computes the factors and priority score of an individual objective.
  */
-function evaluateObjective(
+export function evaluateObjective(
   obj: WvwCombinedObjective,
   match: WvwMatch,
   config: AdvisorConfig,
   lang: 'de' | 'en' = 'de',
   cachedStandings?: ReturnType<typeof analyzeMatchStandings>,
+  lastUpdatedDate: Date | null = null,
+  isDataStale = false,
 ): TacticalRecommendation {
   const { weights, playerTeam, ignoredObjectiveIds, pinnedObjectiveIds } = config;
   const isPinned = pinnedObjectiveIds.includes(obj.id);
@@ -267,9 +269,19 @@ function evaluateObjective(
   }
 
   addUncertainty(
-    'Live-Gegnerpräsenz & gegnerische Belagerungswaffen sind in der öffentlichen API nicht einsehbar (vor Ort scouten!).',
-    'Live enemy zerg count and enemy siege are not disclosed by public API (scout locally!).',
+    'Taktische Priorität ist eine algorithmische Schätzung basierend auf öffentlich einsehbaren Strukturdaten (PPT, RI-Timer, Upgrades).',
+    'Tactical priority is an algorithmic heuristic/estimate based on public structure data (PPT, RI timer, upgrades).'
   );
+  addUncertainty(
+    'Verborgene Gegnerpositionen, Zerg-Größen und Verteidigungsaufgebote sind in der öffentlichen API aus Fairplay-Gründen nicht enthalten (vor Ort scouten!).',
+    'Hidden enemy player counts, zerg locations, and defensive readiness are not disclosed by the public API for fair play (scout on site!).'
+  );
+  if (isDataStale) {
+    addUncertainty(
+      '⚠️ Datenstand ist veraltet (> 90s). Berechnungen basieren auf zwischengespeicherten Daten.',
+      '⚠️ Data is stale (> 90s). Calculations are based on cached information.'
+    );
+  }
 
   const factors: FactorBreakdown = {
     strategicBase: Math.round(rawStrategicBase),
@@ -292,6 +304,10 @@ function evaluateObjective(
     uncertaintyNotesEn,
     isPinned,
     isIgnored,
+    dataSource: 'Offizielle GW2-API (/v2/wvw/matches)',
+    isStale: isDataStale,
+    lastUpdated: lastUpdatedDate,
+    isEstimated: true,
   };
 }
 
@@ -305,6 +321,8 @@ export function generateTacticalRecommendations(
   config: AdvisorConfig,
   previousTopIdsOrLang: string[] | 'de' | 'en' = [],
   langOpt: 'de' | 'en' = 'de',
+  lastUpdatedDate: Date | null = null,
+  isDataStale = false,
 ): {
   topRecommendations: TacticalRecommendation[];
   alternativeRecommendations: TacticalRecommendation[];
@@ -332,7 +350,7 @@ export function generateTacticalRecommendations(
 
   const evaluated: { rec: TacticalRecommendation; score: number }[] = [];
   for (let i = 0; i < candidates.length; i++) {
-    const rec = evaluateObjective(candidates[i], match, config, lang, standings);
+    const rec = evaluateObjective(candidates[i], match, config, lang, standings, lastUpdatedDate, isDataStale);
     const wasInTop = previousTopSet.has(rec.objective.id);
     const score = wasInTop && !rec.isIgnored && !rec.riActive ? rec.priorityScore + 4 : rec.priorityScore;
     evaluated.push({ rec, score });

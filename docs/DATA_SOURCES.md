@@ -181,4 +181,4 @@ flowchart LR
 ## 7. Legal & Safety Notice
 
 - **Strictly Read-Only:** Omnitria never requests write permissions, password credentials, or payment information.
-- **Zero Game Modification:** Omnitria does not hook into Guild Wars 2 memory, inject DLLs, inspect process handles, or modify game binaries. It operates strictly as an external desktop window overlay adhering to the official ArenaNet User Agreement and Third-Party Program Guidelines.
+- **Zero Game Modification:** Omnitria does not hook into Guild Wars 2 memory, inject DLLs, inspect process handles, or modify game binaries. It operates strictly as an external desktop window overlay designed to align with the core principles of ArenaNet's Third-Party Program Guidelines. Refer to `docs/TOS_COMPLIANCE.md` for full architectural details.

@@ -186,6 +186,10 @@ export interface TacticalRecommendation {
   isNewOrChanged?: boolean;
   changeBadge?: string;
   changeBadgeEn?: string;
+  dataSource: string;
+  isStale: boolean;
+  lastUpdated: Date | null;
+  isEstimated: boolean;
 }
 
 /** Observed ownership flip during session */

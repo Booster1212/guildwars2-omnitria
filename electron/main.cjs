@@ -12,7 +12,6 @@ const {
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
 const { shell } = require('electron');
 
 // Full mode: sufficient room for Crafting, Legendary Armory & WvW Tactics (Master/Detail view)
@@ -267,6 +266,25 @@ function createWindow() {
   mainWindow.webContents.on('console-message', (e, level, message, line, sourceId) => {
     log(`RENDERER [${level}]:`, message, `at ${sourceId}:${line}`);
   });
+
+  // Security: deny untrusted window creation and restrict navigation
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'https:' && EXTERNAL_HOSTS.has(u.hostname)) {
+        shell.openExternal(u.toString());
+      }
+    } catch (_) {}
+    return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const isDev = Boolean(process.env.ELECTRON_START_URL) || url.startsWith('http://localhost:5188');
+    if (url !== 'about:blank' && !url.startsWith('file://') && !isDev) {
+      log('will-navigate prevented navigation to:', url);
+      event.preventDefault();
+    }
+  });
   mainWindow.on('close', (e) => {
     log('mainWindow close event, isQuitting:', app.isQuitting);
     if (pendingBounds) saveBounds(pendingBounds);
@@ -461,31 +479,40 @@ function updateTrayMenu() {
   }
 }
 
-// Keystroke simulation: Send to GW2 Chat automatically
-function sendTextToGw2(text, pressEnterAfter = true) {
-  clipboard.writeText(text);
-
-  // Focus Guild Wars 2 process and simulate Enter -> Ctrl+V -> Enter
-  const vbsScript = `
-    Set WshShell = CreateObject("WScript.Shell")
-    If WshShell.AppActivate("Guild Wars 2") Then
-      WScript.Sleep 60
-      WshShell.SendKeys "{ENTER}"
-      WScript.Sleep 60
-      WshShell.SendKeys "^v"
-      ${pressEnterAfter ? 'WScript.Sleep 60 : WshShell.SendKeys "{ENTER}"' : ''}
-    End If
-  `;
-  const tempVbs = path.join(app.getPath('temp'), 'gw2_send.vbs');
+// Safe Clipboard Handler: Standard and only method for copying chat text/waypoints
+ipcMain.handle('copy-to-clipboard', (_event, text) => {
+  if (typeof text !== 'string') return { success: false, error: 'Invalid text' };
   try {
-    fs.writeFileSync(tempVbs, vbsScript);
-    exec(`wscript //nologo "${tempVbs}"`, () => {
-      try { fs.unlinkSync(tempVbs); } catch (_) {}
-    });
-  } catch (e) {
-    log('sendTextToGw2 error:', e);
+    clipboard.writeText(text);
+    return { success: true };
+  } catch (err) {
+    log('copy-to-clipboard error:', err.message);
+    return { success: false, error: err.message };
   }
-}
+});
+
+ipcMain.on('copy-to-clipboard', (_event, text) => {
+  if (typeof text === 'string') {
+    try { clipboard.writeText(text); } catch (_) {}
+  }
+});
+
+// Deprecated / Defused legacy IPC handlers:
+// Input and chat automation routines have been completely removed for ToS compliance.
+// Legacy calls safely copy to clipboard only, ensuring backward-compatibility without automated input risk.
+ipcMain.on('gw2-send-chat', (_event, text) => {
+  log('[Compliance] gw2-send-chat called: Keystroke simulation is disabled. Copying to clipboard instead.');
+  if (typeof text === 'string') {
+    try { clipboard.writeText(text); } catch (_) {}
+  }
+});
+
+ipcMain.on('gw2-teleport-waypoint', (_event, waypoint) => {
+  log('[Compliance] gw2-teleport-waypoint called: Keystroke simulation is disabled. Copying to clipboard instead.');
+  if (typeof waypoint === 'string') {
+    try { clipboard.writeText(waypoint); } catch (_) {}
+  }
+});
 
 // IPC Handlers
 ipcMain.on('window-minimize', () => {
@@ -526,20 +553,6 @@ ipcMain.on('window-reset-position', () => {
   const pos = getChatAnchoredPosition(b.width, b.height);
   mainWindow.setBounds({ ...pos, width: b.width, height: b.height });
   saveBounds({ ...pos, width: b.width, height: b.height, mode: currentMode });
-});
-
-ipcMain.on('copy-to-clipboard', (_event, text) => {
-  clipboard.writeText(text);
-});
-
-// Auto-Send to GW2 Chat handler
-ipcMain.on('gw2-send-chat', (_event, text) => {
-  sendTextToGw2(text, true);
-});
-
-// Auto-Send Waypoint to GW2 Chat handler (opens map/teleport link)
-ipcMain.on('gw2-teleport-waypoint', (_event, waypoint) => {
-  sendTextToGw2(waypoint, true);
 });
 
 // Persistent file store (progress mirror independent of browser origin)
@@ -698,6 +711,21 @@ ipcMain.handle('app-check-update', async () => {
 ipcMain.handle('app-apply-update', async (_event, downloadUrl) => {
   if (!downloadUrl || typeof downloadUrl !== 'string') {
     return { ok: false, error: 'No valid download URL' };
+  }
+
+  // Security: Strictly validate download URL against official GitHub release asset origins
+  try {
+    const parsed = new URL(downloadUrl);
+    const isGithubHost = parsed.protocol === 'https:' && (
+      (parsed.hostname === 'github.com' && parsed.pathname.startsWith('/Booster1212/guildwars2-omnitria/releases/download/')) ||
+      (parsed.hostname === 'objects.githubusercontent.com')
+    );
+    if (!isGithubHost) {
+      log('app-apply-update rejected untrusted URL:', downloadUrl);
+      return { ok: false, error: 'Download URL rejected: only official GitHub release assets are allowed.' };
+    }
+  } catch (err) {
+    return { ok: false, error: 'Invalid URL format' };
   }
 
   const isPackaged = Boolean(app.isPackaged || !process.defaultApp);

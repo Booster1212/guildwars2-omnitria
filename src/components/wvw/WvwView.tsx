@@ -151,8 +151,10 @@ export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountIn
       advisorConfig,
       previousTopIdsRef.current,
       lang,
+      serviceState.lastSuccessfulFetch,
+      serviceState.isStale,
     );
-  }, [combinedObjectives, serviceState.match, advisorConfig, lang]);
+  }, [combinedObjectives, serviceState.match, advisorConfig, lang, serviceState.lastSuccessfulFetch, serviceState.isStale]);
 
   // Compute map recommendations for maximum WvXP/WvBP
   const mapRecommendations = useMemo(() => {
@@ -181,32 +183,37 @@ export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountIn
     return allRanked.find((r) => r.objective.id === selectedObjId);
   }, [allRanked, selectedObjId]);
 
-  // Aktionen: Im Chat posten
-  const handleSendChat = (obj: WvwCombinedObjective) => {
+  // Aktion: Taktik-Aufruf in Zwischenablage kopieren (Explizit manuell, keine Simulation!)
+  const handleCopyCallout = (obj: WvwCombinedObjective) => {
     const chatLink = obj.chatLink || `[${obj.name}]`;
     const message = `${chatLink} ${obj.name} (${obj.type} - ${obj.owner})`;
 
-    // 1. Copy to clipboard
+    let copied = false;
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(message).catch(() => {});
+      navigator.clipboard.writeText(message)
+        .then(() => { copied = true; })
+        .catch(() => {});
     }
 
-    // 2. Send directly to GW2 chat via Electron IPC if available
     const api = (window as unknown as {
-      electronAPI?: { sendChatMessage?: (t: string) => void; copyToClipboard?: (t: string) => void };
+      electronAPI?: { copyToClipboard?: (t: string) => Promise<{ success: boolean }> | void };
     }).electronAPI;
 
-    if (api?.sendChatMessage) {
-      api.sendChatMessage(message);
-    } else if (api?.copyToClipboard) {
-      api.copyToClipboard(message);
+    if (api?.copyToClipboard) {
+      try {
+        api.copyToClipboard(message);
+        copied = true;
+      } catch (_) {}
     }
 
-    // 3. Audio & Toast
     if (settings.soundEnabled) {
       playCopyChime(settings.soundVolume);
     }
-    onToast(lang === 'en' ? `💬 Chat message sent: ${message}` : `💬 Chat-Nachricht gesendet: ${message}`);
+    onToast(
+      lang === 'en'
+        ? `📋 Tactical callout copied to clipboard: ${message} (Paste into game chat with [Enter] + [Ctrl+V])`
+        : `📋 Taktik-Aufruf in Zwischenablage kopiert: ${message} (Im Spiel-Chat mit [Enter] + [Strg+V] einfügen)`,
+    );
   };
 
   // Aktion: Chat-Link kopieren
@@ -275,6 +282,30 @@ export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountIn
         onOpenWeightsModal={() => setIsWeightsModalOpen(true)}
       />
 
+      {/* Compliance & Data Freshness Alert Banner */}
+      {serviceState.isStale && (
+        <div
+          className="wvw-staleness-banner"
+          style={{
+            background: 'linear-gradient(90deg, rgba(69, 26, 3, 0.95), rgba(41, 18, 5, 0.95))',
+            borderBottom: '1px solid #b45309',
+            padding: '7px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '11px',
+            color: '#fed7aa',
+          }}
+        >
+          <span style={{ fontSize: '13px' }}>⚠️</span>
+          <span>
+            {lang === 'de'
+              ? `Veralteter Datenstand: WvW-Zustände konnten seit über 90s nicht aktualisiert werden${serviceState.lastError ? ` (${serviceState.lastError})` : ''}. Empfehlungen basieren auf zwischengespeicherten Daten. Automatischer Abruf pausiert mit adaptivem Backoff (${Math.round(serviceState.pollIntervalMs / 1000)}s).`
+              : `Stale Data: WvW states could not be updated for over 90s${serviceState.lastError ? ` (${serviceState.lastError})` : ''}. Recommendations are based on cached states. Retrying with adaptive backoff (${Math.round(serviceState.pollIntervalMs / 1000)}s).`}
+          </span>
+        </div>
+      )}
+
       {/* Main content based on active subtab */}
       <main className="wvw-main-content">
         {currentSubTab === 'advisor' && (
@@ -288,7 +319,7 @@ export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountIn
             config={advisorConfig}
             onUpdateConfig={updateConfig}
             onSelectObjective={(obj) => setSelectedObjId(obj.id)}
-            onSendChat={handleSendChat}
+            onSendChat={handleCopyCallout}
             onCopyChatLink={handleCopyChatLink}
             onTogglePin={handleTogglePin}
             onToggleIgnore={handleToggleIgnore}
@@ -337,7 +368,7 @@ export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountIn
         match={serviceState.match}
         worldsMap={worldsMap}
         onClose={() => setSelectedObjId(null)}
-        onSendChat={handleSendChat}
+        onSendChat={handleCopyCallout}
         onCopyChatLink={handleCopyChatLink}
         onTogglePin={handleTogglePin}
         onToggleIgnore={handleToggleIgnore}

@@ -438,13 +438,17 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
             </div>
           </div>
 
-          {/* Action buttons: "Nachricht senden" | "Zur Wegmarke Teleportieren" | "+1 Abschluss" | "Info" */}
+          {/* Action buttons: "Chat-Aufruf kopieren" | "Wegmarke kopieren" | "+1 Abschluss" | "Info" */}
           <div className="gw2-card-actions-row">
-            {/* 1. Nachricht senden */}
+            {/* 1. Chat-Aufruf kopieren */}
             <button
               className="gw2-gw-btn send-btn"
               onClick={() => onSendMessage(instance)}
-              title="Wegmarke & Restzeit in den GW2-Chat senden / kopieren"
+              title={
+                lang === 'en'
+                  ? 'Copy waypoint & timer to clipboard (paste in game with [Enter] + [Ctrl+V])'
+                  : 'Wegmarke & Restzeit in die Zwischenablage kopieren (im Spiel mit [Enter] & [Strg+V] einfügen)'
+              }
             >
               {isJustCopied ? (
                 <Check size={11} color="#4ade80" />
@@ -454,11 +458,15 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
               <span>{isJustCopied ? t('events.copied') : t('events.sendChat')}</span>
             </button>
 
-            {/* 2. Zur Wegmarke Teleportieren */}
+            {/* 2. Wegmarken-Code kopieren */}
             <button
               className="gw2-gw-btn teleport-btn"
               onClick={() => onTeleport(instance)}
-              title="Wegmarken-Code senden (im Chat anklicken zum Teleportieren)"
+              title={
+                lang === 'en'
+                  ? 'Copy waypoint chat code to clipboard (paste in game chat to click & travel)'
+                  : 'Wegmarken-Code kopieren (im Spiel-Chat einfügen zum Anklicken & Reisen)'
+              }
             >
               <Compass size={11} />
               <span>{t('events.copyWaypoint')}</span>

@@ -314,10 +314,8 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(code).catch(() => {});
     }
-    const api = (window as unknown as { electronAPI?: { teleportWaypoint?: (c: string) => void; copyToClipboard?: (c: string) => void } }).electronAPI;
-    if (api?.teleportWaypoint) {
-      api.teleportWaypoint(code);
-    } else if (api?.copyToClipboard) {
+    const api = (window as unknown as { electronAPI?: { copyToClipboard?: (c: string) => void } }).electronAPI;
+    if (api?.copyToClipboard) {
       api.copyToClipboard(code);
     }
   };

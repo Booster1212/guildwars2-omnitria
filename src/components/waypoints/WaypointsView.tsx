@@ -85,19 +85,21 @@ export const WaypointsView: React.FC<WaypointsViewProps> = ({ settings, onToast 
     }
 
     const api = (window as unknown as {
-      electronAPI?: { sendChatMessage?: (t: string) => void; copyToClipboard?: (t: string) => void };
+      electronAPI?: { copyToClipboard?: (t: string) => void };
     }).electronAPI;
 
-    if (api?.sendChatMessage) {
-      api.sendChatMessage(text);
-    } else if (api?.copyToClipboard) {
+    if (api?.copyToClipboard) {
       api.copyToClipboard(text);
     }
 
     if (settings.soundEnabled) playCopyChime(settings.soundVolume);
     setCopiedWp(wp.waypoint);
     setTimeout(() => setCopiedWp((c) => (c === wp.waypoint ? null : c)), 2000);
-    onToast(lang === 'en' ? `💬 Chat message sent: ${text}` : `💬 Chat-Nachricht gesendet: ${text}`);
+    onToast(
+      lang === 'en'
+        ? `📋 Waypoint callout copied: ${text} (Paste in game chat with [Enter] + [Ctrl+V])`
+        : `📋 Wegmarken-Aufruf in Zwischenablage kopiert: ${text} (Im Spiel mit [Enter] + [Strg+V] einfügen)`
+    );
   };
 
   return (

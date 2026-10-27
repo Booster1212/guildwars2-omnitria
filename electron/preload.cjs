@@ -9,9 +9,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetPosition: () => ipcRenderer.send('window-reset-position'),
   setWindowMode: (mode) => ipcRenderer.send('window-set-mode', mode), // 'mini' | 'full'
   setIgnoreMouse: (ignore) => ipcRenderer.send('window-set-ignore-mouse', ignore),
-  copyToClipboard: (text) => ipcRenderer.send('copy-to-clipboard', text),
-  sendChatMessage: (text) => ipcRenderer.send('gw2-send-chat', text),
-  teleportWaypoint: (waypoint) => ipcRenderer.send('gw2-teleport-waypoint', waypoint),
+  copyToClipboard: (text) => ipcRenderer.invoke('copy-to-clipboard', text),
+  // Legacy aliases redirected exclusively to safe clipboard copy (no keystroke/chat simulation)
+  sendChatMessage: (text) => ipcRenderer.invoke('copy-to-clipboard', text),
+  teleportWaypoint: (waypoint) => ipcRenderer.invoke('copy-to-clipboard', waypoint),
   onClickThroughToggled: (callback) => {
     const handler = (_event, clickThrough) => callback(clickThrough);
     ipcRenderer.on('click-through-toggled', handler);

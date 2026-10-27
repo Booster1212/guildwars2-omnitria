@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.7] - 2026-10-27
+
+### Security & ToS Compliance Overhaul
+
+#### Chat Automation & Keystroke Simulation Removed
+* **Safe Clipboard-Only Architecture:** Completely removed legacy keystroke simulation, Windows Script Host (`WScript.Shell`), temporary VBScript files (`gw2_send.vbs`), and `child_process.exec` from Electron main process.
+* **Explicit Copy Actions:** All chat callout and waypoint buttons now explicitly copy formatted strings to the Windows clipboard via safe `clipboard.writeText` IPC with user toast confirmation ("In Zwischenablage kopiert! Einfügen im Spiel mit [Enter] + [Strg+V]").
+* **Legacy IPC Defusal:** Legacy IPC endpoints (`gw2-send-chat`, `gw2-teleport-waypoint`) are completely defused and safely redirected to clipboard copy only.
+
+#### WvW Tactical Assistant Transparency & Staleness Handling
+* **Staleness Detection (90s Threshold):** Data older than 90 seconds is actively flagged as stale with a prominent visual warning banner and timer badge in the WvW module.
+* **Exponential Backoff:** Implemented adaptive exponential backoff (30s → 45s → 60s → 120s → 300s) on consecutive API polling failures to prevent server spam during ArenaNet outages.
+* **Transparent Estimation Models:** All tactical recommendations explicitly declare data source, staleness state, and `isEstimated: true` flags, acknowledging the absence of zerg/stealth radar in public APIs.
+
+#### Electron Window & Auto-Updater Hardening
+* **Navigation & Popup Protection:** Added `setWindowOpenHandler` restricting window creation to external default browser with strict domain allowlists (`wiki.guildwars2.com`, `account.arena.net`, `api.guildwars2.com`). Added `will-navigate` guard preventing remote code injection in overlay windows.
+* **Strict Auto-Updater Validation:** In-app update downloads are strictly constrained to official HTTPS GitHub release endpoints (`github.com/Booster1212/guildwars2-omnitria/releases/download/` and `objects.githubusercontent.com`).
+
+#### Documentation & Public Claims Overhaul
+* **Restructured ToS Compliance Guide:** Completely rewrote `docs/TOS_COMPLIANCE.md` into 8 structured sections with objective, technically verifiable explanations.
+* **Removal of Absolute Guarantees:** Removed all unverified claims of "100% ToS-compliant", "garantiert bannsicher", or official ArenaNet endorsement across `README.md` and documentation.
+
+---
+
 ## [0.1.6] - 2026-10-27
 
 ### Added
