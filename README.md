@@ -21,7 +21,7 @@
 Seamlessly hovering above your in-game chat box as a compact mini-HUD or expanding into a full-screen Hero Board.  
 Crafted with authentic Guild Wars 2 visual aesthetics: dark slate backdrop, antique bronze & gold borders, GW2 rarity color palettes, and official ArenaNet artwork.
 
-[📥 Download v0.1.5 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.5) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
+[📥 Download v0.1.5 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.5) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
 
 </div>
 
@@ -155,7 +155,8 @@ Configure appearance, customize chat callouts, sync your account credentials, an
 Omnitria communicates exclusively with official **ArenaNet API servers** (`https://api.guildwars2.com/v2/`).
 
 > [!IMPORTANT]
-> ### 🛡️ 100% Safe & Read-Only
+> ### 🛡️ 100% Safe, Read-Only & ToS-Compliant
+> - **100% Policy Compliant:** Operates without memory manipulation, DLL injection, or gameplay automation. Read our full technical breakdown in **[docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md)**.
 > - **Cannot Modify Your Account:** ArenaNet API keys are **strictly read-only**. No third-party application can spend your gold, delete items, move characters, or access account credentials.
 > - **Stored Locally Only:** Your API key is stored exclusively in your local machine's encrypted application storage.
 > - **Zero Third-Party Servers:** Omnitria operates without intermediate backend servers or telemetry tracking.
