@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the **Omnitria** Guild Wars 2 In-Game Overlay will be documented in this file.
+All notable changes to the **Omnitria** Guild Wars 2 In-Game Overlay are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -11,79 +11,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-#### WvW Tactical Assistant (Alpha / WvW Taktik-Assistent)
-* **Dedicated WvW Navigation Module (`wvw`)**:
-  * Persistent tab with live EU & NA match synchronization and background polling (30s interval).
-  * Direct match selector with real server and alliance names resolved through `/v2/worlds` and `/v2/wvw/matches`.
-  * Automatic player team detection based on connected ArenaNet account home world ID.
-* **Smart Tactical Objective Advisor (`WvwAdvisorView`)**:
-  * Multi-factor heuristic scoring engine evaluating Righteous Indignation (RI) vulnerability/timers, Points Per Tick (PPT) strategic value, structure upgrade tiers, distance from home spawn, and match leadership momentum.
-  * User-configurable weight sliders (`WvwWeightsModal`) with instant strategy presets:
-    * `Balanced`: Comprehensive tactical scoring across all objectives.
-    * `Aggressive`: Maximizes high-PPT capture recommendations and leader curbing.
-    * `Territorial`: Prioritizes defense of home borderland assets and contested camps.
-    * `Roamer`: Focuses on fast camp flips, sentries, and solo/small-scale capture opportunities.
-  * Top 3 Tactical Recommendations banner with instant map-focus and objective detail view.
-  * Top WvXP & Skirmish Track banner highlighting optimal activity hotspots (e.g. Stonemist Castle, camp refresh cycles).
-* **Interactive Tactical Radar Map (`WvwMapView`)**:
-  * Real-time vector SVG rendering for Eternal Battlegrounds (EBG) and Alpine / Desert Borderlands.
-  * Dynamic objective pins (Camps, Towers, Keeps, Stonemist Castle, Mercenary camps, Ruins) with owner color rings (Red, Blue, Green), RI countdown badges, and guild claim emblems.
-  * Filter controls by map type and team ownership.
-* **Live Match Dashboard (`WvwDashboard`)**:
-  * Real-time match scores, Victory Points (VP), current Points Per Tick (PPT), Kill/Death ratios (K/D), skirmish progress bars, and structure possession distribution.
-  * Map-specific activity rankings for optimal WvXP and reward track leveling.
-* **Session Flips & Activity History (`WvwFlipsHistory`)**:
+#### World vs. World (WvW) Tactical Assistant
+* **Dedicated WvW Navigation Module**:
+  * Persistent WvW tab with live match synchronization for European (EU) and North American (NA) servers.
+  * Automatic player team detection based on connected ArenaNet account home world.
+  * Match selector displaying authentic server and alliance names.
+* **Smart Objective Advisor**:
+  * Real-time tactical recommendations evaluating Righteous Indignation (RI) timers, Points Per Tick (PPT) strategic value, structure tiers, distance from home spawn, and match leadership momentum.
+  * Strategy presets (*Balanced*, *Aggressive*, *Territorial*, *Roamer*) with customizable scoring weight sliders.
+  * Top 3 recommendations banner with quick-focus and objective detail view.
+  * Activity hotspot banner highlighting optimal WvXP and reward track progression areas.
+* **Interactive Tactical Radar Map**:
+  * Vector SVG maps for Eternal Battlegrounds (EBG) and Alpine / Desert Borderlands.
+  * Live objective pins (Camps, Towers, Keeps, Stonemist Castle, Mercenaries, Ruins) with team color rings, RI countdown badges, and guild claim emblems.
+* **Live Match Dashboard**:
+  * Real-time match scores, Victory Points (VP), Points Per Tick (PPT), Kill/Death ratios (K/D), skirmish progress bars, and structure possession distribution.
+  * Map-specific activity rankings for optimal reward track leveling.
+* **Session Flips & Activity Tracker**:
   * Live capture logger tracking objective ownership changes with timestamps, team transitions, and Righteous Indignation countdown timers.
-* **100% Bilingual Parity (German & English)**:
-  * Complete i18n translation coverage across all WvW views, labels, modal settings, advisor tactical rationale (`reasons`/`reasonsEn`), and uncertainty notes.
-  * Language-isolated in-memory caches (`inMemoryObjectivesDe` / `inMemoryObjectivesEn`, `inMemoryWorldsDe` / `inMemoryWorldsEn`) ensuring zero bilingual cache poisoning during on-the-fly language switching.
+* **Full Bilingual Support**:
+  * Complete English and German localization across all WvW views, tactical recommendations, objective notes, and settings.
 
-#### Meta-Event System Expansion: Dwayna & Lyssa
+#### Orr Temple Meta-Events (Dwayna & Lyssa)
 * **Cathedral of Zephyrs (Dwayna)**:
-  * Integrated into deterministic 2-hour rotation schedule in Malchor's Leap (`temple-dwayna` / `wb-dwayna`).
-  * Fast-travel waypoint chat code `[&BLcCAAA=]`, loot highlights, CC/mechanics cheat sheet, and achievement tracking (`2840` / `2854`).
+  * Integrated into deterministic 2-hour rotation schedule in Malchor's Leap with fast-travel waypoint `[&BLcCAAA=]`, loot highlights, mechanics guide, and achievement tracking.
 * **Cathedral of Eternal Radiance (Lyssa)**:
-  * Integrated into deterministic 2-hour rotation schedule in Malchor's Leap (`temple-lyssa` / `wb-lyssa`).
-  * Fast-travel waypoint chat code `[&BKcCAAA=]`, loot highlights, seal disruption mechanics, and achievement tracking (`2841` / `2856`).
-* **1-Click Game Chat Broadcasts & Linking**:
-  * Instant `/m` game chat broadcasting and achievement drawer integration across all Orr temple meta-events.
+  * Integrated into deterministic 2-hour rotation schedule in Malchor's Leap with fast-travel waypoint `[&BKcCAAA=]`, loot highlights, mechanics guide, and achievement tracking.
+* **1-Click Game Chat Broadcast**:
+  * Quick-copy waypoint codes and `/m` map chat callouts for Orr temple meta-events.
 
 ### Changed
-* **Window Navigation & Controls**:
-  * `[Esc]` key now minimizes or hides the overlay window, immediately returning focus to Guild Wars 2.
-  * Updated controls table and documentation to reflect the Escape minimization behavior.
-* **Automated Domain & Calculation Test Suite**:
-  * Expanded automated test suite from 38 to **63 unit tests** (`tests/*.test.ts`).
-  * Added comprehensive test coverage for WvW translation key parity, team resolution, English tactical reason generation, and advisor heuristics (`tests/wvwTranslations.test.ts`).
-* **Documentation & Screenshot Assets**:
-  * Updated `README.md` with dedicated WvW Tactical Assistant feature showcase, updated controls table, and bilingual highlights.
-  * Refreshed all documentation screenshots in `docs/screenshots/` with high-resolution captures, fully loaded Render API icons, and updated 5-module navigation rail.
+* **Overlay Minimization Shortcut**:
+  * Pressing `Escape` now instantly minimizes or hides the overlay window, returning focus directly to Guild Wars 2.
 
-### Performance & Engine
-* **Referentially Stable Store Subscriptions**:
-  * Optimized `useSyncExternalStore` snapshots across WvW service and account stores to eliminate redundant React reconciliation cycles.
-* **Debounced Logging & IPC Optimizations**:
-  * Buffered disk logging and optimized inter-process communication between Electron main and renderer processes.
+### Fixed
+* Fixed missing event schedule entries for Dwayna and Lyssa temple meta-events.
+* Fixed keyboard navigation and hotkey event trapping when closing modals and dialogs.
 
 ---
 
 ## [0.1.4] - 2026-10-25
 
-### Fixed
-* **Legendary Armory Component Tree Storage Depletion**:
-  * Fixed depth-first traversal stock allocation bug where raw leaf materials shared across multiple legendary sub-branches (such as `Obsidian Shard` and `Glob of Ectoplasm` demanded by both *Mystic Clovers* and *Gift of Mastery*) starved lower branches, causing the lower node to show `Storage: 0 / 250` instead of account stock (`29 / 230`).
-  * Non-craftable leaf materials now evaluate available account storage dynamically (`Math.min(demand, totalStock)`), ensuring all sub-branches display authentic account inventory while the overall Bill of Materials (BOM) cleanly aggregates net missing quantities without double-counting.
-
 ### Added
-* **Crafting: Learned & Relevant Recipe Catalog (Rezeptbuch)**:
-  * Complete overhaul of the *Gelehrte / Relevante Rezepte* tab in Discipline details.
-  * Search by item name and rating/level requirement.
-  * Tier & Level filter chips (T1 0–74, T2 75–149, T3 150–224, T4 225–299, T5 300–399, T6 400+, Ascended 500).
-  * Recipe type chips (Components, Refinement, Armor, Weapons, Consumables, Bags, Feasts, Trinkets).
-  * Status badges indicating whether a recipe is directly craftable with current inventory (`Direkt herstellbar`), auto-learned (`Automatisch`), recipe-sheet bound (`Rezeptbogen`), or discovery-based (`Entdeckung`).
-  * Live inventory ingredient badges with green/red stock counts, real-time Trading Post crafting cost estimation, and clean pagination.
-* **Branding & Documentation**:
-  * Centered official high-resolution Omnitria logo (`docs/screenshots/icon.png`) in `README.md`.
+* **Learned & Relevant Recipe Catalog (Crafting)**:
+  * Dedicated recipe catalog tab in Crafting discipline details.
+  * Filter recipes by discipline level/tier (T1 through T6 and Ascended) and recipe categories (Weapons, Armor, Components, Refinement, Consumables, Bags, Trinkets).
+  * Search recipes by name with instant status badges (*Directly Craftable*, *Auto-Learned*, *Recipe Sheet*, *Discovery*).
+  * Real-time Trading Post crafting cost estimates and live account inventory counts.
+
+### Fixed
+* **Legendary Material Stock Allocation**:
+  * Fixed an issue where materials shared across multiple legendary sub-branches (such as Obsidian Shards and Ectoplasm in both Mystic Clovers and Gift of Mastery) showed 0 stock in lower branches.
+  * Shared leaf materials now accurately display account storage across all branches while the overall Bill of Materials (BOM) prevents duplicate deduction.
 
 ---
 
@@ -91,131 +70,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-#### Legendary Armory Overhaul & Cost-Effective Procurement
-* **Kristallklare Strukturierung (Herstellbar / Nicht herstellbar / Was gekauft werden MUSS / Wie viel ich bereits habe)**:
-  * **🔨 Herstellbar (Eigenfertigung)**: Saubere Erfassung und Filterung aller Komponenten und Gaben (Gabe der Beherrschung, Gabe des Schicksals, Gabe des Metalls, Mystische Kleeblätter, Vorläufer-Waffen), die in Handwerksberufen oder der Mystischen Schmiede selbst hergestellt werden können.
-  * **🛒 Was gekauft werden MUSS**: Dedizierte Hervorhebung aller Posten, die zwingend gekauft werden müssen – aufgeteilt in feste Händler-Pflichtkäufe (z.B. 100g für 100 Eisige Runensteine bei Rojan), Handelsposten-Zukäufe (T6-Trophäen, Ectos, Münzen) und manuell auf Direktkauf gesetzte Zwischenstufen.
-  * **📦 Nicht herstellbar (Belohnungen & Rohstoffe)**: Getrennte Erfassung von accountgebundenen Erkundungs- und Spielbelohnungen (Gabe der Erkundung über 100% Core Tyria, Gabe des Kampfes über WvW-Pfad, Obsidianscherben über Karma) und Basis-Rohstoffen.
-  * **📊 Wie viel ich bereits habe (Klarer visueller Account-Bestand)**:
-    * Dedizierte Tabellenspalte mit dynamischer Mini-Fortschrittsleiste, exakter Zahlenanzeige (`Vorhanden / Benötigt (XX%)`) und klaren Farbstatus-Pills (`Vollständig (100%)`, `Teilweise (+X im Lager)`, `Fehlt komplett (0%)`).
-    * 4 interaktive Header-Karten zur Sofort-Übersicht: Gesamtbestand mit Fortschrittsbalken und Goldwert, Gesamte Zukaufkosten mit Händler/TP-Aufschlüsselung, Herstellbare Komponenten, Nicht-herstellbare Posten.
-    * **Gruppierte Ansicht & Schnellfilter**: Umschaltung zwischen strukturierter Kategorien-Unterteilung (mit Zwischensummen pro Sektion) und flacher Tabelle mit Filterchips (`Alle`, `🔨 Herstellbar`, `🛒 Muss gekauft werden`, `📦 Nicht herstellbar`, `✅ Bereits im Lager`, `⏳ Noch offen`).
-    * **Detail-Umfang (Scope)**: Wählbar zwischen „Vollständig (Inkl. Gaben & Zwischenstufen)“ und „Grund-BOM (Stückliste)“.
-* **Undo Direct Purchase Fix in Crafting Tree**:
-  * **Root Cause Fix**: Zuvor setzte ein Klick auf „Kauf“ das `recipe` des Knotens auf `undefined`, wodurch die Button-Bedingung `{node.depth > 0 && node.recipe}` fehlschlug und der Button aus dem DOM verschwand.
-  * **Persistent Toggle State**: Ergänzung von `canCraft: boolean` auf dem `TreeNode`, wodurch die Herstellbarkeit auch bei Direktkauf erhalten bleibt.
-  * **Undoable Button (`CraftTree.tsx`)**: Der Kauf-Button transformiert bei Direktkauf in einen hervorgehobenen „Herstellen“-Button mit `RotateCcw`-Icon, wodurch der Kauf per Klick sofort rückgängig gemacht wird.
-  * **Global & Inline Purchase Management**:
-    * Globaler 1-Klick-Reset-Banner in `MaterialTable.tsx` (`clearBuyItems`).
-    * Inline-Kauf-Badges mit Schnell-Rückgängig-Button direkt in den Materialzeilen.
-* **Cost-Effective Procurement & Vendor Pricing Integration**:
-  * **Fixed Vendor Pricing for Iconic Legendary Items**: Ergänzung von `[19676, 10000]` (Eisiger Runenstein / Icy Runestone – 1g / 10.000c) in `KNOWN_VENDOR_PRICES` ([costs.ts](file:///e:/GW2-Overlay/src/domain/costs.ts)). Da der Runenstein seelengebunden ist und kein Handelsposten-Listing hat, fehlte er bisher im Budget; nun fließen alle 100 Runensteine (100g) fest in die Kalkulation ein.
-  * **Special Legendary Sources Catalog (`src/domain/sources.ts`)**: Spezial-Katalog `SPECIAL_LEGENDARY_SOURCES` für die günstigsten Beschaffungswege (Eisiger Runenstein bei Rojan, Obsidianscherben über Karma am Balthasar-Tempel, Eldritch Scroll über 50 Geisterscherben, Gabe des Kampfes über WvW, Gabe der Erkundung über Welterkundung, Mystische Kleeblätter über Schmiede/WvW/PvP).
+#### Legendary Armory Procurement & Classification
+* **Clear Material Categorization**:
+  * Categorized all items into **Craftable** (self-crafted items and Mystic Forge recipes), **Must Buy** (mandatory vendor purchases and Trading Post materials), and **Non-Craftable** (world exploration, currencies, and account rewards).
+  * Dedicated inventory tracking column with progress bars, exact counts (`Owned / Required`), and status badges.
+  * Header summary cards displaying total progress, gold investment, vendor requirements, and non-craftable items.
+  * Grouped view toggle and filter chips (*All*, *Craftable*, *Must Buy*, *Non-Craftable*, *In Stock*, *Missing*).
+  * Fixed vendor price integration for mandatory items like Icy Runestones (100g for 100 runestones) and Master Craftsman ingredients.
+* **Crafting Tree & Purchase Toggle**:
+  * Added undo capability for direct purchases in the crafting tree, allowing users to toggle between crafting and buying any intermediate product.
+  * Global one-click reset button to revert all direct purchase overrides.
 
-#### Boss & Event Achievements and Visual Overhaul
-* **Achievements Section Overhaul & Filter Bugfix**:
-  * **Expansion Filter Badges**: Resolved bug where expansion category tabs (`HoT`, `PoF`, `IceDragon`, `EoD`, `SotO`, `Janthir`) displayed `0` due to outdated category keys in `categoryCounts`.
-  * **Dedicated Icebrood Saga Filter (`IceDragon`)**: Separated `wb-dragonstorm` and `wb-drakkar` into their own `icedragon` category tab (`Eisbrut-Saga` / `Icebrood Saga`).
-  * **100% Event Coverage**: Added `wb-castora-ruins-eternity` (`Awakening of Eternity`) to complete authentic 1:1 boss achievements across all 35 world bosses and meta events.
-  * **Live Event Card Trophy Drawers**: Connected `getAchievementsForEvent(event.id)` in `EventCard.tsx`, activating the Trophy drawer for every event card with live AP progress and account completion checkmarks.
-  * **Bilingual Tab Labels**: Added localized i18n keys for all category filter tabs (`Alle Bosse`, `Verfolgt`, `Core Weltenbosse`, `Heart of Thorns`, `Path of Fire`, `Eisbrut-Saga`, `End of Dragons`, `Secrets of the Obscure`, `Janthir & Zukunft`).
-* **Visual Overhaul for Loot & Tactics (Event Cards)**:
-  * Resolved text concatenation bug where loot highlights were squished together with zero spacing.
-  * Added `<Info size={11} className="info-btn-glyph" />` icon to the card's Info toggle button with dynamic open/close state.
-  * Verified 100% of event item IDs against the official ArenaNet API (`47870` Tequatl's Hoard, `85900` Festive Confetti Infusion, `72021` Chak Egg Sac, `78743` Verdant Brink Chest, `78650` Auric Basin Chest, `69392` Ley Line Spark, `75012` Aurillium, etc.) to eliminate mismatched hover tooltips and broken images.
-  * Added complete bilingual support for all 35 world bosses and meta events with English & German loot highlights (`lootHighlightsEn`) and boss tactics (`tacticsEn`).
-  * Updated `ItemTooltip` to render localized metadata (Rarity, Type, Level, Binding, Vendor/Trading Post value, Inventory count) in both English and German.
-  * Conceptual / non-item drops now render crisp themed Lucide icons and clean localized tooltips instead of unrelated item tooltips.
-  * Added dynamic mechanic badge icons in the tactics header (`Breakbar/CC`, `Dodge/Waves`, `Glider/Updraft`, `Rifts/Portals`, `Escort/Defend`, `Special Action`).
-  * Updated left event medal glyph to dynamically match event types (dragon, golem, elemental, wurm, pirate, karka, choya, crystal, airship, portal).
-  * Introduced dedicated `.gw2-tactics-card` with shield icon and authentic typography.
-  * Introduced `.gw2-loot-card` with themed rarity chips (`loot-chip-legendary`, `loot-chip-ascended`, `loot-chip-rare`, `loot-chip-standard`) and dynamic icons (`Gift`, `Package`, `Sparkles`, `Award`).
-  * Redesigned the in-game achievements drawer with total AP calculation, authentic GW2 gold accents, and status badges.
-* **Exclusive Focus on Boss & Meta-Event Achievements**:
-  * Filtered achievements in both the Achievements view and Event Cards to strictly list World Bosses and Expansion Meta Events (Core, HoT, PoF/IBS, EoD, SotO, Janthir).
-  * Removed non-boss achievements (woodcutting, vista views, map exploration, jumping puzzles, fractals).
-  * Added authentic achievements for previously missing boss events (`verdant-brink-night`, `choya-pinata`, `maws-of-torment`, `serpents-ire`, `aetherblade-assault`, `kaineng-blackout`, `gangs-of-echovald`).
-  * Removed fallback generic placeholder `Event-Teilnehmer`.
-* **Navigation Streamlining**:
-  * Removed the standalone "Wegmarken" (Waypoints) section from the navigation rail and routing, focusing the overlay on Events, Achievements, Crafting, and Legendary weapons.
+#### Boss & Event Achievements
+* **Achievement Integration on Event Cards**:
+  * Added achievement drawers directly onto event cards displaying linked achievements, Mastery Point indicators, and live account completion status.
+  * Added expansion category filters for World Bosses and Meta-Events (*Core Tyria*, *Heart of Thorns*, *Path of Fire*, *Icebrood Saga*, *End of Dragons*, *Secrets of the Obscure*, *Janthir Wilds*).
+  * Added bilingual boss tactics and loot highlights for all 35 world bosses and meta-events.
 
 #### Recursive Crafting & Leveling Calculator
-* **Prioritized Self-Crafting & Visual Preparation Chain**:
-  * **Intermediate Recipe Breakdown in Step Cards**: Preparation steps now directly display the recipe ingredients needed for each intermediate product (e.g., for `Brotlaib`: `Herstellung: 28× Krug Wasser + 28× Beutel Mehl + 28× Paket Hefe`), with clickable item icons, item names, and inventory stock indicators.
-  * **Raw Material Procurement Line**: When intermediate self-crafting is active, the card's material overview (`step-ings-line`) accurately displays the raw base materials to acquire (`st.purchases`) instead of intermediate components, preventing confusion between crafted and bought items.
-  * **Known Vendor Pricing Database**: Added `KNOWN_VENDOR_PRICES` covering Master Craftsman ingredients (flour, yeast, water, salt, vinegar, soy sauce, buttermilk, sugar, charcoal, tin, threads) to resolve unpriced vendor items accurately, eliminating false "unpriced" warnings and cost distortions.
-  * **Efficient Leveling Routes & Tier Transitions**:
-    * **Tier Aging Penalty**: Penalizes dragging obsolete recipes > 25 ranks beyond their rating, ensuring the planner smoothly transitions to newly unlocked recipes at rank 25, 50, 75, etc. (preventing redundant runs like 70× Fries).
-    * **Discovery XP Bonus Modeling**: Integrates GW2's +100% to +200% discovery bonus into `ranksPerCraft` and recipe evaluation, favoring discovery crafts for rapid, cost-effective leveling.
-    * **Balanced Cost Scoring**: Prevents recipes with vendor ingredients from being discarded due to strict unknown flags, prioritizing true lowest cost per rank gained.
-  * **Self-Crafting Priority over TP Purchases**: When `craftIntermediates` is enabled (now active by default with `all_craft` strategy), the route planner strictly prioritizes crafting intermediate components within the discipline over buying from the Trading Post, even if TP prices are low or vendor components lack TP pricing.
-  * **Extended Multi-Tier Depth**: Increased recursive acquisition search depth from 3 to 8 tiers, completely resolving multi-stage crafting pipelines (e.g. `Seidenfetzen => Seidenballen => Seiden-Insignie => Seiden-Wams` or `Holzstamm => Planke => Dübel => Inschrift => Waffe`).
-  * **Visual Preparation Flow in Step Cards**: Each step in the Level Planner includes a dedicated preparation box (`planner-step-prep-box`) displaying the exact chronological sequence of intermediate products to craft beforehand, with item icons, exact craft counts, and flow arrows leading to the target product.
-  * **Item Data Pre-Loading**: Updated `allNeededItemIds` and `collectPlannerItemIds` to ensure all intermediate and recursive ingredients are fully preloaded for tooltips and icon rendering.
-* **Multi-Tier Intermediate Product Tree Resolution**:
-  * Implemented recursive material requirement calculation in `src/domain/craftingCalculator.ts`.
-  * Fully resolves intermediate products down through all component tiers (e.g., Weapon → Inscription / Blade → Dowel / Ingot → Wood Log / Ore).
-  * Cycle detection prevents recursion loops on complex or cyclic item recipes.
-* **Accurate Output Math & Rounding**:
-  * Ceiling division (`Math.ceil(demand / outputCount)`) ensures whole crafting runs are calculated correctly without fractional runs or ingredient shortages.
-  * Multi-target craft runs aggregate accurately across all steps in the route.
-* **Account Inventory & Stock Pool Deduction**:
-  * Real-time deduction of items already owned in bank tabs, material storage, shared inventory slots, and character bags.
-  * Shared surplus pool: Extra units produced from minimum craft run batches are automatically returned to the pool and reused in downstream recipes.
-* **Procurement Strategy Bar (Craft vs. Buy)**:
-  * Global strategy toggle between:
-    * **Craft All (`all_craft`)**: Maximizes self-crafting of all intermediate components.
-    * **Buy All (`all_buy`)**: Procures intermediate components directly from the Trading Post.
-    * **Custom (`custom`)**: Per-item overrides for fine-grained user control.
-* **View A: Material Demand Table (`MaterialDemandTable.tsx`)**:
-  * Comprehensive summary table with gross demand, stock, net demand, procurement badges, unit prices, and line cost totals.
-  * Search filter by item name and role filters (*All*, *Only Missing*, *Base Materials*, *Intermediates*, *End Products*).
-  * Direct inline toggle button to flip individual items between *Craft* and *Buy*.
-* **View B: Interactive Crafting Tree View (`CraftingTreeView.tsx`)**:
-  * Hierarchical, collapsible tree structure showing step-by-step production flow.
-  * Node-level badges for craft runs, gross requirement, available stock, and procurement action.
-  * Quick-expand and collapse all controls.
-* **Discovery Recipes in Crafting Tree & Material Procurement**:
-  * Full end-to-end propagation of discovery recipes (`needsDiscovery`) and discovery ingredients (`requiredForDiscovery`) from `planLevelRoute` and `createDisciplineRecipeProvider` into `calculateCraftingPlan`, `CraftingTreeView`, and `MaterialDemandTable`.
-  * **Herstellungskette (`CraftingTreeView`)**: Added prominent `<Sparkles size={10} /> Entdeckung` / `Discovery` badges for all end products and intermediate components that require experimentation in the discovery tab at the crafting station.
-  * **Materialbeschaffungsliste (`MaterialDemandTable`)**:
-    * Added discovery badges (`Entdeckung` / `Discovery`) on discovery craft rows and ingredient indicators (`Entdeckungs-Zutat` / `Discovery Ingredient`) on all materials required to perform discoveries.
-    * Added dedicated `Entdeckungen` / `Discoveries` filter pill in the table toolbar to filter materials down to only items involved in discovery recipes.
-    * Summary footer displays the total count of discovery recipes in the planned route.
-  * **Accurate Recipe Mapping**: `calculateCraftingPlan` tracks `recipesUsed` across all traversal steps to prevent end-product demands or intermediate recipes from falling back to 0 when resolved via discovery.
-  * **Automated Unit Tests**: Added unit tests 11, 12, and 13 in `tests/craftingCalculator.test.ts` covering discovery end products, discovery intermediate components (e.g. Insignias/Inscriptions with `allowDiscovery: true` vs `false`), and account-unlocked recipes.
-* **Comprehensive Test Suite**:
-  * Added `tests/craftingCalculator.test.ts` (13 automated unit test cases) covering multi-level intermediates, multiple branches, output count rounding, stock coverage, buy override, partial intermediate stock, missing recipe dependency, cycle detection, route updates, and discovery recipes.
-  * Added `tests/plannerRestart.test.ts` verifying restart state sanitation and discovery/intermediate resolution.
-
----
+* **Multi-Tier Recipe Resolution**:
+  * Complete recursive calculation resolving intermediate components down to base raw materials.
+  * Step preparation cards displaying exact intermediate crafting sequences with clickable icons and inventory counts.
+  * Global procurement strategy selector (*Craft All*, *Buy All*, *Custom*).
+  * Discovery recipe support with visual badges and ingredient indicators.
+  * Account inventory deduction across character bags, bank tabs, material storage, and shared inventory.
 
 ### Changed
-
-* **Startup Configuration & Default Options**:
-  * Crafting level planner options for *“Allow Discovery Recipes”* (`allowDiscovery`) and *“Craft Intermediates”* (`craftIntermediates`) now default to inactive (`false`) on startup and reload.
-  * Clean routes load standard direct crafts by default without discovery clutter or intermediate loops.
-  * Options remain session-based and are not kept active in `localStorage` across restarts.
-* **Clean Step Checkmarks on Restart**:
-  * Removed automatic checkmark forcing (`isAutoDone`), ensuring step checkmarks strictly start at `0` on launch.
-  * Full manual checking control for users tracking crafting progress step-by-step.
-* **Discipline Synchronization**:
-  * React `key={discipline}` added to `LevelPlanner` in `DisciplineDetail.tsx` to ensure clean state resets when switching between disciplines.
-  * Bidirectional synchronization between the strategy bar (`all_craft` / `all_buy`) and the intermediate crafting checkbox.
-* **English Documentation**:
-  * Translated `docs/DATENQUELLEN.md` to English for international contributors and documentation consistency.
-
----
+* Crafting Level Planner options (*Allow Discovery Recipes* and *Craft Intermediates*) now start inactive by default for cleaner baseline routes.
+* Step checkmarks strictly start at 0 on launch for full manual player progress tracking.
+* Removed deprecated Waypoints tab from navigation to streamline the overlay experience.
 
 ### Fixed
-
-* **Start/Target Rank Collision on Restart**:
-  * Fixed an issue where pulling profession ratings from account data caused `fromRank >= toRank` (e.g. 400 to 400), resulting in an empty step route.
-  * Target rank is now automatically adjusted to the next milestone (`start + 25`, `400`, or `500`).
-  * Added a dedicated max-rank banner with a one-click button to view the full route from rank 0 when a profession is already at maximum rating (500/500 or 400/400).
-* **Discovery Intermediate Recipes in `acq`**:
-  * Fixed intermediate recipe check in `levelPlanner.ts` (`acq`) to evaluate `isUsable(r)` instead of `isLearned(r)`, allowing intermediate discovery recipes (such as Cooking components) to craft properly when discoveries are enabled.
-* **Gross & Net Demand for End Products**:
-  * Corrected gross and net demand calculation in `craftingCalculator.ts` for end products and intermediate nodes, fixing the bug where end products displayed `0` total requirement.
-* **Electron File Store Mirror Overwrite**:
-  * Fixed a bug where asynchronous reading of the Electron file store mirror on startup restored old checkmarks and persisted discovery flags.
+* Fixed an issue where pulling maxed character discipline ratings caused an empty leveling route by automatically adding a milestone target and one-click view of the full route.
+* Fixed gross and net demand calculation for intermediate crafting steps that previously showed 0 total demand.
+* Fixed text spacing and styling for event loot highlights and mechanics badges.
