@@ -326,6 +326,10 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
         return 'category-janthir';
       case 'voe':
         return 'category-voe';
+      case 'ibs':
+        return 'category-ibs';
+      case 'lws':
+        return 'category-lws';
       default:
         return 'category-core';
     }

@@ -199,3 +199,74 @@ test('6. Fehlende, unbekannte oder unvollständige API-Daten', () => {
   assert.ok(Array.isArray(validSchedule));
   assert.ok(validSchedule.length > 0);
 });
+
+test('7. Umfassende Meta-Event Abdeckung aller Erweiterungen & Seasons', () => {
+  const expectedMetaIds = [
+    // Core & Orr
+    'ley-line-anomaly',
+    'cathedral-of-glorious-anticipation',
+    'cathedral-of-silence',
+    'cathedral-of-verdance',
+    'gates-of-arah',
+    // Heart of Thorns
+    'dragons-stand',
+    'tarir-octovine',
+    'chak-gerent',
+    'verdant-brink-night',
+    // Path of Fire
+    'augury-rock',
+    'forged-with-fire',
+    'serpents-ire',
+    'buried-treasure',
+    'junundu-rising',
+    // End of Dragons
+    'dragons-end',
+    'gyala-delve',
+    'gangs-of-echovald',
+    'kaineng-blackout',
+    'aetherblade-assault',
+    // Secrets of the Obscure
+    'skywatch-tower',
+    'defense-of-amnytas',
+    'convergences-public',
+    'inner-nayos-eparch',
+    'nayos-heitors-gate',
+    // Janthir Wilds
+    'janthir-syntri-titans',
+    'lowland-shore-gathering',
+    'janthir-convergence',
+    'janthir-bava-nisos',
+    // Icebrood Saga
+    'dragonstorm',
+    'drakkar',
+    'drizzlewood-south',
+    'drizzlewood-north',
+    'grothmar-metal-concert',
+    // Living World Seasons
+    'silverwastes-vinewrath',
+    'dry-top-sandstorm',
+    'palawadan-jewel',
+    'death-branded-shatterer',
+    'thunderhead-peaks',
+    'twisted-marionette',
+  ];
+
+  assert.ok(EVENTS.length >= 55, 'EVENTS Datenbank muss mindestens 55 Events umfassen');
+
+  for (const id of expectedMetaIds) {
+    const ev = EVENTS.find((e) => e.id === id);
+    assert.ok(ev, `Meta-Event ${id} muss in EVENTS registriert sein`);
+    assert.ok(ev.name && ev.name.length > 0, `Meta-Event ${id} muss einen deutschen Namen haben`);
+    assert.ok(ev.nameEn && ev.nameEn.length > 0, `Meta-Event ${id} muss einen englischen Namen haben`);
+    assert.ok(ev.waypoint && ev.waypoint.startsWith('[&'), `Meta-Event ${id} muss einen gültigen Wegmarken-Code haben`);
+    assert.equal(isMetaEvent(ev), true, `Event ${id} muss als Meta-Event klassifiziert sein`);
+    assert.equal(isBossEvent(ev), false, `Event ${id} darf kein World Boss sein`);
+  }
+
+  // IBS categorization check
+  const dstorm = EVENTS.find((e) => e.id === 'dragonstorm')!;
+  const drakkar = EVENTS.find((e) => e.id === 'drakkar')!;
+  assert.equal(dstorm.category, 'ibs', 'Dragonstorm muss in der IBS Kategorie sein');
+  assert.equal(drakkar.category, 'ibs', 'Drakkar muss in der IBS Kategorie sein');
+});
+

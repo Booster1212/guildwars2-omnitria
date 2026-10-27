@@ -41,6 +41,8 @@ export const BossFilterBar: React.FC<BossFilterBarProps> = React.memo(({
     { id: 'soto', label: 'SotO' },
     { id: 'janthir', label: 'Janthir' },
     { id: 'voe', label: 'VoE' },
+    { id: 'ibs', label: 'IBS' },
+    { id: 'lws', label: 'LW' },
   ];
 
   return (
