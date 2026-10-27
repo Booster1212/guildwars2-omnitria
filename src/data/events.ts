@@ -811,8 +811,8 @@ export const EVENTS: WorldEvent[] = [
   },
   {
     id: 'gangs-of-echovald',
-    name: 'Die Gangs von Echowald',
-    nameEn: 'The Gangs of Echovald (Echovald Wilds)',
+    name: 'Der Bandenkrieg von Echowald',
+    nameEn: 'The Gang War of Echovald (The Gangs of Echovald)',
     category: 'eod',
     categoryLabel: 'EoD Meta-Event',
     categoryLabelEn: 'EoD Meta Event',
@@ -821,7 +821,7 @@ export const EVENTS: WorldEvent[] = [
     level: 80,
     waypoint: '[&BO8MAAA=]',
     waypointName: 'Arboretum-Wegmarke',
-    waypointNameEn: 'The Old Steamshop Waypoint',
+    waypointNameEn: 'Arboretum Waypoint',
     durationMinutes: 20,
     schedule: {
       type: 'repeat',
