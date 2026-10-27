@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from 'react';
 import { Header } from './components/Header';
 import { Gw2NavRail } from './components/Gw2NavRail';
 import { BossFilterBar } from './components/BossFilterBar';
 import { EventCard } from './components/EventCard';
-import { AchievementsView } from './components/AchievementsView';
 import { MiniWidget } from './components/MiniWidget';
-import { SettingsModal } from './components/SettingsModal';
 import { Toast } from './components/Toast';
-import { getEventSchedule, formatCallout, LOOT_ITEM_ID_MAP } from './data/events';
+import { getEventSchedule, formatCallout, LOOT_ITEM_ID_MAP, isBossEvent, isMetaEvent } from './data/events';
 import { playCopyChime } from './data/audio';
 import { EventInstance, OverlaySettings, SortMode, OverlayTab } from './types';
 import {
@@ -21,10 +19,14 @@ import { syncIfStale } from './data/gw2/account';
 import { progressActions } from './data/progressStore';
 import { ensureItems } from './data/gw2/items';
 import { DISCIPLINE_ICON_ITEM } from './components/common/labels';
-
-import { CraftingView } from './components/crafting/CraftingView';
-import { LegendaryView } from './components/legendary/LegendaryView';
 import { useTranslation } from './i18n';
+
+// Code-split heavy views to reduce initial bundle and startup time
+const AchievementsView = lazy(() => import('./components/AchievementsView').then((m) => ({ default: m.AchievementsView })));
+const CraftingView = lazy(() => import('./components/crafting/CraftingView').then((m) => ({ default: m.CraftingView })));
+const LegendaryView = lazy(() => import('./components/legendary/LegendaryView').then((m) => ({ default: m.LegendaryView })));
+const WvwView = lazy(() => import('./components/wvw/WvwView').then((m) => ({ default: m.WvwView })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
 
 const DEFAULT_SETTINGS: OverlaySettings = {
   language: 'en',
@@ -66,6 +68,12 @@ export const App: React.FC = () => {
 
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const handleToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(msg);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
+  }, []);
+
   // Load settings from localStorage
   const [settings, setSettings] = useState<OverlaySettings>(() => {
     try {
@@ -92,7 +100,7 @@ export const App: React.FC = () => {
   }, [settings.sortMode]);
 
   // Full progression sync (Achievements, World Bosses, Map Chests, Wizard's Vault)
-  const handleRefreshProgression = async () => {
+  const handleRefreshProgression = useCallback(async () => {
     if (!settings.apiKey?.trim()) return;
     setIsRefreshingProgression(true);
     try {
@@ -114,9 +122,9 @@ export const App: React.FC = () => {
     } finally {
       setIsRefreshingProgression(false);
     }
-  };
+  }, [settings.apiKey]);
 
-  // Synchronisiere Accountdaten & Erfolge/Dailies bei Start und periodisch alle 5 Minuten
+  // Sync account data & achievements/dailies on startup and periodically every 5 minutes
   useEffect(() => {
     if (settings.apiKey) {
       void syncIfStale(settings.apiKey);
@@ -127,7 +135,7 @@ export const App: React.FC = () => {
       }, 5 * 60 * 1000);
       return () => clearInterval(timer);
     }
-  }, [settings.apiKey]);
+  }, [settings.apiKey, handleRefreshProgression]);
 
   // Check if running in Electron
   const isElectron = Boolean(
@@ -136,7 +144,7 @@ export const App: React.FC = () => {
   );
 
   // Sync settings changes
-  const updateSettings = (partial: Partial<OverlaySettings>) => {
+  const updateSettings = useCallback((partial: Partial<OverlaySettings>) => {
     setSettings((prev) => {
       const updated = { ...prev, ...partial };
       try {
@@ -157,12 +165,18 @@ export const App: React.FC = () => {
 
       return updated;
     });
-  };
+  }, []);
 
-  const handleSelectSortMode = (mode: SortMode) => {
+  const handleSelectSortMode = useCallback((mode: SortMode) => {
     setSortMode(mode);
     updateSettings({ sortMode: mode });
-  };
+  }, [updateSettings]);
+
+  const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
+  const handleCloseSettings = useCallback(() => setIsSettingsOpen(false), []);
+  const handleSelectTab = useCallback((tab: OverlayTab) => setCurrentTab(tab), []);
+  const handleSwitchToEvents = useCallback(() => setCurrentTab('events'), []);
+  const handleExpandMini = useCallback(() => updateSettings({ widgetMode: false }), [updateSettings]);
 
   // Setup click-through and window mode listeners from Electron
   useEffect(() => {
@@ -194,37 +208,60 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Update clock every second
+  // Minimize overlay when Escape key is pressed (or close settings if open)
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isSettingsOpen) {
+          setIsSettingsOpen(false);
+          return;
+        }
+        const api = (window as unknown as {
+          electronAPI?: { minimizeWindow?: () => void };
+        }).electronAPI;
+        if (api?.minimizeWindow) {
+          api.minimizeWindow();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSettingsOpen]);
+
+  // Update clock: 1000ms if on events tab or widget mode; 15s if in static tab
+  useEffect(() => {
+    const isHighFrequencyNeeded = settings.widgetMode || currentTab === 'events';
+    const intervalMs = isHighFrequencyNeeded ? 1000 : 15000;
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, intervalMs);
     return () => clearInterval(timer);
-  }, []);
+  }, [settings.widgetMode, currentTab]);
 
   // Preload core crafting discipline items and famous legendary weapons automatically
   useEffect(() => {
     const preloadIds = [
       ...Object.values(DISCIPLINE_ICON_ITEM),
       ...Object.values(LOOT_ITEM_ID_MAP),
-      30689, // Sonnenaufgang (Sunrise)
-      30684, // Düsterkeit (Twilight)
-      30687, // Ewigkeit (Eternity)
-      30699, // Blitz (Bolt)
-      30700, // Bifröst (The Bifrost)
+      30689, // Sunrise
+      30684, // Twilight
+      30687, // Eternity
+      30699, // Bolt
+      30700, // The Bifrost
       30704, // Meteorlogicus
       30691, // Quip
-      30692, // Der Jäger (The Predator)
+      30692, // The Predator
       30696, // Kudzu
       30686, // Frostfang
-      30698, // Heulsuse (The Howler)
-      30693, // Der Minnesänger (The Minstrel)
-      30702, // Das Koloss (The Colossus / Juggernaut)
+      30698, // The Howler
+      30693, // The Minstrel
+      30702, // The Colossus / The Juggernaut
       30690, // Kraitkin
-      30694, // Raserei (Frenzy)
-      19675, // Mystisches Kleeblatt
-      19976, // Mystische Münze
-      19721, // Ektoplasmakugel
+      30694, // Frenzy
+      19675, // Mystic Clover
+      19976, // Mystic Coin
+      19721, // Glob of Ectoplasm
     ];
     void ensureItems(preloadIds);
   }, []);
@@ -234,8 +271,6 @@ export const App: React.FC = () => {
     return getEventSchedule(currentTime, 16);
   }, [currentTime]);
 
-  const isBossEvent = (cat: string) => cat === 'core' || cat === 'hardcore';
-
   // Filter & Sort instances
   const processedInstances = useMemo(() => {
     const matched = allInstances.filter((inst) => {
@@ -244,9 +279,9 @@ export const App: React.FC = () => {
         const isUrgent = inst.isActive || inst.startsInSeconds <= 15 * 60;
         if (!isUrgent) return false;
       } else if (activeCategory === 'bosses') {
-        if (!isBossEvent(inst.event.category)) return false;
+        if (!isBossEvent(inst.event)) return false;
       } else if (activeCategory === 'metas') {
-        if (isBossEvent(inst.event.category)) return false;
+        if (!isMetaEvent(inst.event)) return false;
       } else if (activeCategory !== 'all') {
         if (inst.event.category !== activeCategory) return false;
       }
@@ -269,13 +304,13 @@ export const App: React.FC = () => {
     // Apply sorting
     return matched.sort((a, b) => {
       if (sortMode === 'bossesFirst') {
-        const aIsBoss = isBossEvent(a.event.category);
-        const bIsBoss = isBossEvent(b.event.category);
+        const aIsBoss = isBossEvent(a.event);
+        const bIsBoss = isBossEvent(b.event);
         if (aIsBoss && !bIsBoss) return -1;
         if (!aIsBoss && bIsBoss) return 1;
       } else if (sortMode === 'metasFirst') {
-        const aIsBoss = isBossEvent(a.event.category);
-        const bIsBoss = isBossEvent(b.event.category);
+        const aIsBoss = isBossEvent(a.event);
+        const bIsBoss = isBossEvent(b.event);
         if (!aIsBoss && bIsBoss) return -1;
         if (aIsBoss && !bIsBoss) return 1;
       }
@@ -290,13 +325,13 @@ export const App: React.FC = () => {
   // Split into bosses and metas for 'grouped' mode
   const { bossList, metaList } = useMemo(() => {
     if (sortMode !== 'grouped') return { bossList: [], metaList: [] };
-    const bosses = processedInstances.filter((inst) => isBossEvent(inst.event.category));
-    const metas = processedInstances.filter((inst) => !isBossEvent(inst.event.category));
+    const bosses = processedInstances.filter((inst) => isBossEvent(inst.event));
+    const metas = processedInstances.filter((inst) => isMetaEvent(inst.event));
     return { bossList: bosses, metaList: metas };
   }, [processedInstances, sortMode]);
 
   // Action 1: Nachricht senden (Sends waypoint + remaining time into GW2 chat)
-  const handleSendMessage = (inst: EventInstance) => {
+  const handleSendMessage = useCallback((inst: EventInstance) => {
     const textToCopy = formatCallout(inst, settings.messageTemplate, lang);
 
     // 1. Copy to clipboard
@@ -333,10 +368,10 @@ export const App: React.FC = () => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(lang === 'en' ? `💬 Chat message sent: ${textToCopy}` : `💬 Chat-Nachricht gesendet: ${textToCopy}`);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
-  };
+  }, [settings.messageTemplate, settings.soundEnabled, settings.soundVolume, lang]);
 
   // Action 2: Zur Wegmarke Teleportieren (Sends waypoint link to GW2 chat)
-  const handleTeleport = (inst: EventInstance) => {
+  const handleTeleport = useCallback((inst: EventInstance) => {
     const waypointTag = inst.event.waypoint;
 
     // 1. Copy to clipboard
@@ -368,17 +403,35 @@ export const App: React.FC = () => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(lang === 'en' ? `📍 Waypoint ${waypointTag} sent! Click in game chat to teleport!` : `📍 Wegmarke ${waypointTag} gesendet! Klicke im Spiel-Chat zum Teleportieren!`);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 4000);
-  };
+  }, [settings.soundEnabled, settings.soundVolume, lang]);
 
   // Action 3: Event-Abschluss erfassen
-  const handleLogEventCompletion = (eventId: string, newTotal: number) => {
+  const handleLogEventCompletion = useCallback((eventId: string, newTotal: number) => {
     if (settings.soundEnabled) {
       playCopyChime(settings.soundVolume);
     }
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(lang === 'en' ? `⚔️ Completion logged! Total: ${newTotal}x` : `⚔️ Abschluss erfasst! Insgesamt: ${newTotal}x`);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
-  };
+  }, [settings.soundEnabled, settings.soundVolume, lang]);
+
+  const handleApiDataSynced = useCallback((
+    acc: Gw2AccountInfo | null,
+    achs: Map<number, Gw2AccountAchievement>,
+    daily?: Gw2DailyProgression | null,
+  ) => {
+    setAccountInfo(acc);
+    setUserAchievements(achs);
+    if (daily) {
+      setDailyProgression(daily);
+      progressActions.syncApiCompletions(daily.worldBosses, daily.mapChests, achs);
+    }
+    if (acc) {
+      setToastMessage(`🔑 API verbunden: Account ${acc.name} (${achs.size} Erfolge synchronisiert)`);
+    } else {
+      setToastMessage(`API-Schlüssel entfernt.`);
+    }
+  }, []);
 
   return (
     <div
@@ -392,9 +445,9 @@ export const App: React.FC = () => {
       <Header
         settings={settings}
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={handleSelectTab}
         onUpdateSettings={updateSettings}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={handleOpenSettings}
         isElectron={isElectron}
         accountName={accountInfo?.name}
       />
@@ -413,7 +466,7 @@ export const App: React.FC = () => {
           onSendMessage={handleSendMessage}
           onTeleport={handleTeleport}
           copiedId={copiedId}
-          onExpand={() => updateSettings({ widgetMode: false })}
+          onExpand={handleExpandMini}
           dailyProgression={dailyProgression}
           onLogCompletion={handleLogEventCompletion}
         />
@@ -423,8 +476,8 @@ export const App: React.FC = () => {
           {/* Left Vertical Icon Rail */}
           <Gw2NavRail
             currentTab={currentTab}
-            onSelectTab={setCurrentTab}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onSelectTab={handleSelectTab}
+            onOpenSettings={handleOpenSettings}
           />
 
           {/* Right Content View Area */}
@@ -515,23 +568,37 @@ export const App: React.FC = () => {
               </>
 
             ) : currentTab === 'crafting' ? (
-              <CraftingView />
+              <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
+                <CraftingView />
+              </Suspense>
             ) : currentTab === 'legendary' ? (
-              <LegendaryView userAchievements={userAchievements} />
+              <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
+                <LegendaryView userAchievements={userAchievements} />
+              </Suspense>
+            ) : currentTab === 'wvw' ? (
+              <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
+                <WvwView
+                  settings={settings}
+                  accountInfo={accountInfo}
+                  onToast={handleToast}
+                />
+              </Suspense>
             ) : (
               /* Authentic Achievements / Heldin - Erfolge View */
-              <AchievementsView
-                upcomingInstances={allInstances}
-                onSendMessage={handleSendMessage}
-                onTeleport={handleTeleport}
-                onSwitchToEvents={() => setCurrentTab('events')}
-                accountInfo={accountInfo}
-                userAchievements={userAchievements}
-                dailyProgression={dailyProgression}
-                onOpenSettings={() => setIsSettingsOpen(true)}
-                onRefreshProgression={handleRefreshProgression}
-                isRefreshing={isRefreshingProgression}
-              />
+              <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
+                <AchievementsView
+                  upcomingInstances={allInstances}
+                  onSendMessage={handleSendMessage}
+                  onTeleport={handleTeleport}
+                  onSwitchToEvents={handleSwitchToEvents}
+                  accountInfo={accountInfo}
+                  userAchievements={userAchievements}
+                  dailyProgression={dailyProgression}
+                  onOpenSettings={handleOpenSettings}
+                  onRefreshProgression={handleRefreshProgression}
+                  isRefreshing={isRefreshingProgression}
+                />
+              </Suspense>
             )}
           </div>
         </div>
@@ -545,27 +612,19 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        settings={settings}
-        onUpdateSettings={updateSettings}
-        isElectron={isElectron}
-        onApiDataSynced={(acc, achs, daily) => {
-          setAccountInfo(acc);
-          setUserAchievements(achs);
-          if (daily) {
-            setDailyProgression(daily);
-            progressActions.syncApiCompletions(daily.worldBosses, daily.mapChests, achs);
-          }
-          if (acc) {
-            setToastMessage(`🔑 API verbunden: Account ${acc.name} (${achs.size} Erfolge synchronisiert)`);
-          } else {
-            setToastMessage(`API-Schlüssel entfernt.`);
-          }
-        }}
-      />
+      {/* Settings Modal (only mounted and loaded when open) */}
+      {isSettingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={handleCloseSettings}
+            settings={settings}
+            onUpdateSettings={updateSettings}
+            isElectron={isElectron}
+            onApiDataSynced={handleApiDataSynced}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

@@ -254,7 +254,7 @@ interface EventCardProps {
   onLogCompletion?: (eventId: string, newTotal: number) => void;
 }
 
-export const EventCard: React.FC<EventCardProps> = ({
+export const EventCard: React.FC<EventCardProps> = React.memo(({
   instance,
   onSendMessage,
   onTeleport,
@@ -488,7 +488,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         </div>
       </div>
 
-      {/* Expandable "Mögliche Erfolge" Drawer */}
+      {/* Expandable "Possible Achievements" Drawer */}
       {showAchievements && achievements.length > 0 && (
         <div className="gw2-card-achievements-drawer">
           <div className="drawer-header">
@@ -565,10 +565,10 @@ export const EventCard: React.FC<EventCardProps> = ({
         </div>
       )}
 
-      {/* Expandable Taktik & Beute Details */}
+      {/* Expandable Tactics & Loot Details */}
       {expanded && (
         <div className="gw2-card-tactics-drawer">
-          {/* Account-Abschlüsse & Zähler Stepper */}
+          {/* Account Completions & Counter Stepper */}
           <div className="gw2-completion-history-panel">
             <div className="completion-history-left">
               <Trophy size={14} className="history-trophy gold" />
@@ -600,6 +600,65 @@ export const EventCard: React.FC<EventCardProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Meta-event phases & sub-events (e.g. Cathedral of Zephyrs & Eternal Radiance) */}
+          {event.subEvents && event.subEvents.length > 0 && (
+            <div className="gw2-tactics-card">
+              <div className="gw2-tactics-card-header">
+                <div className="tactics-header-left">
+                  <Swords size={12} className="tactics-header-icon" />
+                  <span className="tactics-header-title font-serif">
+                    {lang === 'en' ? 'Meta-Event Stages & Sub-Events' : 'Teil-Events & Meta-Phasen'}
+                  </span>
+                </div>
+                <span className="loot-count-badge font-mono">{event.subEvents.length}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '8px 10px' }}>
+                {event.subEvents.map((sub, sIdx) => {
+                  const subName = lang === 'en' ? sub.nameEn : sub.name;
+                  const phaseLabel = lang === 'en' ? sub.phaseLabelEn : sub.phaseLabel;
+                  const isBossPhase = sub.phase === 'boss';
+                  return (
+                    <div
+                      key={sub.id || sIdx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '4px 6px',
+                        background: isBossPhase ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                        borderLeft: isBossPhase ? '2px solid var(--gw2-red, #ef4444)' : '2px solid rgba(210, 178, 104, 0.3)',
+                        borderRadius: '2px',
+                        fontSize: '11px',
+                      }}
+                    >
+                      <span style={{ fontSize: '10px', color: 'var(--gw2-gold)', minWidth: '14px', textAlign: 'center', fontFamily: 'monospace' }}>
+                        {sIdx + 1}.
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          padding: '1px 5px',
+                          borderRadius: '2px',
+                          background: isBossPhase ? 'rgba(239, 68, 68, 0.2)' : 'rgba(210, 178, 104, 0.15)',
+                          color: isBossPhase ? '#fca5a5' : 'var(--gw2-gold-bright)',
+                          fontFamily: 'monospace',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.3px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {phaseLabel}
+                      </span>
+                      <span style={{ color: isBossPhase ? 'var(--gw2-text-bright)' : 'var(--gw2-text-normal)', flex: 1 }}>
+                        {subName}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {tacticsText && (
             <div className="gw2-tactics-card">
@@ -665,4 +724,4 @@ export const EventCard: React.FC<EventCardProps> = ({
       )}
     </div>
   );
-};
+});

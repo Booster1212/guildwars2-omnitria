@@ -14,6 +14,16 @@ export type IconType =
   | 'airship'
   | 'portal';
 
+export interface MetaSubEvent {
+  id: string; // Official ArenaNet GUID
+  name: string;
+  nameEn: string;
+  phase: 'escort' | 'preparation' | 'boss' | 'defense' | 'cleanup';
+  phaseLabel: string;
+  phaseLabelEn: string;
+  required?: boolean;
+}
+
 export interface BossAchievement {
   id: string;
   gw2Id?: number;
@@ -36,6 +46,10 @@ export interface WorldEvent {
   name: string;
   nameEn: string;
   category: EventCategory;
+  eventType?: 'boss' | 'meta';
+  mapId?: number;
+  climaxEventId?: string;
+  subEvents?: MetaSubEvent[];
   categoryLabel: string;
   categoryLabelEn?: string;
   zone: string;
@@ -69,7 +83,7 @@ export interface EventInstance {
 }
 
 export type MessageTemplateType = 'standard' | 'compact' | 'waypointOnly' | 'detailed';
-export type OverlayTab = 'events' | 'achievements' | 'crafting' | 'legendary';
+export type OverlayTab = 'events' | 'achievements' | 'crafting' | 'legendary' | 'wvw';
 
 export type SortMode = 'time' | 'grouped' | 'bossesFirst' | 'metasFirst';
 

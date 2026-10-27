@@ -1,6 +1,6 @@
 import React from 'react';
 
-/** Eigene einfarbige Piktogramme (Strichstärke einheitlich, kein Fremd-Iconset für die Hauptnavigation). */
+/** Custom monochrome pictograms (consistent stroke width, no third-party icon set for main navigation). */
 const base = {
   width: 20,
   height: 20,
@@ -52,6 +52,18 @@ export const GlyphLegendary: React.FC = () => (
   </svg>
 );
 
+export const GlyphWvW: React.FC = () => (
+  <svg {...base}>
+    <path d="M4 21V7l3-3h10l3 3v14" />
+    <path d="M4 11h16" />
+    <path d="M9 4v3" />
+    <path d="M15 4v3" />
+    <path d="M10 21v-5a2 2 0 0 1 4 0v5" />
+    <path d="M8 15h.01" />
+    <path d="M16 15h.01" />
+  </svg>
+);
+
 export const GlyphGear: React.FC = () => (
   <svg {...base}>
     <circle cx="12" cy="12" r="3" />
@@ -59,7 +71,7 @@ export const GlyphGear: React.FC = () => (
   </svg>
 );
 
-/** Kleines Markenzeichen: Schild mit Wegmarken-Raute (kein Original-Logo von ArenaNet) */
+/** Subtle brandmark: Shield with waypoint diamond (not an original ArenaNet logo) */
 export const BrandMark: React.FC = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M12 2.5l8 2.8v6.2c0 4.5-3.4 8.2-8 10-4.6-1.8-8-5.5-8-10V5.3z" stroke="#a4864a" strokeWidth="1.4" fill="#1b1814" />

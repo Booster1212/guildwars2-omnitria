@@ -85,7 +85,7 @@ const MAP_HERO_CHESTS = [
   { id: 'serpents-ire', apiId: 'domain_of_vabbi_heros_choice_chest', name: 'Zorn der Schlange (Vabbi)', nameEn: 'Serpent\'s Ire (Domain of Vabbi)', waypoint: '[&BO8KAAA=]', zone: 'Domäne Vabbi', zoneEn: 'Domain of Vabbi' },
 ];
 
-export const AchievementsView: React.FC<AchievementsViewProps> = ({
+export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
   upcomingInstances,
   onSendMessage,
   onTeleport,
@@ -328,7 +328,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
 
   return (
     <div className="gw2-achievements-panel">
-      {/* 1. Heldin - Erfolgsübersicht Banner */}
+      {/* 1. Hero - Achievements Overview Banner */}
       <div className="gw2-hero-ap-banner">
         <div className="hero-ap-left">
           <div className="gw2-hero-laurel-badge">
@@ -483,7 +483,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
               </div>
             </div>
 
-            {/* Wizard's Vault (Gewölbe des Zauberers) Panel */}
+            {/* Wizard's Vault Panel */}
             <div className="daily-section-card">
               <div className="daily-section-header">
                 <div className="section-header-left">
@@ -955,5 +955,5 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
       </div>
     </div>
   );
-};
+});
 

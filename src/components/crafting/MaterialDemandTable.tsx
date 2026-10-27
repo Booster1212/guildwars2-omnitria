@@ -229,12 +229,12 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Gesamtbedarf */}
+                    {/* Total demand */}
                     <td className="num font-mono">
                       <span className="font-bold text-slate-100">{fmtInt(m.grossDemand)}</span>
                     </td>
 
-                    {/* Vorhanden */}
+                    {/* Owned / In stock */}
                     <td className="num font-mono dim">
                       {hasStockData ? (
                         m.stock > 0 ? (
@@ -247,7 +247,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                       )}
                     </td>
 
-                    {/* Fehlend */}
+                    {/* Missing */}
                     <td className="num font-mono">
                       {isComplete ? (
                         <span className="complete-badge good font-bold" title="Bedarf vollständig gedeckt">
@@ -260,7 +260,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                       )}
                     </td>
 
-                    {/* Beschaffungsart / Quick Toggle */}
+                    {/* Procurement type / Quick toggle */}
                     <td className="action-cell">
                       <div className="action-cell-content">
                         <span className={`action-badge action-${m.action}`} title={getActionLabel(m.action)}>
@@ -269,7 +269,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                           {getActionLabel(m.action)}
                         </span>
 
-                        {/* Toggle Herstellen / Kaufen für herstellbare Zwischenprodukte */}
+                        {/* Toggle Craft / Buy for craftable intermediate components */}
                         {m.isCraftable && m.role !== 'end_product' && (
                           <button
                             type="button"
@@ -301,12 +301,12 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Einzelpreis */}
+                    {/* Unit price */}
                     <td className="num">
                       <Coin copper={m.unitPrice} />
                     </td>
 
-                    {/* Gesamtkosten */}
+                    {/* Total cost */}
                     <td className="num">
                       {m.totalCost !== null ? (
                         <Coin copper={m.totalCost} />

@@ -1,12 +1,12 @@
 /**
- * Persönlicher Fortschritt (Legendäre Waffen, Handwerk).
+ * Personal progress (Legendary Weapons, Crafting).
  *
- * Persistenz (zweifach, damit nichts verloren geht):
- *   1. localStorage (bestehende Architektur der App, Präfix "gw2_overlay_")
- *   2. In Electron zusätzlich eine JSON-Datei im Benutzerdatenordner (über IPC), unabhängig vom Origin
- *      (file:// vs. Dev-Server). Beim Start gewinnt der neuere Stand (`savedAt`).
+ * Persistence (redundant, ensuring nothing is lost):
+ *   1. localStorage (existing app architecture, prefix "gw2_overlay_")
+ *   2. In Electron additionally a JSON file in user data directory (via IPC), independent of origin
+ *      (file:// vs. Dev-Server). On startup, the newer state wins (`savedAt`).
  *
- * Schema ist versioniert; unbekannte/neuere Versionen werden gesichert statt überschrieben.
+ * Schema is versioned; unknown/newer versions are backed up instead of overwritten.
  */
 import { useSyncExternalStore } from 'react';
 import { createEmitter } from './gw2/cache.ts';
@@ -16,17 +16,17 @@ const BACKUP_KEY = 'gw2_overlay_progress_backup';
 export const SCHEMA_VERSION = 1;
 
 export interface LegendaryProgress {
-  /** Als erledigt markierte Komponenten (Pfadschlüssel) */
+  /** Components marked as completed (path key) */
   doneNodes: string[];
-  /** Als vollständig vorhanden markierte Basismaterialien */
+  /** Base materials marked as fully owned */
   doneMaterials: number[];
-  /** Gegenstände, die gekauft statt hergestellt werden */
+  /** Items that are purchased instead of crafted */
   buyItems: number[];
 }
 
 export interface CraftingProgress {
   target: number;
-  /** Manuell gesetzter Startrang (falls API-Rang nicht verfügbar) */
+  /** Manually set starting rank (if API rank is unavailable) */
   start: number | null;
   doneSteps: string[];
   allowDiscovery: boolean;
@@ -39,9 +39,9 @@ export interface ProgressState {
   tracked: number[];
   legendary: Record<string, LegendaryProgress>;
   crafting: Record<string, CraftingProgress>;
-  /** Gesamte Account-Abschlüsse je Event-ID (z. B. 'tequatl': 15) */
+  /** Total account completions per event ID (e.g. 'tequatl': 15) */
   eventCompletions: Record<string, number>;
-  /** Zuletzt am UTC-Tag über API/Manuell als abgeschlossen registriert (z. B. 'tequatl': '2026-10-24') */
+  /** Last registered completion on UTC day via API or manual (e.g. 'tequatl': '2026-10-24') */
   dailyCompletedDates: Record<string, string>;
 }
 
@@ -121,15 +121,15 @@ function loadLocal(): ProgressState {
     const parsed = raw ? JSON.parse(raw) : null;
     const s = (parsed ? sanitize(parsed) : null) ?? fresh();
 
-    // Bei Neustart: Alle Haken (doneSteps) auf 0 setzen
-    // UND beide Optionen (Zwischenschritte/Entdeckungen) nicht aktiv halten
+    // On restart: Reset all checkmarks (doneSteps) to 0
+    // AND keep both options (intermediates/discoveries) inactive
     for (const discipline of Object.keys(s.crafting)) {
       s.crafting[discipline].doneSteps = [];
       s.crafting[discipline].allowDiscovery = false;
       s.crafting[discipline].craftIntermediates = false;
     }
 
-    // Level von dem jeweiligen Beruf direkt aus den gespeicherten Accountdaten ziehen
+    // Pull level for discipline directly from cached account data
     try {
       const rawAccount = typeof localStorage !== 'undefined' ? localStorage.getItem('gw2_overlay_account_data_v1') : null;
       if (rawAccount) {
@@ -160,7 +160,7 @@ function loadLocal(): ProgressState {
       console.warn('Account-Crafting-Level konnte bei Neustart nicht ausgelesen werden', e);
     }
 
-    // Aktualisiere den localStorage bei Neustart
+    // Update localStorage on restart
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(KEY, JSON.stringify(s));
@@ -398,7 +398,7 @@ export const progressActions = {
       const nextDates = { ...s.dailyCompletedDates };
       let changed = false;
 
-      // 1. Core Weltenbosse heute getötet
+      // 1. Core world bosses killed today
       for (const wbId of worldBosses) {
         const eventId = WORLD_BOSS_API_MAP[wbId];
         if (eventId) {
@@ -410,7 +410,7 @@ export const progressActions = {
         }
       }
 
-      // 2. Meta-Truhen (Hero's Choice Chests) heute geöffnet
+      // 2. Meta chests (Hero's Choice Chests) opened today
       for (const chestId of mapChests) {
         const eventId = MAP_CHEST_API_MAP[chestId];
         if (eventId) {
@@ -449,7 +449,7 @@ export const progressActions = {
 export const progressStore = progressActions;
 
 // ==========================================
-// MAPPINGS ZWISCHEN GW2 API UND EVENT-IDS
+// MAPPINGS BETWEEN GW2 API AND EVENT IDS
 // ==========================================
 export const WORLD_BOSS_API_MAP: Record<string, string> = {
   'svanir_shaman_chief': 'svanir-shaman',
@@ -520,4 +520,6 @@ export const EVENT_ACHIEVEMENT_MAP: Record<string, number> = {
   'dragons-end': 6223,
   'janthir-syntri-titans': 8190,
   'castora-ruins-eternity': 8195,
+  'cathedral-of-zephyrs': 1736,
+  'cathedral-of-eternal-radiance': 1961,
 };

@@ -15,7 +15,7 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const { shell } = require('electron');
 
-// Vollmodus: genug Platz für Handwerk & Legendäre Waffen (Master-/Detail-Ansicht)
+// Full mode: sufficient room for Crafting, Legendary Armory & WvW Tactics (Master/Detail view)
 const FULL_WIDTH = 1000;
 const FULL_HEIGHT = 680;
 const MIN_FULL_WIDTH = 720;
@@ -28,17 +28,71 @@ function getFullSize() {
 }
 
 const logFile = path.join(__dirname, 'electron.log');
+const logBuffer = [];
+let logFlushTimer = null;
+const MAX_LOG_SIZE = 2 * 1024 * 1024; // 2 MB
+
+function flushLogsSync() {
+  if (logFlushTimer) {
+    clearTimeout(logFlushTimer);
+    logFlushTimer = null;
+  }
+  if (!logBuffer.length) return;
+  const chunk = logBuffer.join('');
+  logBuffer.length = 0;
+  try {
+    if (fs.existsSync(logFile) && fs.statSync(logFile).size > MAX_LOG_SIZE) {
+      try {
+        const oldLog = `${logFile}.old`;
+        if (fs.existsSync(oldLog)) fs.unlinkSync(oldLog);
+        fs.renameSync(logFile, oldLog);
+      } catch (_) {}
+    }
+    fs.appendFileSync(logFile, chunk);
+  } catch (_) {}
+}
+
+function flushLogsAsync() {
+  if (!logBuffer.length) return;
+  const chunk = logBuffer.join('');
+  logBuffer.length = 0;
+  fs.stat(logFile, (err, stats) => {
+    if (!err && stats.size > MAX_LOG_SIZE) {
+      const oldLog = `${logFile}.old`;
+      fs.unlink(oldLog, () => {
+        fs.rename(logFile, oldLog, () => {
+          fs.appendFile(logFile, chunk, () => {});
+        });
+      });
+    } else {
+      fs.appendFile(logFile, chunk, () => {});
+    }
+  });
+}
+
 function log(...args) {
   const line = `[${new Date().toISOString()}] ` + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') + '\n';
-  fs.appendFileSync(logFile, line);
+  logBuffer.push(line);
+  if (logBuffer.length >= 25) {
+    if (logFlushTimer) clearTimeout(logFlushTimer);
+    logFlushTimer = null;
+    flushLogsAsync();
+  } else if (!logFlushTimer) {
+    logFlushTimer = setTimeout(() => {
+      logFlushTimer = null;
+      flushLogsAsync();
+    }, 500);
+  }
   console.log(...args);
 }
 
 process.on('uncaughtException', (err) => {
   log('FATAL UNCAUGHT EXCEPTION:', err.stack || err);
+  flushLogsSync();
 });
 process.on('unhandledRejection', (reason) => {
   log('FATAL UNHANDLED REJECTION:', reason);
+  flushLogsSync();
 });
 log('Main process starting up...');
 
@@ -90,12 +144,31 @@ function loadSavedBounds() {
   return null;
 }
 
+let boundsDebounceTimer = null;
+let pendingBounds = null;
+
 function saveBounds(bounds) {
+  if (boundsDebounceTimer) {
+    clearTimeout(boundsDebounceTimer);
+    boundsDebounceTimer = null;
+  }
+  pendingBounds = null;
   try {
     fs.writeFileSync(boundsPath, JSON.stringify(bounds, null, 2), 'utf8');
   } catch (e) {
     log('Error saving bounds', e);
   }
+}
+
+function debouncedSaveBounds(bounds) {
+  pendingBounds = bounds;
+  if (boundsDebounceTimer) clearTimeout(boundsDebounceTimer);
+  boundsDebounceTimer = setTimeout(() => {
+    boundsDebounceTimer = null;
+    if (pendingBounds) {
+      saveBounds(pendingBounds);
+    }
+  }, 300);
 }
 
 function getChatAnchoredPosition(width, height) {
@@ -113,7 +186,7 @@ function createWindow() {
   const savedBounds = loadSavedBounds() || {};
   const isMini = savedBounds.mode === 'full' ? false : true;
   currentMode = isMini ? 'mini' : 'full';
-  // Gespeicherte Vollmodus-Größen aus älteren Versionen (440 px) sind für die neuen Bereiche zu klein
+  // Saved full mode sizes from older versions (440 px) are too small for modern sections
   if (!isMini && (savedBounds.width || 0) < MIN_FULL_WIDTH) {
     const fs2 = getFullSize();
     savedBounds.width = fs2.width;
@@ -196,6 +269,7 @@ function createWindow() {
   });
   mainWindow.on('close', (e) => {
     log('mainWindow close event, isQuitting:', app.isQuitting);
+    if (pendingBounds) saveBounds(pendingBounds);
     if (!app.isQuitting) {
       e.preventDefault();
       mainWindow.hide();
@@ -213,14 +287,14 @@ function createWindow() {
   mainWindow.on('moved', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       const b = mainWindow.getBounds();
-      saveBounds({ ...b, mode: currentMode });
+      debouncedSaveBounds({ ...b, mode: currentMode });
     }
   });
 
   mainWindow.on('resized', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       const b = mainWindow.getBounds();
-      saveBounds({ ...b, mode: currentMode });
+      debouncedSaveBounds({ ...b, mode: currentMode });
     }
   });
 
@@ -313,8 +387,8 @@ function createTray(icon) {
     if (Notification.isSupported()) {
       try {
         const notif = new Notification({
-          title: '✨ Omnitria Aktiv!',
-          body: 'Omnitria schwebt über dem Chat. [F9] zum Ein-/Ausblenden.',
+          title: '✨ Omnitria Active!',
+          body: 'Omnitria is running above game chat. Press [F9] to toggle.',
           icon: icon,
         });
         notif.show();
@@ -333,7 +407,7 @@ function updateTrayMenu() {
   try {
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: 'Omnitria ein-/ausblenden (F9)',
+        label: 'Toggle Omnitria (F9)',
         click: () => {
           if (!mainWindow) return;
           if (mainWindow.isVisible()) {
@@ -346,20 +420,20 @@ function updateTrayMenu() {
       },
       { type: 'separator' },
       {
-        label: 'Kompakte HUD-Leiste (Mini)',
+        label: 'Compact HUD (Mini)',
         type: 'radio',
         checked: currentMode === 'mini',
         click: () => setWindowMode('mini'),
       },
       {
-        label: 'Volle Event-Tafel',
+        label: 'Full Hero Board',
         type: 'radio',
         checked: currentMode === 'full',
         click: () => setWindowMode('full'),
       },
       { type: 'separator' },
       {
-        label: 'Über GW2-Chat positionieren',
+        label: 'Dock Above GW2 Chat',
         click: () => {
           if (!mainWindow) return;
           const b = mainWindow.getBounds();
@@ -369,12 +443,12 @@ function updateTrayMenu() {
         },
       },
       {
-        label: `Maus-Durchklick: ${isClickThrough ? 'Aktiv (F10)' : 'Inaktiv (F10)'}`,
+        label: `Click-Through: ${isClickThrough ? 'Active (F10)' : 'Inactive (F10)'}`,
         click: () => toggleClickThrough(),
       },
       { type: 'separator' },
       {
-        label: 'Beenden',
+        label: 'Exit Omnitria',
         click: () => {
           app.isQuitting = true;
           app.quit();
@@ -468,7 +542,7 @@ ipcMain.on('gw2-teleport-waypoint', (_event, waypoint) => {
   sendTextToGw2(waypoint, true);
 });
 
-// Persistenter Datei-Speicher (Spiegel für den Fortschritt, unabhängig vom Browser-Origin)
+// Persistent file store (progress mirror independent of browser origin)
 const storeDir = path.join(app.getPath('userData'), 'store');
 function storePath(name) {
   if (typeof name !== 'string' || !/^[a-z0-9_-]{1,40}$/i.test(name)) return null;
@@ -478,27 +552,29 @@ ipcMain.handle('store-read', async (_event, name) => {
   const p = storePath(name);
   if (!p) return null;
   try {
-    return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+    const exists = await fs.promises.stat(p).catch(() => null);
+    return exists ? await fs.promises.readFile(p, 'utf8') : null;
   } catch (e) {
     log('store-read error', e.message);
     return null;
   }
 });
-ipcMain.on('store-write', (_event, name, json) => {
+ipcMain.on('store-write', async (_event, name, json) => {
   const p = storePath(name);
   if (!p || typeof json !== 'string' || json.length > 5 * 1024 * 1024) return;
   try {
-    fs.mkdirSync(storeDir, { recursive: true });
+    await fs.promises.mkdir(storeDir, { recursive: true });
     const tmp = `${p}.tmp`;
-    fs.writeFileSync(tmp, json, 'utf8');
-    if (fs.existsSync(p)) fs.copyFileSync(p, `${p}.bak`);
-    fs.renameSync(tmp, p);
+    await fs.promises.writeFile(tmp, json, 'utf8');
+    const exists = await fs.promises.stat(p).catch(() => null);
+    if (exists) await fs.promises.copyFile(p, `${p}.bak`);
+    await fs.promises.rename(tmp, p);
   } catch (e) {
     log('store-write error', e.message);
   }
 });
 
-// Externe Links (Wiki, ArenaNet-Konto) im Standardbrowser öffnen – nur https und bekannte Hosts
+// Open external links (Wiki, ArenaNet account) in default browser - strictly https and known hosts
 const EXTERNAL_HOSTS = new Set([
   'wiki.guildwars2.com',
   'wiki-de.guildwars2.com',
@@ -518,9 +594,8 @@ ipcMain.on('open-external', (_event, url) => {
 ipcMain.handle('gw2-api-fetch', async (_event, url) => {
   if (typeof url !== 'string' || !url.startsWith('https://api.guildwars2.com/')) {
     log('gw2-api-fetch rejected URL');
-    return { ok: false, status: 0, error: 'URL nicht erlaubt' };
+    return { ok: false, status: 0, error: 'URL not allowed' };
   }
-  log('gw2-api-fetch called for:', url.split('?')[0]);
   try {
     const response = await fetch(url, {
       headers: {
@@ -536,14 +611,13 @@ ipcMain.handle('gw2-api-fetch', async (_event, url) => {
         const errJson = await response.json();
         if (errJson && errJson.text) errText = errJson.text;
       } catch (e) {}
-      log('gw2-api-fetch non-ok status:', status, errText);
+      log('gw2-api-fetch non-ok status:', status, errText, url.split('?')[0]);
       return { ok: false, status, error: errText };
     }
     const data = await response.json();
-    log('gw2-api-fetch success!');
     return { ok: true, status, data };
   } catch (err) {
-    log('gw2-api-fetch exception:', err.message);
+    log('gw2-api-fetch exception:', err.message, url.split('?')[0]);
     return { ok: false, status: 0, error: err.message };
   }
 });
@@ -623,7 +697,7 @@ ipcMain.handle('app-check-update', async () => {
 
 ipcMain.handle('app-apply-update', async (_event, downloadUrl) => {
   if (!downloadUrl || typeof downloadUrl !== 'string') {
-    return { ok: false, error: 'Keine gültige Download-URL' };
+    return { ok: false, error: 'No valid download URL' };
   }
 
   const isPackaged = Boolean(app.isPackaged || !process.defaultApp);
@@ -633,7 +707,7 @@ ipcMain.handle('app-apply-update', async (_event, downloadUrl) => {
     return {
       ok: false,
       devMode: true,
-      error: 'Entwicklungsmodus aktiv. Bitte im Repository via Git oder manuell aktualisieren.',
+      error: 'Development mode active. Please update via Git or repository releases.',
     };
   }
 
@@ -649,7 +723,7 @@ ipcMain.handle('app-apply-update', async (_event, downloadUrl) => {
     log('Starting download to:', zipPath);
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      return { ok: false, error: `Download fehlgeschlagen (${response.status})` };
+      return { ok: false, error: `Download failed (${response.status})` };
     }
 
     const totalBytes = parseInt(response.headers.get('content-length') || '0', 10);
@@ -681,7 +755,7 @@ ipcMain.handle('app-apply-update', async (_event, downloadUrl) => {
     const appDir = path.dirname(process.execPath);
     const updateBatPath = path.join(updateDir, 'apply-update.bat');
 
-    // Batch-Skript wartet kurz, entpackt die neue Version und startet Omnitria.exe neu
+    // Batch script waits briefly, extracts the new version, and restarts Omnitria.exe
     const batContent = `@echo off
 chcp 65001 >nul
 timeout /t 2 /nobreak >nul
@@ -730,9 +804,12 @@ app.on('window-all-closed', (e) => {
 
 app.on('before-quit', () => {
   log('app.on(before-quit) called');
+  if (pendingBounds) saveBounds(pendingBounds);
+  flushLogsSync();
 });
 
 app.on('will-quit', () => {
   log('app.on(will-quit) called');
   globalShortcut.unregisterAll();
+  flushLogsSync();
 });

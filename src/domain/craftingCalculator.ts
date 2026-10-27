@@ -1,23 +1,23 @@
 /**
- * Rekursive Materialbedarfsberechnung für den GW2-Handwerksplaner.
+ * Recursive material requirement calculation for GW2 Crafting Planner.
  *
- * Reine Domänenlogik (keine UI, keine Netzwerkaufrufe) -> vollständig testbar mit `node --test`.
+ * Pure domain logic (no UI, no network calls) -> fully testable with `node --test`.
  *
- * Kernfunktionen:
- *  - Rekursive Auflösung von Rezeptbäumen bis zu den Grundmaterialien
- *  - Korrekte Berücksichtigung von Rezept-Ausgabemengen (Aufrundung / Math.ceil)
- *  - Mehrebenen-Aggregation gleicher Materialien über alle Zweige und Schritte
- *  - Unterscheidung zwischen:
- *      * Theoretischer Gesamtbedarf (Gross Demand)
- *      * Vorhandener Bestand (Stock)
- *      * Aus Bestand verrechnet (Stock Used)
- *      * Bedarf nach Bestandsverrechnung (Net Demand / Missing)
- *      * Benötigte Herstellungsdurchläufe (Craft Runs)
- *      * Zusätzliche Zutaten für diese Herstellungsdurchläufe
- *      * Noch zu beschaffende Materialien
- *  - Strategiewahl: 'all_craft' (Selbst herstellen), 'all_buy' (Fertig kaufen), 'custom' (Kombiniert)
- *  - Zykluserkennung zur Vermeidung von Endlosschleifen
- *  - Robuste Behandlung fehlender oder ungültiger Rezeptdaten
+ * Core capabilities:
+ *  - Recursive resolution of recipe trees down to base materials
+ *  - Accurate accounting of recipe output quantities (rounding up / Math.ceil)
+ *  - Multi-level aggregation of identical materials across all branches and steps
+ *  - Distinction between:
+ *      * Gross demand (theoretical total)
+ *      * Inventory stock
+ *      * Stock used / allocated
+ *      * Net demand / missing after stock deduction
+ *      * Required craft runs
+ *      * Additional ingredients for these craft runs
+ *      * Materials remaining to be procured
+ *  - Strategy selection: 'all_craft' (self-craft), 'all_buy' (buy completed), 'custom' (combined)
+ *  - Cycle detection preventing infinite recursion
+ *  - Robust handling of missing or invalid recipe data
  */
 
 import type { PriceInfo, Recipe } from './types.ts';
@@ -117,8 +117,8 @@ export interface CraftingCalculationResult {
 const EPS = 1e-9;
 
 /**
- * Prüft, ob ein Rezept über das Handwerks-Entdeckungsfenster erforscht werden muss.
- * Entdeckungsrezepte besitzen weder das Flag AutoLearned noch LearnedFromItem und sind dem Account noch nicht bekannt.
+ * Checks whether a recipe must be researched via the crafting discovery window.
+ * Discovery recipes have neither AutoLearned nor LearnedFromItem flags and are not yet known to the account.
  */
 export function isRecipeDiscovery(
   recipe?: Recipe,
@@ -138,7 +138,7 @@ export function isRecipeDiscovery(
 }
 
 /**
- * Erstellt einen Provider für Rezepte einer bestimmten Handwerksdisziplin.
+ * Creates a provider for recipes of a specific crafting discipline.
  */
 export function createDisciplineRecipeProvider(
   recipesByOutput: ReadonlyMap<number, readonly Recipe[]>,
@@ -170,7 +170,7 @@ export function createDisciplineRecipeProvider(
         return candidates[0];
       }
 
-      // Rezepte für diese Disziplin filtern
+      // Filter recipes for this discipline
       const filtered = candidates.filter((r) => {
         if (!r.disciplines.includes(discipline)) return false;
         if (options.maxRating !== undefined && r.rating > options.maxRating) return false;
@@ -181,7 +181,7 @@ export function createDisciplineRecipeProvider(
         return undefined;
       }
 
-      // Bevorzuge AutoLearned und niedrigere Ränge
+      // Prefer auto-learned recipes and lower ranks
       return [...filtered].sort((a, b) => {
         const aAuto = a.flags?.includes('AutoLearned') ? 0 : 1;
         const bAuto = b.flags?.includes('AutoLearned') ? 0 : 1;
@@ -193,7 +193,7 @@ export function createDisciplineRecipeProvider(
 }
 
 /**
- * Prüft anhand von Strategie und Nutzerwünschen, ob ein Zwischenprodukt selbst hergestellt werden soll.
+ * Checks based on strategy and user preferences whether an intermediate component should be self-crafted.
  */
 function shouldCraftIntermediate(
   itemId: number,
@@ -211,12 +211,12 @@ function shouldCraftIntermediate(
   }
 
   if (strategy === 'all_buy') return false;
-  // 'all_craft' und Standardfall bei 'custom': selbst herstellen
+  // 'all_craft' and default for 'custom': self-craft
   return true;
 }
 
 /**
- * Bestimmt die Beschaffungsaktion für ein Blatt (Nicht-Handwerk oder Kaufen).
+ * Determines procurement action for a leaf node (non-crafting or buy).
  */
 function determineLeafAction(itemId: number, price?: PriceInfo): NodeAction {
   const sources = resolveSources({ item: undefined, tags: [], price });
@@ -234,7 +234,7 @@ function determineLeafAction(itemId: number, price?: PriceInfo): NodeAction {
 }
 
 /**
- * Hauptberechnung: Löst Zielgegenstände (z. B. Schritte einer Levelroute) rekursiv auf.
+ * Main calculation: recursively resolves target items (e.g. steps in a leveling route).
  */
 export function calculateCraftingPlan(
   targets: readonly TargetCraftItem[],
@@ -328,7 +328,7 @@ export function calculateCraftingPlan(
     return { itemId, demand, craftRuns, recipe, isCraftable, cyclic, children };
   }
 
-  // Pass 1 für alle Zielgegenstände ausführen
+  // Run pass 1 for all target items
   targets.forEach((t) => {
     if (t.count > 0) {
       visitGross(t.itemId, t.count, [], 0, t.recipe, t.needsDiscovery);
@@ -336,7 +336,7 @@ export function calculateCraftingPlan(
   });
 
   // =========================================================================
-  // Pass 2: Netto-Bedarf mit Bestandsverrechnung und Überschuss-Wiederverwendung
+  // Pass 2: Net demand with inventory accounting and surplus reuse
   // =========================================================================
   const inventoryPool = new Map<number, number>(options.stock ?? []);
   const netMissingTotals = new Map<number, number>();
@@ -396,21 +396,21 @@ export function calculateCraftingPlan(
         craftRuns = Math.ceil(netDemand / outputCount - EPS);
         netCraftRuns.set(itemId, (netCraftRuns.get(itemId) ?? 0) + craftRuns);
 
-        // Überschuss aus Aufrundung zurück in den Pool für spätere Zweige/Schritte geben
+        // Return surplus from rounding up back to the pool for subsequent branches/steps
         const produced = craftRuns * outputCount;
         const surplus = produced - netDemand;
         if (surplus > 0) {
           inventoryPool.set(itemId, (inventoryPool.get(itemId) ?? 0) + surplus);
         }
 
-        // Zutaten für diese Herstellungsdurchläufe berechnen
+        // Calculate ingredients for these crafting runs
         for (const ing of recipe.ingredients) {
           const childDemand = ing.count * craftRuns;
           children.push(visitNet(ing.itemId, childDemand, [...path, itemId], depth + 1, stepKey));
         }
       }
     } else {
-      // Nicht herstellbar oder Nutzer kauft das Zwischenprodukt
+      // Non-craftable or user chose to buy intermediate component
       action = depth > 0 && isCraftable && !doCraft ? 'buy' : determineLeafAction(itemId, p);
       if (netDemand > 0) {
         netMissingTotals.set(itemId, (netMissingTotals.get(itemId) ?? 0) + netDemand);
@@ -572,7 +572,7 @@ export function calculateCraftingPlan(
 }
 
 /**
- * Sammelt alle im Plan vorkommenden Item-IDs (für Vorab-Laden von Namen & Preisen).
+ * Collects all item IDs present in the plan (for preloading names & prices).
  */
 export function collectPlanItemIds(result: CraftingCalculationResult): number[] {
   const ids = new Set<number>();
@@ -586,7 +586,7 @@ export function collectPlanItemIds(result: CraftingCalculationResult): number[] 
 }
 
 /**
- * Wandelt den Baum flach in eine Liste um (für Zählungen oder Tiefensuche).
+ * Flattens the tree into a list (for counts or depth-first search).
  */
 export function flattenCraftingTree(nodes: readonly CraftingTreeNode[]): CraftingTreeNode[] {
   const out: CraftingTreeNode[] = [];

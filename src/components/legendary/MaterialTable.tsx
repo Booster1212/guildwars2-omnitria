@@ -462,7 +462,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
           </div>
         </td>
 
-        {/* Wie viel ich bereits habe (Stock & Progress) */}
+        {/* What I already have (Stock & Progress) */}
         <td className="stock-progress-td">
           <div className="stock-progress-cell">
             <div className="stock-numbers-line font-mono">
@@ -509,7 +509,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
           </div>
         </td>
 
-        {/* Noch offen (Missing Units) */}
+        {/* Still missing (Missing Units) */}
         <td className="num font-mono open-qty-td">
           {e.missing > 0 ? (
             <span className="missing-pill font-bold">
@@ -560,9 +560,9 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
 
   return (
     <div className="material-table-container">
-      {/* 1. Header Summary Cards: Die 4 Kernbereiche auf einen Blick */}
+      {/* 1. Header Summary Cards: The 4 core areas at a glance */}
       <div className="gw2-material-summary-strip">
-        {/* Card 1: Wie viel ich bereits habe */}
+        {/* Card 1: What I already have */}
         <div
           className={`summary-stat-card card-stock-highlight ${filterMode === 'in_stock' ? 'active-card' : ''}`}
           onClick={() => setFilterMode(filterMode === 'in_stock' ? 'all' : 'in_stock')}
@@ -589,7 +589,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
           </div>
         </div>
 
-        {/* Card 2: Was gekauft werden MUSS */}
+        {/* Card 2: What MUST be bought */}
         <div
           className={`summary-stat-card card-must-buy-highlight ${filterMode === 'must_buy' ? 'active-card' : ''}`}
           onClick={() => setFilterMode(filterMode === 'must_buy' ? 'all' : 'must_buy')}
@@ -617,7 +617,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Herstellbar (Eigenfertigung) */}
+        {/* Card 3: Craftable (Self-crafted) */}
         <div
           className={`summary-stat-card ${filterMode === 'craftable' ? 'active-card' : ''}`}
           onClick={() => setFilterMode(filterMode === 'craftable' ? 'all' : 'craftable')}
@@ -638,7 +638,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
           </div>
         </div>
 
-        {/* Card 4: Nicht herstellbar */}
+        {/* Card 4: Non-craftable */}
         <div
           className={`summary-stat-card ${filterMode === 'non_craftable' ? 'active-card' : ''}`}
           onClick={() => setFilterMode(filterMode === 'non_craftable' ? 'all' : 'non_craftable')}
@@ -798,7 +798,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
       <div className="bom-table-scroll-wrap">
         {groupByCategory && filterMode === 'all' ? (
           <div className="grouped-material-sections">
-            {/* Sektion 1: Herstellbar */}
+            {/* Section 1: Craftable */}
             {groupedSections.craftable.length > 0 && (
               <div className="category-section craftable-section">
                 <div className="section-header-banner">
@@ -833,7 +833,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
               </div>
             )}
 
-            {/* Sektion 2: Was gekauft werden MUSS */}
+            {/* Section 2: What MUST be bought */}
             {groupedSections.mustBuy.length > 0 && (
               <div className="category-section must-buy-section">
                 <div className="section-header-banner">
@@ -873,7 +873,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
               </div>
             )}
 
-            {/* Sektion 3: Nicht herstellbar */}
+            {/* Section 3: Non-craftable */}
             {groupedSections.nonCraftable.length > 0 && (
               <div className="category-section non-craftable-section">
                 <div className="section-header-banner">

@@ -18,7 +18,7 @@ import { useTranslation } from '../../i18n';
 interface Props {
   itemId: number;
   model: LegendaryModel;
-  /** Bedarf aus der aktuellen Ansicht (Waffe/Planer) */
+  /** Demand from current view (weapon/planner) */
   need?: { total: number; missing: number } | null;
   canGoBack: boolean;
   onBack: () => void;
@@ -37,7 +37,7 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
       : ['Materiallager', 'Bank', 'Geteiltes Inventar', 'Charaktere'];
   }, [lang]);
 
-  // Offizielle Rezepte, die diesen Gegenstand herstellen / verbrauchen
+  // Official recipes that craft / consume this item
   const official = recipeDb.byOutput.get(itemId) ?? [];
   const usedIn = useMemo(() => {
     if (recipeDb.status !== 'ready') return [] as Recipe[];

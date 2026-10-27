@@ -1,17 +1,17 @@
-// Synchronisiert den Community-Datensatz für legendäre Waffen (nur Entwicklung / manuelle Aktualisierung).
+// Synchronizes community dataset for legendary weapons (development / manual updates only).
 //
-//   node scripts/sync-community-data.mjs [--ref <git-sha-oder-branch>]
+//   node scripts/sync-community-data.mjs [--ref <git-sha-or-branch>]
 //
-// Quelle: https://github.com/PieOrCake/crafty_legend (MIT-Lizenz), Dateien data/CraftyLegend/*.json
-// Die offizielle GW2-API enthält KEINE Mystische-Schmiede-Rezepte. Dieser Datensatz liefert die
-// Rezeptstruktur (Geschenke, Komponenten, Mengen) und grobe Herkunfts-Tags. Alles andere (Namen, Icons,
-// Bindung, Preise, Besitz) kommt zur Laufzeit aus der offiziellen API.
+// Source: https://github.com/PieOrCake/crafty_legend (MIT License), files data/CraftyLegend/*.json
+// The official GW2 API does NOT provide Mystic Forge recipes. This dataset provides the
+// recipe structure (gifts, components, counts) and acquisition tags. All other data (names, icons,
+// binding, prices, inventory) is fetched dynamically at runtime from the official API.
 //
-// Das Skript
-//   1. lädt die Rohdaten an einem festen Commit,
-//   2. reduziert sie auf den von legendären WAFFEN erreichbaren Teilgraphen,
-//   3. validiert IDs und Waffentypen gegen die offizielle API und gegen /v2/legendaryarmory,
-//   4. schreibt src/data/community/legendary-weapons.json.
+// The script:
+//   1. fetches raw data at a fixed commit,
+//   2. prunes to the reachable subgraph of legendary WEAPONS,
+//   3. validates IDs and weapon types against the official API and /v2/legendaryarmory,
+//   4. writes src/data/community/legendary-weapons.json.
 import { writeFileSync, mkdirSync } from 'node:fs';
 
 const OWNER = 'PieOrCake/crafty_legend';
@@ -66,7 +66,7 @@ function walk(id) {
 }
 weapons.forEach((w) => walk(Number(w.id)));
 
-// ---- Validierung gegen die offizielle API -------------------------------------------------------
+// ---- Validation against official API -----------------------------------------------------------
 const API = 'https://api.guildwars2.com/v2';
 async function batched(endpoint, ids, extra = '') {
   const out = [];
@@ -74,7 +74,7 @@ async function batched(endpoint, ids, extra = '') {
     const part = ids.slice(i, i + 200);
     const r = await fetch(`${API}/${endpoint}?ids=${part.join(',')}${extra}`, { headers: UA });
     if (r.status === 404 || r.status === 206) {
-      // 206 = teilweise gefunden; fehlende IDs sind einfach nicht im Ergebnis
+      // 206 = partial content; missing IDs are omitted from result
     } else if (!r.ok) throw new Error(`${endpoint} ${r.status}`);
     const j = await r.json();
     if (Array.isArray(j)) out.push(...j);
@@ -96,16 +96,16 @@ const weaponIds = new Set(weapons.map((w) => Number(w.id)));
 const officialNotInDataset = officialWeapons.filter((w) => !weaponIds.has(w.id)).map((w) => `${w.id} ${w.name} (${w.details?.type})`);
 const datasetNotInArmory = weapons.filter((w) => !armory.includes(Number(w.id))).map((w) => `${w.id} ${w.name}`);
 
-console.log('\n== Validierung ==');
-console.log('Waffen im Datensatz:', weapons.length, '| Waffen in /v2/legendaryarmory:', officialWeapons.length);
-console.log('Erreichbare Items:', reachableItems.size, '| Rezepte:', reachableRecipes.size);
-console.log('Items nicht in offizieller API:', missingOfficial);
-console.log('Namensabweichungen (EN):', nameMismatch.length, nameMismatch.slice(0, 10));
-console.log('Offizielle Waffen OHNE Datensatz-Rezept:', officialNotInDataset);
-console.log('Datensatz-Waffen nicht in Rüstkammer:', datasetNotInArmory);
-console.log('Nicht auflösbare Währungen:', [...unresolvedCurrencies]);
+console.log('\n== Validation ==');
+console.log('Weapons in dataset:', weapons.length, '| Weapons in /v2/legendaryarmory:', officialWeapons.length);
+console.log('Reachable items:', reachableItems.size, '| Recipes:', reachableRecipes.size);
+console.log('Items missing in official API:', missingOfficial);
+console.log('Name mismatches (EN):', nameMismatch.length, nameMismatch.slice(0, 10));
+console.log('Official weapons without dataset recipe:', officialNotInDataset);
+console.log('Dataset weapons not in legendary armory:', datasetNotInArmory);
+console.log('Unresolved currencies:', [...unresolvedCurrencies]);
 
-// ---- Ausgabe ------------------------------------------------------------------------------------
+// ---- Output generation -------------------------------------------------------------------------
 const outRecipes = [...reachableRecipes.keys()].map((r) => {
   const ing = [];
   const cur = [];
@@ -140,7 +140,7 @@ const out = {
     commitDate: commit.commit.committer.date,
     syncedAt: new Date().toISOString().slice(0, 10),
     note:
-      'Community-gepflegt, nicht offiziell. Die offizielle API enthält keine Mystische-Schmiede-Rezepte. Namen/Icons/Preise stammen zur Laufzeit aus der offiziellen API.',
+      'Community-maintained, unofficial dataset. The official API does not expose Mystic Forge recipes. Names, icons, and prices are resolved dynamically at runtime from the official API.',
   },
   weapons: weapons.map((w) => ({
     id: Number(w.id),
@@ -154,4 +154,4 @@ const out = {
 
 mkdirSync(new URL('../src/data/community/', import.meta.url), { recursive: true });
 writeFileSync(new URL('../src/data/community/legendary-weapons.json', import.meta.url), JSON.stringify(out));
-console.log('\nGeschrieben: src/data/community/legendary-weapons.json', (JSON.stringify(out).length / 1024).toFixed(1), 'KB');
+console.log('\nWritten: src/data/community/legendary-weapons.json', (JSON.stringify(out).length / 1024).toFixed(1), 'KB');

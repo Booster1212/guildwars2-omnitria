@@ -1,7 +1,7 @@
 /**
- * Sammlungs-Erfolge legendärer Waffen (offizielle API: Erfolgskategorie "Legendäre Waffen" + /v2/achievements).
- * Zuordnung zur Waffe über den englischen Namen ("Sunrise I: …"). Persönlicher Fortschritt kommt aus
- * /v2/account/achievements (Berechtigung "progression"), das die App bereits abruft.
+ * Collection achievements for legendary weapons (official API: achievement category "Legendary Weapons" + /v2/achievements).
+ * Mapped to weapons via English name ("Sunrise I: …"). Personal progress comes from
+ * /v2/account/achievements (permission "progression"), which the app already retrieves.
  */
 import { useEffect, useSyncExternalStore } from 'react';
 import { apiGet, buildUrl, fetchByIds } from './client';

@@ -1,4 +1,4 @@
-/** Externe Links: in Electron über den abgesicherten IPC-Kanal (Host-Allowlist im Main-Prozess), sonst neues Fenster. */
+/** External links: in Electron via secured IPC channel (host allowlist in main process), otherwise new window. */
 export function openExternal(url: string): void {
   const api = (window as unknown as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI;
   if (api?.openExternal) api.openExternal(url);

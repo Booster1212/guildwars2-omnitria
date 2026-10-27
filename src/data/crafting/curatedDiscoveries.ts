@@ -1,9 +1,9 @@
 import type { Recipe } from '../../domain/types';
 
 /**
- * Vorab gebündelte Entdeckungsrezepte für schnellen Start ohne Wartezeit,
- * gegliedert über alle 8 Handwerksdisziplinen und Rangstufen (0, 75, 150, 225, 300, 400).
- * Sobald die vollständige Rezept-Datenbank geladen ist, wird diese automatisch ergänzt.
+ * Pre-bundled discovery recipes for instant start without waiting time,
+ * structured across all 8 crafting disciplines and rank tiers (0, 75, 150, 225, 300, 400).
+ * As soon as the full recipe database is loaded, it is automatically augmented.
  */
 export const CURATED_DISCOVERIES: Recipe[] = [
   {

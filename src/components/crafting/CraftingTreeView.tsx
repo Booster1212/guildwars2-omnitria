@@ -76,7 +76,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
   return (
     <div className={`crafting-tree-node depth-${Math.min(node.depth, 6)} ${isComplete ? 'node-complete' : ''}`}>
       <div className="tree-node-row">
-        {/* Aufklapp-Pfeil oder Abstandshalter */}
+        {/* Expand/collapse chevron or spacer */}
         {hasChildren ? (
           <button
             type="button"
@@ -93,12 +93,12 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
         {/* Item Icon */}
         <ItemIcon id={node.itemId} size="s" onClick={() => onOpenItem(node.itemId)} />
 
-        {/* Menge */}
+        {/* Quantity */}
         <div className="tree-demand-badge font-mono">
           <span className="gross font-bold">{fmtInt(node.grossDemand)}×</span>
         </div>
 
-        {/* Name und Meta */}
+        {/* Name and metadata */}
         <div className="tree-node-info">
           <div className="tree-title-line">
             <span
@@ -109,14 +109,14 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
               {item?.name ?? `#${node.itemId}`}
             </span>
 
-            {/* Herstellungsdurchläufe */}
+            {/* Crafting runs */}
             {node.craftRuns > 0 && (
               <span className="craft-runs-tag font-mono">
                 {t('crafting.craftRunsBadge', { count: node.craftRuns })}
               </span>
             )}
 
-            {/* Entdeckungsrezept-Kennzeichnung */}
+            {/* Discovery recipe badge */}
             {node.needsDiscovery && (
               <span
                 className="tree-pill pill-discovery"
@@ -127,7 +127,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
               </span>
             )}
 
-            {/* Bestandskennzeichnung */}
+            {/* Inventory/Stock badge */}
             {hasStockData && node.fromStock > 0 && (
               <span className="tree-stock-badge font-mono" title={`${node.fromStock} Einheiten aus Bestand gedeckt`}>
                 <Check size={11} className="inline mr-1" />
@@ -135,7 +135,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
               </span>
             )}
 
-            {/* Zyklus-Warnung */}
+            {/* Cycle warning */}
             {node.cyclic && (
               <span className="tree-cycle-warning" title="Zyklische Abhängigkeit erkannt">
                 <AlertTriangle size={11} className="inline mr-1" />
@@ -143,7 +143,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
               </span>
             )}
 
-            {/* Fehlendes Rezept */}
+            {/* Missing recipe */}
             {node.missingRecipe && (
               <span className="tree-missing-recipe" title="Rezept in Datenbank nicht gefunden">
                 {t('crafting.missingRecipeWarning')}
@@ -152,11 +152,11 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
           </div>
         </div>
 
-        {/* Aktionen & Beschaffung */}
+        {/* Actions & acquisition */}
         <div className="tree-action-col">
           {getActionBadge()}
 
-          {/* Quick Toggle Herstellen vs. Kaufen */}
+          {/* Quick toggle Craft vs. Buy */}
           {node.isCraftable && node.depth > 0 && (
             <button
               type="button"
@@ -186,7 +186,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
             </button>
           )}
 
-          {/* Zeilenkosten bei Kauf */}
+          {/* Line cost on purchase */}
           {node.lineCost !== null && (
             <div className="tree-cost">
               <Coin copper={node.lineCost} />
@@ -195,7 +195,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
         </div>
       </div>
 
-      {/* Rekursive Kinder */}
+      {/* Recursive children */}
       {hasChildren && !isCollapsed && (
         <div className="tree-children-block">
           {node.children.map((child) => (
@@ -249,7 +249,7 @@ export const CraftingTreeView: React.FC<CraftingTreeViewProps> = ({
 
   return (
     <div className="planner-tree-view-wrap">
-      {/* Baum-Werkzeugleiste */}
+      {/* Tree toolbar */}
       <div className="tree-toolbar">
         <span className="dim text-xs">
           {lang === 'en'
@@ -268,7 +268,7 @@ export const CraftingTreeView: React.FC<CraftingTreeViewProps> = ({
         </div>
       </div>
 
-      {/* Baum-Knoten */}
+      {/* Tree nodes */}
       <div className="tree-nodes-list">
         {trees.length === 0 ? (
           <div className="empty-panel dim">

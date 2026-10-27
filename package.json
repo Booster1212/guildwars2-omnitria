@@ -1,7 +1,7 @@
 {
   "name": "omnitria",
-  "version": "0.1.4",
-  "description": "Omnitria - Guild Wars 2 In-Game Overlay (Events, Crafting, Legendary Armory & Achievements)",
+  "version": "0.1.5",
+  "description": "Omnitria - Guild Wars 2 In-Game Overlay (Events, WvW Tactics, Crafting, Legendary Armory & Achievements)",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",

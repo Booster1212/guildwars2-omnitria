@@ -1,5 +1,5 @@
 /**
- * Item-Daten (offizielle API /v2/items, deutsch). Persistent gecacht, in Blöcken geladen, dedupliziert.
+ * Item data (official API /v2/items). Persistently cached, loaded in batches, deduplicated.
  */
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { GameItem, Rarity } from '../../domain/types';
@@ -125,7 +125,7 @@ export async function ensureItems(ids: readonly number[]): Promise<void> {
       res.items.forEach((a) => items.set(a.id, convert(a)));
       if (res.error) {
         loadError = res.error;
-        toFetch.forEach((id) => requested.delete(id)); // später erneut versuchen
+        toFetch.forEach((id) => requested.delete(id)); // retry later
       } else {
         loadError = null;
         toFetch.filter((id) => !items.has(id)).forEach((id) => missing.add(id));

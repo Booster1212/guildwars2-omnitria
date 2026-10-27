@@ -1,6 +1,6 @@
 /**
- * Persistenter Cache für statische Spieldaten (IndexedDB) mit Fallback auf Speicher.
- * Persönliche Fortschritte liegen NICHT hier, sondern in progressStore (localStorage + Datei-Spiegel).
+ * Persistent cache for static game data (IndexedDB) with in-memory fallback.
+ * Personal progress is NOT stored here, but in progressStore (localStorage + file mirror).
  */
 const DB_NAME = 'gw2-overlay-cache';
 const STORE = 'kv';
@@ -83,7 +83,7 @@ export async function cacheDelete(key: string): Promise<void> {
   });
 }
 
-/** Minimaler externer Store für useSyncExternalStore */
+/** Minimal external store for useSyncExternalStore */
 export function createEmitter() {
   const listeners = new Set<() => void>();
   return {

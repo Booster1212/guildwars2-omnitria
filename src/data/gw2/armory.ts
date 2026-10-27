@@ -1,7 +1,7 @@
 /**
- * Legendäre Rüstkammer (öffentliche Liste, offizielle API /v2/legendaryarmory).
- * Dient dazu, offiziell bekannte legendäre Waffen zu erkennen, die im Community-Datensatz fehlen
- * (werden in der UI als „Rezept nicht erfasst“ geführt statt erfunden zu werden).
+ * Legendary Armory (public list, official API /v2/legendaryarmory).
+ * Used to detect officially known legendary weapons that are missing from the community dataset
+ * (displayed in UI as "Recipe not recorded" rather than fabricated).
  */
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { apiGet, buildUrl } from './client';
@@ -53,7 +53,7 @@ export function loadArmoryIds(): Promise<void> {
   return loading;
 }
 
-/** Offizielle Rüstkammer-Waffen (Item-Typ „Weapon“, Rarität „Legendary“) */
+/** Official Armory weapons (Item type "Weapon", Rarity "Legendary") */
 export function useArmoryWeapons(): { id: number; name: string; type: string }[] {
   const s = useSyncExternalStore(emitter.subscribe, () => state);
   useEffect(() => {

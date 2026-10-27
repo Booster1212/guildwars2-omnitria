@@ -354,6 +354,178 @@ export const EVENTS: WorldEvent[] = [
   },
 
   // ==========================================
+  // CORE META-EVENTS (ORR TEMPEL-METAS)
+  // ==========================================
+  {
+    id: 'cathedral-of-zephyrs',
+    name: 'Kathedrale der Zephyre (Dwayna)',
+    nameEn: 'Cathedral of Zephyrs (Dwayna)',
+    category: 'core',
+    eventType: 'meta',
+    categoryLabel: 'Core Meta-Event',
+    categoryLabelEn: 'Core Meta Event',
+    zone: 'Malchors Sprung',
+    zoneEn: "Malchor's Leap",
+    level: 79,
+    mapId: 65,
+    climaxEventId: '6A6FD312-E75C-4ABF-8EA1-7AE31E469ABA',
+    waypoint: '[&BLACAAA=]',
+    waypointName: 'Stürme-Wegmarke',
+    waypointNameEn: 'Tempests Waypoint',
+    durationMinutes: 25,
+    schedule: {
+      type: 'repeat',
+      start: [0, 30],
+      intervalHours: 2,
+    },
+    subEvents: [
+      {
+        id: 'F531683F-FC09-467F-9661-6741E8382E24',
+        name: 'Eskortiert Historiker Vermoth zum Altar der Gezeiten.',
+        nameEn: 'Escort Historian Vermoth to the Altar of Tempests.',
+        phase: 'escort',
+        phaseLabel: 'Eskorte',
+        phaseLabelEn: 'Escort',
+        required: true,
+      },
+      {
+        id: '526732A0-E7F2-4E7E-84C9-7CDED1962000',
+        name: 'Treibt Malchor zum Altar der Gezeiten.',
+        nameEn: 'Drive Malchor to the Altar of Tempests.',
+        phase: 'preparation',
+        phaseLabel: 'Vorbereitung',
+        phaseLabelEn: 'Preparation',
+        required: true,
+      },
+      {
+        id: '7EF31D63-DB2A-4FEB-A6C6-478F382BFBCB',
+        name: 'Besiegt die auferstandene Priesterin der Dwayna.',
+        nameEn: 'Defeat the Risen Priestess of Dwayna.',
+        phase: 'preparation',
+        phaseLabel: 'Vorbereitung',
+        phaseLabelEn: 'Preparation',
+        required: true,
+      },
+      {
+        id: '6A6FD312-E75C-4ABF-8EA1-7AE31E469ABA',
+        name: 'Besiegt die besessene Dwayna-Statue.',
+        nameEn: 'Defeat the possessed statue of Dwayna.',
+        phase: 'boss',
+        phaseLabel: 'Endboss',
+        phaseLabelEn: 'Boss Climax',
+        required: true,
+      },
+      {
+        id: '0723E056-E665-439F-99B7-20385442AD4E',
+        name: 'Beschützt die Kathedrale der Zephyre.',
+        nameEn: 'Protect the Cathedral of Zephyrs.',
+        phase: 'defense',
+        phaseLabel: 'Verteidigung',
+        phaseLabelEn: 'Defense',
+        required: false,
+      },
+    ],
+    lootHighlights: ['Glorreiche Truhe', 'Kleriker-Rüstung (Exotisch)', 'Dwayna-Statuen-Fragmente', 'Drachenit-Erz'],
+    lootHighlightsEn: ['Glorious Chest', "Cleric's Exotic Armor", "Dwayna's Light (Sunrise III)", 'Dragonite Ore'],
+    tactics: 'Eskortiert Historiker Vermoth und treibt Malchor zum Altar der Gezeiten. Sobald Malchor die Statue besetzt, weicht seinen Tränen (Projektilregen) aus oder reflektiert sie. Haltet Abstand bei "Dwaynas Zorn" (Stoßwelle) und unterbrecht die Heilgebete!',
+    tacticsEn: "Escort Historian Vermoth and drive Malchor to the Altar of Tempests. When Malchor possesses the statue, dodge or reflect Malchor's Tears projectiles. Avoid Dwayna's Fury knockback and interrupt Prayer to Dwayna heals!",
+    iconType: 'shield',
+  },
+  {
+    id: 'cathedral-of-eternal-radiance',
+    name: 'Kathedrale des Ewigen Strahlens (Lyssa)',
+    nameEn: 'Cathedral of Eternal Radiance (Lyssa)',
+    category: 'core',
+    eventType: 'meta',
+    categoryLabel: 'Core Meta-Event',
+    categoryLabelEn: 'Core Meta Event',
+    zone: 'Malchors Sprung',
+    zoneEn: "Malchor's Leap",
+    level: 79,
+    mapId: 65,
+    climaxEventId: '0372874E-59B7-4A8F-B535-2CF57B8E67E4',
+    waypoint: '[&BK0CAAA=]',
+    waypointName: 'Lyssa-Wegmarke',
+    waypointNameEn: 'Lyssa Waypoint',
+    durationMinutes: 25,
+    schedule: {
+      type: 'repeat',
+      start: [1, 30],
+      intervalHours: 2,
+    },
+    subEvents: [
+      {
+        id: 'EF420CA1-5926-4010-A922-9B065166C99B',
+        name: 'Beseitigt alle Feinde beim Aufmarschgebiet des Pakts bei Wren.',
+        nameEn: 'Clear the Pact staging area at Wren.',
+        phase: 'escort',
+        phaseLabel: 'Aufmarsch',
+        phaseLabelEn: 'Staging',
+        required: true,
+      },
+      {
+        id: 'FDF62772-EB62-43CD-96DE-C6B4F040CA3A',
+        name: 'Eskortiert Pakt-Truppen und Ausrüstung nach Wren.',
+        nameEn: 'Escort Pact troops and equipment to Wren.',
+        phase: 'escort',
+        phaseLabel: 'Eskorte',
+        phaseLabelEn: 'Escort',
+        required: true,
+      },
+      {
+        id: '35997B10-179B-4E39-AD7F-54E131ECDD57',
+        name: 'Zerstört die Auferstandenen-Befestigungen, um das Siegel der Vereinigung einzunehmen.',
+        nameEn: 'Destroy the Risen fortifications to capture the Seal of Union.',
+        phase: 'preparation',
+        phaseLabel: 'Siegel-Einnahme',
+        phaseLabelEn: 'Capture Seal',
+        required: true,
+      },
+      {
+        id: 'ADC3AA4C-0212-4AE6-98FA-4F59F3C9BCFA',
+        name: 'Verteidigt das Siegel der Vereinigung vor der Verderbnis.',
+        nameEn: 'Defend the Seal of Union from corruption.',
+        phase: 'preparation',
+        phaseLabel: 'Siegel-Verteidigung',
+        phaseLabelEn: 'Defend Seal',
+        required: true,
+      },
+      {
+        id: '590364E0-0053-4933-945E-21D396B10B20',
+        name: 'Verteidigt das Siegel der Lyss, bis die Pakt-Kanone einsatzbereit ist.',
+        nameEn: 'Defend the Seal of Lyss until the Pact cannon is online.',
+        phase: 'preparation',
+        phaseLabel: 'Siegel der Lyss',
+        phaseLabelEn: 'Seal of Lyss',
+        required: true,
+      },
+      {
+        id: '0372874E-59B7-4A8F-B535-2CF57B8E67E4',
+        name: 'Tötet die Verdorbene Hohepriesterin',
+        nameEn: 'Kill the Corrupted High Priestess',
+        phase: 'boss',
+        phaseLabel: 'Endboss',
+        phaseLabelEn: 'Boss Climax',
+        required: true,
+      },
+      {
+        id: 'BFA71CD0-ED1E-4EE3-B8A9-B23B98C3B786',
+        name: 'Erledigt die Auferstandenen, bevor sie die Lyssa-Statue reaktivieren können.',
+        nameEn: 'Kill the Risen before they reactivate the Statue of Lyssa.',
+        phase: 'defense',
+        phaseLabel: 'Verteidigung',
+        phaseLabelEn: 'Defense',
+        required: false,
+      },
+    ],
+    lootHighlights: ['Große Pakt-Truhe', 'Karmakaufmann-Rüstung (Wütend/Berserker)', 'Verdorbene Splitter', 'Drachenit-Erz'],
+    lootHighlightsEn: ['Grand Pact Chest', "Rabid Exotic Armor (Karma Vendor)", "Lyssa's Gaze Recipe", 'Dragonite Ore'],
+    tactics: 'Eskortiert die Pakt-Truppen von Wren aus und sichert die Siegel der Vereinigung und der Lyss. In der Kathedrale teleportiert die Hohepriesterin Mesmer-Klone und blendet den Raum. Dreht euch bei Verwirrungszaubern weg und fokussiert CC auf die Trotzleiste (Breakbar)!',
+    tacticsEn: "Escort Pact forces from Wren to reclaim the Seal of Union and Seal of Lyss. Inside the cathedral, the High Priestess spawns confusing illusions and teleports. Turn your back when she casts blinding gaze and break defiance bar immediately!",
+    iconType: 'portal',
+  },
+
+  // ==========================================
   // HEART OF THORNS (HoT) METAS
   // ==========================================
   {
@@ -921,6 +1093,25 @@ export const EVENTS: WorldEvent[] = [
     iconType: 'crystal',
   },
 ];
+// Pre-populate achievements on events to avoid per-candidate object spreads and lookups
+const PREPARED_EVENTS: WorldEvent[] = EVENTS.map((event) => ({
+  ...event,
+  achievements: event.achievements || getAchievementsForEvent(event.id),
+}));
+
+/**
+ * Determines whether an event is classified as a World Boss or Meta-Event.
+ * Explicit eventType takes precedence, falling back to legacy category grouping.
+ */
+export function isBossEvent(event: WorldEvent | { category: string; eventType?: 'boss' | 'meta' }): boolean {
+  if (event.eventType === 'boss') return true;
+  if (event.eventType === 'meta') return false;
+  return event.category === 'core' || event.category === 'hardcore';
+}
+
+export function isMetaEvent(event: WorldEvent | { category: string; eventType?: 'boss' | 'meta' }): boolean {
+  return !isBossEvent(event);
+}
 
 /**
  * Computes all upcoming and currently active World Events from reference time onwards.
@@ -930,31 +1121,62 @@ export function getEventSchedule(referenceDate: Date = new Date(), hoursAhead = 
   const refTime = referenceDate.getTime();
   const maxTime = refTime + hoursAhead * 60 * 60 * 1000;
 
-  EVENTS.forEach((event) => {
-    const candidateDays = [-1, 0, 1, 2];
+  const refUtcHours = referenceDate.getUTCHours();
+  const candidateDays: number[] = [];
+  if (refUtcHours < 2) candidateDays.push(-1);
+  candidateDays.push(0);
+  if (refUtcHours + hoursAhead >= 24) candidateDays.push(1);
+  if (refUtcHours + hoursAhead >= 48) candidateDays.push(2);
 
-    candidateDays.forEach((dayOffset) => {
+  for (const event of PREPARED_EVENTS) {
+    const durMs = event.durationMinutes * 60 * 1000;
+    const sched = event.schedule;
+
+    for (const dayOffset of candidateDays) {
       const baseDate = new Date(referenceDate);
-      baseDate.setUTCDate(baseDate.getUTCDate() + dayOffset);
+      if (dayOffset !== 0) {
+        baseDate.setUTCDate(baseDate.getUTCDate() + dayOffset);
+      }
 
-      if (event.schedule.type === 'fixed' && event.schedule.times) {
-        event.schedule.times.forEach(([hour, minute]) => {
+      if (sched.type === 'fixed' && sched.times) {
+        for (const [hour, minute] of sched.times) {
           const spawnDate = new Date(baseDate);
           spawnDate.setUTCHours(hour, minute, 0, 0);
-          addCandidate(event, spawnDate, refTime, maxTime, instances);
-        });
-      } else if (event.schedule.type === 'repeat' && event.schedule.start && event.schedule.intervalHours) {
-        const [startH, startM] = event.schedule.start;
-        const interval = event.schedule.intervalHours;
-
+          const spawnTime = spawnDate.getTime();
+          const endTime = spawnTime + durMs;
+          if (endTime >= refTime && spawnTime <= maxTime) {
+            instances.push({
+              event,
+              startTime: spawnDate,
+              endTime: new Date(endTime),
+              isActive: spawnTime <= refTime && refTime <= endTime,
+              startsInSeconds: Math.max(0, Math.floor((spawnTime - refTime) / 1000)),
+              endsInSeconds: Math.max(0, Math.floor((endTime - refTime) / 1000)),
+            });
+          }
+        }
+      } else if (sched.type === 'repeat' && sched.start && sched.intervalHours) {
+        const [startH, startM] = sched.start;
+        const interval = sched.intervalHours;
         for (let h = startH; h < 24; h += interval) {
           const spawnDate = new Date(baseDate);
           spawnDate.setUTCHours(h, startM, 0, 0);
-          addCandidate(event, spawnDate, refTime, maxTime, instances);
+          const spawnTime = spawnDate.getTime();
+          const endTime = spawnTime + durMs;
+          if (endTime >= refTime && spawnTime <= maxTime) {
+            instances.push({
+              event,
+              startTime: spawnDate,
+              endTime: new Date(endTime),
+              isActive: spawnTime <= refTime && refTime <= endTime,
+              startsInSeconds: Math.max(0, Math.floor((spawnTime - refTime) / 1000)),
+              endsInSeconds: Math.max(0, Math.floor((endTime - refTime) / 1000)),
+            });
+          }
         }
       }
-    });
-  });
+    }
+  }
 
   // Sort by startTime ascending
   instances.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
@@ -972,38 +1194,6 @@ export function getEventSchedule(referenceDate: Date = new Date(), hoursAhead = 
   }
 
   return uniqueInstances;
-}
-
-function addCandidate(
-  event: WorldEvent,
-  spawnDate: Date,
-  refTime: number,
-  maxTime: number,
-  output: EventInstance[]
-) {
-  const spawnTime = spawnDate.getTime();
-  const endTime = spawnTime + event.durationMinutes * 60 * 1000;
-
-  // We are interested in events that either ended recently (still active) or will start before maxTime
-  if (endTime >= refTime && spawnTime <= maxTime) {
-    const isActive = spawnTime <= refTime && refTime <= endTime;
-    const startsInSeconds = Math.max(0, Math.floor((spawnTime - refTime) / 1000));
-    const endsInSeconds = Math.max(0, Math.floor((endTime - refTime) / 1000));
-
-    const eventWithAchievements: WorldEvent = {
-      ...event,
-      achievements: event.achievements || getAchievementsForEvent(event.id),
-    };
-
-    output.push({
-      event: eventWithAchievements,
-      startTime: spawnDate,
-      endTime: new Date(endTime),
-      isActive,
-      startsInSeconds,
-      endsInSeconds,
-    });
-  }
 }
 
 /**
@@ -1221,4 +1411,13 @@ export const LOOT_ITEM_ID_MAP: Record<string, number> = {
   'Chunk of Ancient Ambergris': 96347,
   'Ektoplasmakugel': 19721,
   'Glob of Ectoplasm': 19721,
+
+  // Orr Temple Metas Loot
+  'Glorreiche Truhe': 47870,
+  'Glorious Chest': 47870,
+  'Große Pakt-Truhe': 78650,
+  'Grand Pact Chest': 78650,
+  "Dwayna's Light (Sunrise III)": 75012,
+  'Dwayna-Statuen-Fragmente': 75012,
+  'Verdorbene Splitter': 24305,
 };

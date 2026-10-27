@@ -75,7 +75,7 @@ test('1. Ein Endprodukt ohne herstellbare Zwischenprodukte', () => {
 });
 
 // ============================================================================
-// Test 2: Ein Endprodukt mit mehreren Ebenen von Zwischenprodukten
+// Test 2: An end product with multiple levels of intermediate components
 // ============================================================================
 test('2. Ein Endprodukt mit mehreren Ebenen von Zwischenprodukten', () => {
   // Schwert (1000) -> Klinge (500) -> Barren (100) -> Erz (10)
@@ -117,10 +117,10 @@ test('2. Ein Endprodukt mit mehreren Ebenen von Zwischenprodukten', () => {
 });
 
 // ============================================================================
-// Test 3: Dasselbe Grundmaterial wird in mehreren Rezeptzweigen benötigt
+// Test 3: Same base material required in multiple recipe branches
 // ============================================================================
 test('3. Dasselbe Grundmaterial wird in mehreren Rezeptzweigen benötigt', () => {
-  // Dolch (1) braucht Klinge (2) und Griff (3)
+  // Dagger (1) requires Blade (2) and Hilt (3)
   // Klinge (2) braucht 3x Eisenbarren (10)
   // Griff (3) braucht 2x Eisenbarren (10)
   // Eisenbarren (10) braucht 3x Eisenerz (20)
@@ -145,7 +145,7 @@ test('3. Dasselbe Grundmaterial wird in mehreren Rezeptzweigen benötigt', () =>
   assert.equal(matErz?.grossDemand, 30);
   assert.equal(matErz?.netDemand, 30);
 
-  // Keine Doppelzählung in den Materialien
+  // No duplicate counting in materials
   const erzEntries = result.materials.filter((m) => m.itemId === 20);
   assert.equal(erzEntries.length, 1);
 });
@@ -154,9 +154,9 @@ test('3. Dasselbe Grundmaterial wird in mehreren Rezeptzweigen benötigt', () =>
 // Test 4: Ein Rezept erzeugt mehrere Einheiten pro Herstellung
 // ============================================================================
 test('4. Ein Rezept erzeugt mehrere Einheiten pro Herstellung', () => {
-  // Beispiel aus Vorgabe: Route benötigt 11 Einheiten eines Zwischenprodukts,
-  // Rezept erzeugt 5 Einheiten pro Herstellung -> 3 Herstellungsdurchläufe erforderlich
-  // Rezept ZP (50) erzeugt 5 Einheiten aus 2 Einheiten Rohstoff (99)
+  // Example: Route requires 11 units of an intermediate product,
+  // recipe produces 5 units per craft -> 3 craft runs required
+  // Recipe intermediate (50) produces 5 units from 2 units raw material (99)
   const recipes = [
     makeRecipe('r-ziel', 1, 1, [[50, 11]]),
     makeRecipe('r-zp', 50, 5, [[99, 2]]),
@@ -170,11 +170,11 @@ test('4. Ein Rezept erzeugt mehrere Einheiten pro Herstellung', () => {
   const zpNode = root.children[0];
   assert.equal(zpNode.itemId, 50);
   assert.equal(zpNode.grossDemand, 11);
-  assert.equal(zpNode.craftRuns, 3); // Math.ceil(11 / 5) = 3 Durchläufe!
+  assert.equal(zpNode.craftRuns, 3); // Math.ceil(11 / 5) = 3 runs!
 
   const rawNode = zpNode.children[0];
   assert.equal(rawNode.itemId, 99);
-  assert.equal(rawNode.grossDemand, 6); // 3 Durchläufe * 2 = 6 Einheiten
+  assert.equal(rawNode.grossDemand, 6); // 3 runs * 2 = 6 units
   assert.equal(rawNode.netDemand, 6);
 
   const matRaw = result.materials.find((m) => m.itemId === 99);
@@ -183,7 +183,7 @@ test('4. Ein Rezept erzeugt mehrere Einheiten pro Herstellung', () => {
 });
 
 // ============================================================================
-// Test 5: Der Materialbestand deckt einen Teil des Bedarfs
+// Test 5: Inventory stock covers part of the demand
 // ============================================================================
 test('5. Der Materialbestand deckt einen Teil des Bedarfs', () => {
   // Endprodukt braucht 20 Rohmaterial (10). Nutzer besitzt 8 Einheiten.
@@ -198,22 +198,22 @@ test('5. Der Materialbestand deckt einen Teil des Bedarfs', () => {
   assert.ok(mat);
   assert.equal(mat.grossDemand, 20); // Gesamtbedarf
   assert.equal(mat.stock, 8);        // Vorhanden
-  assert.equal(mat.stockUsed, 8);    // Aus Bestand verrechnet
+  assert.equal(mat.stockUsed, 8);    // Allocated from stock
   assert.equal(mat.netDemand, 12);   // Fehlend
 });
 
 // ============================================================================
-// Test 6: Ein fertiges Zwischenprodukt wird gekauft statt selbst hergestellt
+// Test 6: A completed intermediate is bought instead of self-crafted
 // ============================================================================
 test('6. Ein fertiges Zwischenprodukt wird gekauft statt selbst hergestellt', () => {
-  // Endprodukt (1) braucht Zwischenprodukt (50), das aus Erz (10) hergestellt werden kann.
+  // End product (1) requires intermediate (50), which can be crafted from ore (10).
   const recipes = [
     makeRecipe('r-end', 1, 1, [[50, 4]]),
     makeRecipe('r-zp', 50, 1, [[10, 5]]),
   ];
   const provider = makeProvider(recipes);
 
-  // Strategie A: Selbst herstellen (Standard)
+  // Strategy A: Self-craft (default)
   const resCraft = calculateCraftingPlan([{ itemId: 1, count: 1, recipe: recipes[0] }], provider, {
     strategy: 'all_craft',
   });
@@ -227,10 +227,10 @@ test('6. Ein fertiges Zwischenprodukt wird gekauft statt selbst hergestellt', ()
   assert.ok(zpMaterial);
   assert.equal(zpMaterial.action, 'buy');
   assert.equal(zpMaterial.netDemand, 4);
-  // Erz (10) darf NICHT mehr im Plan vorkommen!
+  // Ore (10) must NOT appear in plan!
   assert.equal(resBuy.materials.some((m) => m.itemId === 10), false);
 
-  // Strategie C: Kombiniert mit gezieltem Override
+  // Strategy C: Combined with targeted override
   const itemOverrides = new Map<number, 'craft' | 'buy'>([[50, 'buy']]);
   const resCustom = calculateCraftingPlan([{ itemId: 1, count: 1, recipe: recipes[0] }], provider, {
     strategy: 'custom',
@@ -241,14 +241,14 @@ test('6. Ein fertiges Zwischenprodukt wird gekauft statt selbst hergestellt', ()
 });
 
 // ============================================================================
-// Test 7: Ein Teil eines Zwischenprodukts ist vorhanden und der Rest muss hergestellt werden
+// Test 7: Part of an intermediate component is in stock and the rest must be crafted
 // ============================================================================
 test('7. Ein Teil eines Zwischenprodukts ist vorhanden und der Rest muss hergestellt werden', () => {
-  // Route benötigt 11 Einheiten ZP (50). Rezept für ZP erzeugt 5 Einheiten aus 2x Zutat (99).
-  // Nutzer besitzt 3 Einheiten von ZP (50).
-  // Netto-Bedarf an ZP = 11 - 3 = 8 Einheiten.
-  // Benötigte Durchläufe für ZP = Math.ceil(8 / 5) = 2 Durchläufe.
-  // Zutatenkosten für diese 2 Durchläufe = 2 * 2 = 4 Einheiten von Zutat (99).
+  // Route requires 11 units of intermediate (50). Recipe for intermediate produces 5 units from 2x ingredient (99).
+  // User owns 3 units of intermediate (50).
+  // Net demand for intermediate = 11 - 3 = 8 units.
+  // Required runs for intermediate = Math.ceil(8 / 5) = 2 runs.
+  // Ingredient cost for these 2 runs = 2 * 2 = 4 units of ingredient (99).
   const recipes = [
     makeRecipe('r-ziel', 1, 1, [[50, 11]]),
     makeRecipe('r-zp', 50, 5, [[99, 2]]),
@@ -265,15 +265,15 @@ test('7. Ein Teil eines Zwischenprodukts ist vorhanden und der Rest muss hergest
   assert.equal(zpNode.grossDemand, 11);
   assert.equal(zpNode.fromStock, 3);
   assert.equal(zpNode.netDemand, 8);
-  assert.equal(zpNode.craftRuns, 2); // 2 Durchläufe decken 10 Einheiten (>= 8)!
+  assert.equal(zpNode.craftRuns, 2); // 2 runs cover 10 units (>= 8)!
 
   const rawNode = zpNode.children[0];
   assert.equal(rawNode.itemId, 99);
-  assert.equal(rawNode.grossDemand, 4); // 2 Durchläufe * 2 = 4 Einheiten
+  assert.equal(rawNode.grossDemand, 4); // 2 runs * 2 = 4 units
   assert.equal(rawNode.netDemand, 4);
 
   const matZp = result.materials.find((m) => m.itemId === 50);
-  assert.equal(matZp?.grossDemand, 15); // Im Brutto-Pass ohne Bestand: 3 Durchläufe * 5 = 15
+  assert.equal(matZp?.grossDemand, 15); // In gross pass without stock: 3 runs * 5 = 15
   assert.equal(matZp?.stock, 3);
   assert.equal(matZp?.stockUsed, 3);
   assert.equal(matZp?.craftRuns, 2);
@@ -284,10 +284,10 @@ test('7. Ein Teil eines Zwischenprodukts ist vorhanden und der Rest muss hergest
 });
 
 // ============================================================================
-// Test 8: Eine Rezeptabhängigkeit fehlt
+// Test 8: A recipe dependency is missing
 // ============================================================================
 test('8. Eine Rezeptabhängigkeit fehlt', () => {
-  // Endprodukt benötigt Zutat 9999, für die kein Rezept existiert
+  // End product requires ingredient 9999 for which no recipe exists
   const recipes = [makeRecipe('r-unvollstaendig', 1, 1, [[9999, 5]])];
   const provider = makeProvider(recipes);
 
@@ -308,7 +308,7 @@ test('8. Eine Rezeptabhängigkeit fehlt', () => {
 });
 
 // ============================================================================
-// Test 9: Ein Rezeptzyklus wird erkannt
+// Test 9: A recipe cycle is detected
 // ============================================================================
 test('9. Ein Rezeptzyklus wird erkannt', () => {
   // A (1) -> B (2) -> A (1) (Endlosschleife)
@@ -319,7 +319,7 @@ test('9. Ein Rezeptzyklus wird erkannt', () => {
   const provider = makeProvider(recipes);
 
   const targets: TargetCraftItem[] = [{ itemId: 1, count: 1, recipe: recipes[0] }];
-  // Darf nicht abstürzen und muss Zyklus markieren
+  // Must not crash and must flag cycle
   const result = calculateCraftingPlan(targets, provider);
 
   assert.equal(result.hasCycles, true);
@@ -328,11 +328,11 @@ test('9. Ein Rezeptzyklus wird erkannt', () => {
   const cycleNode = root.children[0].children[0];
   assert.equal(cycleNode.itemId, 1);
   assert.equal(cycleNode.cyclic, true);
-  assert.equal(cycleNode.children.length, 0); // Rekursion wurde sicher gestoppt
+  assert.equal(cycleNode.children.length, 0); // Recursion stopped safely
 });
 
 // ============================================================================
-// Test 10: Eine Änderung der Levelroute aktualisiert die Gesamtsummen korrekt
+// Test 10: Changing leveling route correctly updates totals
 // ============================================================================
 test('10. Eine Änderung der Levelroute aktualisiert die Gesamtsummen korrekt', () => {
   const recipes = [
@@ -341,31 +341,31 @@ test('10. Eine Änderung der Levelroute aktualisiert die Gesamtsummen korrekt', 
   ];
   const provider = makeProvider(recipes);
 
-  // Route A: Nur Rang 0-25 (Schritt 1: 2x Item 1)
+  // Route A: Rank 0-25 only (Step 1: 2x Item 1)
   const routeA: TargetCraftItem[] = [{ itemId: 1, count: 2, recipe: recipes[0], stepKey: 'st-1' }];
   const resultA = calculateCraftingPlan(routeA, provider);
   assert.equal(resultA.materials.find((m) => m.itemId === 10)?.grossDemand, 10);
   assert.equal(resultA.materials.some((m) => m.itemId === 20), false);
 
-  // Route B: Erweiterung bis Rang 50 (Schritt 1: 2x Item 1 + Schritt 2: 3x Item 2)
+  // Route B: Extension to rank 50 (Step 1: 2x Item 1 + Step 2: 3x Item 2)
   const routeB: TargetCraftItem[] = [
     { itemId: 1, count: 2, recipe: recipes[0], stepKey: 'st-1' },
     { itemId: 2, count: 3, recipe: recipes[1], stepKey: 'st-2' },
   ];
   const resultB = calculateCraftingPlan(routeB, provider);
 
-  // Material 10 wird aus beiden Schritten summiert: 2*5 + 3*8 = 34
+  // Material 10 is summed from both steps: 2*5 + 3*8 = 34
   assert.equal(resultB.materials.find((m) => m.itemId === 10)?.grossDemand, 34);
-  // Material 20 kommt aus Schritt 2 hinzu: 3*2 = 6
+  // Material 20 added from step 2: 3*2 = 6
   assert.equal(resultB.materials.find((m) => m.itemId === 20)?.grossDemand, 6);
   assert.equal(resultB.trees.length, 2);
 });
 
 // ============================================================================
-// Test 11: Endprodukt ist ein Entdeckungsrezept (needsDiscovery und requiredForDiscovery)
+// Test 11: End product is a discovery recipe (needsDiscovery and requiredForDiscovery)
 // ============================================================================
 test('11. Endprodukt ist ein Entdeckungsrezept und markiert Zutaten als requiredForDiscovery', () => {
-  // Entdeckungsrezept für ein Eisenschwert: weder AutoLearned noch LearnedFromItem
+  // Discovery recipe for an iron sword: neither AutoLearned nor LearnedFromItem
   const discRecipe: Recipe = {
     ...makeRecipe('r-disc-schwert', 5000, 1, [[10, 2], [20, 1]]),
     flags: [],
@@ -379,7 +379,7 @@ test('11. Endprodukt ist ein Entdeckungsrezept und markiert Zutaten als required
   ];
   const result = calculateCraftingPlan(targets, provider, { allowDiscovery: true });
 
-  // 1. Baum-Prüfung
+  // 1. Tree check
   assert.equal(result.trees.length, 1);
   const root = result.trees[0];
   assert.equal(root.itemId, 5000);
@@ -394,7 +394,7 @@ test('11. Endprodukt ist ein Entdeckungsrezept und markiert Zutaten als required
   assert.equal(endProd.grossDemand, 1);
   assert.equal(endProd.netDemand, 1);
 
-  // 3. Basiszutaten für die Entdeckung
+  // 3. Base ingredients for discovery
   const mat10 = result.materials.find((m) => m.itemId === 10);
   assert.ok(mat10);
   assert.equal(mat10.role, 'base_material');
@@ -414,8 +414,8 @@ test('11. Endprodukt ist ein Entdeckungsrezept und markiert Zutaten als required
 // Test 12: Zwischenprodukt erfordert Entdeckungsrezept (z. B. Insignie / Inschrift)
 // ============================================================================
 test('12. Zwischenprodukt erfordert Entdeckungsrezept: Auflösung bei allowDiscovery = true vs false', () => {
-  // Fertige Rüstung (1000, AutoLearned) benötigt Futter (101, AutoLearned) und Insignie (2050, Discovery)
-  // Insignie 2050 benötigt Jute (30) und Spule (31)
+  // Finished armor (1000, AutoLearned) requires lining (101, AutoLearned) and insignia (2050, Discovery)
+  // Insignia 2050 requires jute (30) and spool (31)
   const armorRecipe = makeRecipe('r-armor', 1000, 1, [[101, 1], [2050, 1]]);
   const paddingRecipe = makeRecipe('r-padding', 101, 1, [[30, 2]]);
   const insigniaDiscoveryRecipe: Recipe = {
@@ -443,7 +443,7 @@ test('12. Zwischenprodukt erfordert Entdeckungsrezept: Auflösung bei allowDisco
     prices,
   });
 
-  // Insignie 2050 wird hergestellt und als Entdeckung markiert
+  // Insignia 2050 is crafted and flagged as discovery
   const treeRootA = resultA.trees[0];
   const insigniaNodeA = treeRootA.children.find((c) => c.itemId === 2050);
   assert.ok(insigniaNodeA);
@@ -456,7 +456,7 @@ test('12. Zwischenprodukt erfordert Entdeckungsrezept: Auflösung bei allowDisco
   assert.equal(matInsigniaA.role, 'intermediate');
   assert.equal(matInsigniaA.needsDiscovery, true);
 
-  // Zutaten der Insignie als requiredForDiscovery
+  // Ingredients of insignia marked as requiredForDiscovery
   const mat31 = resultA.materials.find((m) => m.itemId === 31);
   assert.ok(mat31);
   assert.equal(mat31.requiredForDiscovery, true);
@@ -474,13 +474,13 @@ test('12. Zwischenprodukt erfordert Entdeckungsrezept: Auflösung bei allowDisco
   const treeRootB = resultB.trees[0];
   const insigniaNodeB = treeRootB.children.find((c) => c.itemId === 2050);
   assert.ok(insigniaNodeB);
-  // Ohne Entdeckungserlaubnis kann das Rezept nicht erforscht/hergestellt werden -> Kaufaktion
+  // Without discovery permission recipe cannot be discovered/crafted -> purchase action
   assert.equal(insigniaNodeB.action, 'buy');
   assert.equal(insigniaNodeB.needsDiscovery, false);
 });
 
 // ============================================================================
-// Test 13: Bekanntes Rezept im Account hebt Entdeckungs-Zwang auf
+// Test 13: Known recipe in account removes discovery requirement
 // ============================================================================
 test('13. Account-bekanntes Rezept hebt needsDiscovery auf', () => {
   const discRecipe: Recipe = {
@@ -490,7 +490,7 @@ test('13. Account-bekanntes Rezept hebt needsDiscovery auf', () => {
   };
   const provider = makeProvider([discRecipe]);
 
-  // Wenn der Account das Rezept bereits freigeschaltet hat (ID 4242)
+  // If account already unlocked the recipe (ID 4242)
   const known = new Set([4242]);
   assert.equal(isRecipeDiscovery(discRecipe, known), false);
 

@@ -1,4 +1,4 @@
-// Dev: Deckung der automatisch erlernten Rezepte pro Beruf und Rang (Annahmen siehe src/domain/craftingXp.ts)
+// Dev: coverage of auto-learned recipes per discipline and rank (assumptions see src/domain/craftingXp.ts)
 const R = require('./.cache/recipes.json');
 const DISC = ['Armorsmith', 'Weaponsmith', 'Artificer', 'Jeweler', 'Leatherworker', 'Tailor', 'Chef', 'Huntsman'];
 const cat = (t) => {

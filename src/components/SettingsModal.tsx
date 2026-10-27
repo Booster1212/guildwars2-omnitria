@@ -115,7 +115,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         const res = await api.checkUpdate();
         setUpdateInfo(res);
       } else {
-        // Fallback für Browser-Modus
+        // Fallback for browser mode
         const res = await fetch('https://api.github.com/repos/Booster1212/guildwars2-omnitria/releases/latest');
         if (res.ok) {
           const rel = await res.json();
@@ -213,10 +213,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
       setApiError(null);
 
-      // Beim Öffnen automatisch auf Updates prüfen
+      // Automatically check for updates on open
       checkUpdates(false);
     }
   }, [isOpen, settings.apiKey]);
+
+  // Escape key to close the modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -610,7 +623,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* SECTION 5: Audio & Signaltöne */}
+          {/* SECTION 5: Audio & Sound Alerts */}
           <div className="settings-card-panel">
             <div className="card-panel-header">
               <Volume2 size={14} className="gold-accent" />

@@ -1,11 +1,11 @@
 /**
- * Klassifikation der Beschaffungswege eines Materials.
+ * Classification of procurement sources for a material.
  *
- * Es werden nur Aussagen getroffen, die aus
- *   - der offiziellen API (Bindung/Handelbarkeit, Preise, Item-Beschreibung),
- *   - dem Community-Datensatz (Herkunfts-Tags, Rezepte) oder
- *   - Berechnungen
- * stammen. Alles andere bleibt "unbekannt" und wird ausdrücklich so ausgewiesen.
+ * Only statements are made that originate from:
+ *   - the official API (binding/tradability, prices, item description),
+ *   - the community dataset (origin tags, recipes), or
+ *   - calculations.
+ * Everything else remains "unknown" and is explicitly indicated as such.
  */
 import type { GameItem, PriceInfo, Recipe, RecipeKind } from './types.ts';
 import { isUntradable } from './types.ts';
@@ -21,7 +21,7 @@ export interface SourceInfo {
   origin: Origin;
   detail: string;
   detailEn: string;
-  /** "garantiert" | "zufällig" | "unbekannt" */
+  /** "guaranteed" | "rng" | "unknown" */
   amount: 'guaranteed' | 'random' | 'unknown';
   caveats: string[];
   caveatsEn: string[];
@@ -58,7 +58,7 @@ export interface SourceContext {
   item: GameItem | undefined;
   itemId?: number;
   tags: string[];
-  /** Rezept, das diesen Gegenstand herstellt (Community oder offiziell) */
+  /** Recipe that crafts this item (community or official) */
   recipe?: Recipe;
   vendorRecipe?: Recipe;
   price?: PriceInfo;
@@ -376,10 +376,10 @@ export interface ProcurementClassification {
 }
 
 /**
- * Präzise Klassifikation von Materialien in:
+ * Precise classification of materials into:
  * - 'craftable': Herstellbar (Handwerk / Mystische Schmiede)
- * - 'must_buy': Was gekauft werden MUSS (feste Händlerpreise wie Eisiger Runenstein, Handelsposten-Rohstoffe, Direktkäufe)
- * - 'non_craftable': Nicht herstellbar (Drops, Erkundung, Belohnungen, Kontowährungen)
+ * - 'must_buy': What MUST be bought (fixed vendor prices like Icy Runestone, TP raw materials, direct buys)
+ * - 'non_craftable': Non-craftable (drops, exploration, rewards, account currencies)
  */
 export function classifyMaterialProcurement(params: {
   itemId: number;
@@ -391,7 +391,7 @@ export function classifyMaterialProcurement(params: {
 }): ProcurementClassification {
   const { itemId, canCraft, recipeKind, isBought, tags = [], item } = params;
 
-  // 1. Wenn Nutzer diesen Schritt explizit auf Direktkauf gestellt hat
+  // 1. When user explicitly toggled this step to direct purchase
   if (isBought) {
     return {
       category: 'must_buy',
@@ -401,7 +401,7 @@ export function classifyMaterialProcurement(params: {
     };
   }
 
-  // 2. Herstellbar (Handwerksberuf oder Mystische Schmiede)
+  // 2. Craftable (crafting discipline or Mystic Forge)
   if (canCraft && recipeKind !== 'vendor') {
     if (recipeKind === 'mf') {
       return {
@@ -419,7 +419,7 @@ export function classifyMaterialProcurement(params: {
     };
   }
 
-  // 3. Fester Händlerkauf (z.B. Eisiger Runenstein 19676 oder Vendor-Zutaten)
+  // 3. Fixed vendor purchase (e.g. Icy Runestone 19676 or vendor ingredients)
   if (KNOWN_VENDOR_PRICES.has(itemId) || (tags.includes('vendor') && !tags.includes('trading_post'))) {
     return {
       category: 'must_buy',
@@ -429,7 +429,7 @@ export function classifyMaterialProcurement(params: {
     };
   }
 
-  // 4. Nicht kaufbare Belohnungen / Währungen / Erkundung
+  // 4. Non-purchasable rewards / currencies / exploration
   const untradable = item ? isUntradable(item) : false;
   const isAccountReward =
     tags.includes('reward_track') ||
@@ -448,7 +448,7 @@ export function classifyMaterialProcurement(params: {
     };
   }
 
-  // 5. Handelsposten (kann nicht hergestellt werden, muss am TP gekauft werden falls nicht im Lager)
+  // 5. Trading Post (cannot be crafted, must be bought on TP if not in storage)
   if (tags.includes('trading_post') || (!untradable && item !== undefined)) {
     return {
       category: 'must_buy',
@@ -458,7 +458,7 @@ export function classifyMaterialProcurement(params: {
     };
   }
 
-  // 6. Sonstiges Nicht-Herstellbar (Drop / Sammelgut)
+  // 6. Other non-craftable (drop / gathered material)
   return {
     category: 'non_craftable',
     procurementType: 'raw_drop',

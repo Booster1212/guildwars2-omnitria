@@ -15,7 +15,7 @@ interface BossFilterBarProps {
   currentTime: Date;
 }
 
-export const BossFilterBar: React.FC<BossFilterBarProps> = ({
+export const BossFilterBar: React.FC<BossFilterBarProps> = React.memo(({
   searchTerm,
   onSearchChange,
   activeCategory,
@@ -100,4 +100,4 @@ export const BossFilterBar: React.FC<BossFilterBarProps> = ({
       </div>
     </div>
   );
-};
+});

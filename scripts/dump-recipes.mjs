@@ -1,5 +1,5 @@
-// Entwicklungs-Hilfsskript: lädt alle Rezepte der offiziellen GW2-API in scripts/.cache/recipes.json
-// zur Analyse (Disziplinen, Rating-Verteilung, Flags). Wird zur Laufzeit der App NICHT benötigt.
+// Dev utility script: fetches all recipes from official GW2 API into scripts/.cache/recipes.json
+// for analysis (disciplines, rating distribution, flags). NOT needed at app runtime.
 import { writeFileSync, mkdirSync } from 'node:fs';
 
 const BASE = 'https://api.guildwars2.com/v2';

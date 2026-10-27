@@ -1309,6 +1309,53 @@ export const BOSS_ACHIEVEMENTS: Record<string, BossAchievement[]> = {
       categoryEn: 'End of Dragons',
     },
   ],
+  'cathedral-of-zephyrs': [
+    {
+      id: 'dwayna-acolyte',
+      gw2Id: 1736,
+      title: 'Akolyth der Dwayna',
+      titleEn: 'Acolyte of Dwayna',
+      ap: 5,
+      description: 'Beweist Eure Pietät, indem Ihr alle Trachten der Dwayna sammelt (Historiker Vermoth nach Säuberung des Tempels).',
+      descriptionEn: 'Prove your piety by collecting all of the vestments of Dwayna from Historian Vermoth after cleansing the temple.',
+      category: 'Sammlungen (Klassisch)',
+      categoryEn: 'Basic Collections',
+    },
+    {
+      id: 'dwayna-cleanser',
+      title: 'Säuberung der Kathedrale der Zephyre',
+      titleEn: 'Purification of the Cathedral of Zephyrs',
+      ap: 10,
+      description: 'Eskortiert Historiker Vermoth und besiegt die besessene Statue der Dwayna in Malchors Sprung.',
+      descriptionEn: 'Escort Historian Vermoth and defeat the possessed statue of Dwayna in Malchor\'s Leap.',
+      category: 'Meta-Events (Orr)',
+      categoryEn: 'Meta Events (Orr)',
+    },
+  ],
+  'cathedral-of-eternal-radiance': [
+    {
+      id: 'lyssa-cleanser',
+      title: 'Befreiung der Kathedrale des Ewigen Strahlens',
+      titleEn: 'Liberation of the Cathedral of Eternal Radiance',
+      ap: 10,
+      description: 'Zerstört die Befestigungen der Auferstandenen, sichert die Siegel der Vereinigung und Lyss und besiegt die Verdorbene Hohepriesterin.',
+      descriptionEn: 'Destroy Risen fortifications, secure the Seals of Union and Lyss, and defeat the Corrupted High Priestess.',
+      category: 'Meta-Events (Orr)',
+      categoryEn: 'Meta Events (Orr)',
+    },
+    {
+      id: 'lyssa-malchor-events',
+      gw2Id: 1961,
+      title: 'Event-Meister: Malchors Sprung',
+      titleEn: "Malchor's Leap Event Completer",
+      ap: 1,
+      description: 'Schließt Events in Malchors Sprung in Orr ab.',
+      descriptionEn: "Complete events in Malchor's Leap in Orr.",
+      category: 'Täglich',
+      categoryEn: 'Daily',
+      isDailyOrRepeatable: true,
+    },
+  ],
 };
 
 export function getAchievementsForEvent(eventId: string): BossAchievement[] {

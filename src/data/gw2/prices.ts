@@ -1,6 +1,6 @@
 /**
- * Handelsgesellschafts-Preise (offizielle API /v2/commerce/prices). Kurzzeit-Cache (5 Min.).
- * Nicht handelbare IDs liefern 404/fehlen im Ergebnis und werden als "kein Preis" gemerkt.
+ * Trading Post prices (official API /v2/commerce/prices). Short-term cache (5 min).
+ * Non-tradeable IDs return 404/missing from results and are marked as "no price".
  */
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { PriceInfo } from '../../domain/types';
@@ -25,7 +25,7 @@ export async function ensurePrices(ids: readonly number[], force = false): Promi
   const now = Date.now();
   const need = [...new Set(ids)].filter((id) => id > 0 && (force || now - (fetchedAt.get(id) ?? 0) > TTL_MS));
   if (!need.length) return;
-  need.forEach((id) => fetchedAt.set(id, now)); // verhindert Doppelabfragen während des Ladens
+  need.forEach((id) => fetchedAt.set(id, now)); // prevents duplicate queries while loading
   const res = await fetchByIds<ApiPrice>('commerce/prices', need);
   res.items.forEach((p) =>
     prices.set(p.id, {

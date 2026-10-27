@@ -53,15 +53,15 @@ test('Bestand wird als gemeinsamer Pool verbraucht (keine Doppelzählung)', () =
   const p = provider([rec('w', 1, 1, [[2, 1], [3, 1]]), rec('a', 2, 1, [[10, 5]]), rec('b', 3, 1, [[10, 3]])]);
   const stock = new Map([[10, 6]]);
   const r = buildTree(1, 1, p, { stock });
-  // Gesamtbedarf 8, vorhanden 6 -> fehlend 2 (nicht 0, nicht 5)
+  // Total demand 8, owned 6 -> missing 2 (not 0, not 5)
   assert.equal(r.bom.get(10)!.total, 8);
   assert.equal(r.bom.get(10)!.missing, 2);
 
-  // Beide Baumknoten zeigen den vorhandenen Lagerbestand für ihren jeweiligen Teilschritt
+  // Both tree nodes show existing account inventory for their respective step
   const nodeA = r.root.children[0].children[0];
   const nodeB = r.root.children[1].children[0];
   assert.equal(nodeA.fromStock, 5); // Bedarf 5, Lager 6 -> 5
-  assert.equal(nodeB.fromStock, 3); // Bedarf 3, Lager 6 -> 3 (nicht künstlich 0 oder 1!)
+  assert.equal(nodeB.fromStock, 3); // Demand 3, inventory 6 -> 3 (not artificially 0 or 1!)
 });
 
 test('Vorhandene Zwischenprodukte sparen Unterbedarf', () => {
@@ -87,7 +87,7 @@ test('Erledigte Knoten tragen nicht mehr zum Bedarf bei und aktualisieren den Fo
 test('Zufallsrezepte erhöhen die Herstellungen im Erwartungswert und werden markiert', () => {
   const p = provider([rec('w', 1, 1, [[2, 10]]), rec('c', 2, 10, [[3, 10]], { yield: 0.31 })]);
   const r = buildTree(1, 1, p);
-  // 10 benötigt, 3.1 pro Herstellung -> 4 Herstellungen -> 40 Rohmaterial
+  // 10 required, 3.1 per craft -> 4 crafts -> 40 raw material
   assert.equal(r.crafts.get('c')!.count, 4);
   assert.equal(r.bom.get(3)!.total, 40);
   assert.equal(r.bom.get(3)!.estimated, true);
@@ -106,13 +106,13 @@ test('buyItems macht Knoten zum Blatt und behält canCraft für Rückgängig-But
   assert.equal(r.bom.get(2)!.total, 1);
   assert.equal(r.bom.has(10), false);
 
-  // Knoten 2 muss bought: true und canCraft: true haben (damit der Umschalt-Button sichtbar bleibt und rückgängig gemacht werden kann)
+  // Node 2 must have bought: true and canCraft: true (so toggle button stays visible and undoable)
   const child = r.root.children[0];
   assert.equal(child.itemId, 2);
   assert.equal(child.bought, true);
   assert.equal(child.canCraft, true);
 
-  // Ohne buyItems ist canCraft weiterhin true, bought ist false, und Unterknoten sind vorhanden
+  // Without buyItems, canCraft remains true, bought is false, and child nodes exist
   const r2 = buildTree(1, 1, p);
   const child2 = r2.root.children[0];
   assert.equal(child2.bought, false);
@@ -131,7 +131,7 @@ test('Community-Datensatz: jede Waffe löst sich auf, Mengen sind positiv', () =
     assert.ok(r.bom.size > 0, `${w.nameEn} ohne Materialien`);
     for (const e of r.bom.values()) assert.ok(e.total > 0 && Number.isFinite(e.total));
   }
-  // Gen-1-Beispiel: 77 Kleeblätter stecken im Geschenk des Glücks
+  // Gen 1 example: 77 clovers needed for Gift of Fortune
   const sunrise = model.weapons.find((w) => w.nameEn === 'Sunrise')!;
   const tree = buildTree(sunrise.id, 1, model);
   assert.ok(tree.bom.has(19675) || tree.crafts.size > 0);
@@ -185,7 +185,7 @@ test('Levelplaner: Route ohne Lücken, Schritte lückenlos, Kosten/Materialien k
 
 test('Levelplaner: Vorherige Eigenherstellung von Zwischenprodukten (z.B. Seidenballen => Seiden-Insignie)', () => {
   // 10: Seidenfetzen (Rohmaterial)
-  // 15: Spule Seidenfaden (Händler)
+  // 15: Spool of Silk Thread (Vendor)
   // 100: Seidenballen (Refinement: 3x Seidenfetzen)
   // 200: Seiden-Insignie (Insignia: 3x Seidenballen + 1x Spule)
   // 300: Seiden-Wams (Coat: 1x Seiden-Insignie)
@@ -234,7 +234,7 @@ test('Levelplaner: Vorherige Eigenherstellung von Zwischenprodukten (z.B. Seiden
     [10, { sell: 20, buy: 15, sellQty: 100, buyQty: 100 }],
     [15, { sell: 64, buy: 64, sellQty: 100, buyQty: 100 }],
     [100, { sell: 70, buy: 60, sellQty: 100, buyQty: 100 }],
-    // Selbst wenn die fertige Insignie auf dem TP billig ist, soll Eigenherstellung bevorzugt werden:
+    // Even if completed insignia is cheap on TP, self-crafting should be preferred:
     [200, { sell: 50, buy: 40, sellQty: 100, buyQty: 100 }],
     [300, { sell: 500, buy: 400, sellQty: 100, buyQty: 100 }],
   ]);
@@ -258,12 +258,12 @@ test('Levelplaner: Vorherige Eigenherstellung von Zwischenprodukten (z.B. Seiden
   assert.equal(step.prepSteps[0].outputId, 100, 'Seidenballen muss als Vorbereitung vor der Insignie hergestellt werden');
   assert.equal(step.prepSteps[1].outputId, 200, 'Seiden-Insignie wird nach dem Seidenballen hergestellt');
 
-  // step.crafts Wämser benötigen jeweils 1x Insignie (28x Insignie) -> benötigt 3x Seidenballen pro Insignie (84x Seidenballen)
+  // step.crafts coats each require 1x Insignia (28x Insignia) -> requires 3x Bolt of Silk per Insignia (84x Bolt of Silk)
   assert.equal(step.crafts, 28);
   assert.equal(step.prepSteps[0].crafts, 84);
   assert.equal(step.prepSteps[1].crafts, 28);
 
-  // Einkäufe dürfen nur die Rohstoffe enthalten (Seidenfetzen und Spule), nicht die fertigen Zwischenprodukte
+  // Purchases must only contain raw materials (Silk Scraps and Spool), not finished intermediate products
   assert.ok(plan.purchases.has(10), 'Seidenfetzen muss eingekauft werden');
   assert.ok(plan.purchases.has(15), 'Spule muss eingekauft werden');
   assert.equal(plan.purchases.has(100), false, 'Seidenballen wird selbst hergestellt');
@@ -505,7 +505,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   const mockRecipes: Recipe[] = [
     {
       id: 101,
-      outputId: 2001, // Eisernes Großschwert
+      outputId: 2001, // Iron Greatsword
       outputCount: 1,
       type: 'Greatsword',
       rating: 150,
@@ -514,7 +514,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
       ingredients: [
         { itemId: 3001, count: 1 }, // Eisen-Klinge
         { itemId: 3002, count: 1 }, // Eisen-Griff
-        { itemId: 3003, count: 1 }, // Verwüstende Eisen-Insignie
+        { itemId: 3003, count: 1 }, // Ravaging Iron Insignia
       ],
     },
     {
@@ -528,7 +528,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
       ingredients: [
         { itemId: 3010, count: 1 }, // Bronze-Klinge
         { itemId: 3011, count: 1 }, // Bronze-Griff
-        { itemId: 3012, count: 1 }, // Bösartige Bronze-Insignie
+        { itemId: 3012, count: 1 }, // Malign Bronze Insignia
       ],
     },
     {
@@ -564,7 +564,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   assert.equal(isDiscoveryRecipe(mockRecipes[1]), true);
   assert.equal(isDiscoveryRecipe(mockRecipes[2]), false); // AutoLearned
 
-  // 2. Suche nach Output-Gegenstandsname (deutsch)
+  // 2. Search by output item name (German)
   const hitsByName = filterDiscoveryRecipes(mockRecipes, {
     discipline: 'Weaponsmith',
     search: 'Eisernes',
@@ -574,7 +574,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   assert.equal(hitsByName.length, 1);
   assert.equal(hitsByName[0].id, 101);
 
-  // 3. Suche nach Zutat (z. B. "Insignie" oder "Dolchklinge")
+  // 3. Search by ingredient (e.g. "Insignia" or "Dagger Blade")
   const hitsByIng = filterDiscoveryRecipes(mockRecipes, {
     discipline: 'Weaponsmith',
     search: 'Insignie',
@@ -592,7 +592,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   assert.equal(hitsByDaggerBlade.length, 1);
   assert.equal(hitsByDaggerBlade[0].id, 102);
 
-  // 4. Suche nach lokalisiertem Rezepttyp (deutsch: "Großschwert", englisch: "Greatsword")
+  // 4. Search by localized recipe type (German: "Großschwert", English: "Greatsword")
   const hitsByTypeDe = filterDiscoveryRecipes(mockRecipes, {
     discipline: 'Weaponsmith',
     search: 'Großschwert',
@@ -611,7 +611,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   assert.equal(hitsByTypeEn.length, 1);
   assert.equal(hitsByTypeEn[0].id, 101);
 
-  // 5. Suche nach ID (Output oder Rezept-ID)
+  // 5. Search by ID (output or recipe ID)
   const hitsById = filterDiscoveryRecipes(mockRecipes, {
     discipline: 'Weaponsmith',
     search: '2002',
@@ -632,7 +632,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
   assert.equal(tier1Only.length, 1);
   assert.equal(tier1Only[0].id, 102);
 
-  // 7. Lokalisierte Texte für Planer & Entdeckungssuche
+  // 7. Localized text for planner & discovery search
   setLanguage('de');
   assert.ok(t('crafting.discoveryRequired').includes('Entdeckungsrezept'));
   assert.ok(t('crafting.discoveryCombineInstruction').includes('kombinieren'));
@@ -650,7 +650,7 @@ test('Entdeckungsfilter: Suche nach Gegenstandsname, Zutat, Typ und Lokalisierun
 test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch & Kategorie-Filter', () => {
   assert.equal(GLOBAL_ACHIEVEMENTS.length, 36);
 
-  // Kategorien prüfen: worldboss, hot, pof, icedragon, eod, soto, janthir
+  // Verify categories: worldboss, hot, pof, icedragon, eod, soto, janthir
   const categoryCounts: Record<string, number> = {};
   for (const a of GLOBAL_ACHIEVEMENTS) {
     categoryCounts[a.category] = (categoryCounts[a.category] || 0) + 1;
@@ -663,7 +663,7 @@ test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch & Kategorie-Filter
   assert.equal(categoryCounts['soto'], 4);
   assert.equal(categoryCounts['janthir'], 5);
 
-  // Täglicher Weltenboss-Jäger (Wiederholbar-Tag)
+  // Daily World Boss Hunter (repeatable tag)
   const dailyWb = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'daily-worldboss');
   assert.ok(dailyWb);
   assert.equal(getAchievementTitle(dailyWb, 'de'), 'Täglicher Weltenboss-Jäger');
@@ -673,7 +673,7 @@ test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch & Kategorie-Filter
   assert.equal(getAchievementCategoryLabel(dailyWb, 'de'), 'Weltenbosse');
   assert.equal(getAchievementCategoryLabel(dailyWb, 'en'), 'World Bosses');
 
-  // Der Sonnenlose (Tequatl)
+  // The Sunless (Tequatl)
   const tequatl = GLOBAL_ACHIEVEMENTS.find((a) => a.id === 'wb-tequatl-meta');
   assert.ok(tequatl);
   assert.equal(getAchievementTitle(tequatl, 'de'), 'Der Sonnenlose');
@@ -691,7 +691,7 @@ test('Erfolge: Zweisprachige Lokalisierung Deutsch & Englisch & Kategorie-Filter
   assert.ok(drakkar);
   assert.equal(drakkar.category, 'icedragon');
 
-  // Alle Erfolge müssen gültige Event-IDs besitzen (Nur Erfolge für Events)
+  // All achievements must possess valid event IDs (only achievements for events)
   for (const ach of GLOBAL_ACHIEVEMENTS) {
     assert.ok(ach.eventId, `Erfolg ${ach.id} muss an ein Boss-Event gebunden sein`);
   }
@@ -748,7 +748,7 @@ test('Legendary & Quellen: Zweisprachige Lokalisierung Deutsch & Englisch', asyn
   assert.equal(gatherSource?.label, 'Direkt sammelbar');
   assert.equal(gatherSource?.labelEn, 'Gatherable');
 
-  // Spezialquellen für legendäre Kernkomponenten
+  // Special sources for core legendary components
   const icyRunestone = resolveSources({ item: undefined, itemId: 19676, tags: ['vendor', 'trading_post'] });
   assert.ok(icyRunestone.some((s) => s.label.includes('Händler') && s.detail.includes('Rojan')));
 
@@ -763,7 +763,7 @@ test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib
   const { unitPrice, KNOWN_VENDOR_PRICES } = await import('../src/domain/costs.ts');
   const { planLevelRoute } = await import('../src/domain/levelPlanner.ts');
 
-  // 1. Händlerpreise für Basiszutaten
+  // 1. Vendor prices for basic ingredients
   assert.equal(KNOWN_VENDOR_PRICES.get(12156), 16, 'Krug Wasser');
   assert.equal(KNOWN_VENDOR_PRICES.get(12155), 16, 'Beutel Mehl');
   assert.equal(KNOWN_VENDOR_PRICES.get(12158), 16, 'Paket Hefe');
@@ -774,8 +774,8 @@ test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib
   assert.equal(unitPrice(undefined, 12132), 48);
   assert.equal(unitPrice(undefined, 19676), 10000);
 
-  // 2. Koch-Route: Hamburger (12210) benötigt Wildfleisch (24359) + Brotlaib (12132)
-  // Brotlaib (12132) wird aus 12156 + 12155 + 12158 hergestellt
+  // 2. Chef route: Hamburger (12210) requires Meat (24359) + Loaf of Bread (12132)
+  // Loaf of Bread (12132) is crafted from 12156 + 12155 + 12158
   const rBread: Recipe = {
     id: 'r-bread',
     outputId: 12132,
@@ -813,7 +813,7 @@ test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib
   const byOut = new Map<number, Recipe[]>();
   recipes.forEach((r) => byOut.set(r.outputId, [...(byOut.get(r.outputId) ?? []), r]));
 
-  // Wildfleisch hat TP-Preis, Händlerzutaten haben Händlerpreise
+  // Meat has TP price, vendor ingredients have vendor prices
   const prices = new Map<number, PriceInfo>([
     [24359, { sell: 50, buy: 40, sellQty: 100, buyQty: 100 }],
   ]);
@@ -836,7 +836,7 @@ test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib
   assert.equal(burgerStep.recipe.outputId, 12210);
   assert.equal(burgerStep.needsDiscovery, true);
 
-  // Vorbereitungskette muss Brotlaib mit Unterzutaten auflisten
+  // Preparation chain must list loaf of bread with sub-ingredients
   assert.equal(burgerStep.prepSteps.length, 1);
   const breadPrep = burgerStep.prepSteps[0];
   assert.equal(breadPrep.outputId, 12132, 'Brotlaib ist Vorbereitungsschritt');
@@ -845,14 +845,14 @@ test('Levelplaner & Kosten: Händlerzutaten (z.B. Mehl, Wasser, Hefe -> Brotlaib
   assert.ok(breadPrep.ingredients.some((i) => i.itemId === 12155), 'Mehl vorhanden');
   assert.ok(breadPrep.ingredients.some((i) => i.itemId === 12158), 'Hefe vorhanden');
 
-  // Schritt-Einkäufe enthalten die echten Basismaterialien, nicht den fertigen Brotlaib
+  // Step purchases contain real base materials, not finished loaf of bread
   assert.ok(burgerStep.purchases.some((p) => p.itemId === 24359), 'Wildfleisch im Einkauf');
   assert.ok(burgerStep.purchases.some((p) => p.itemId === 12156), 'Krug Wasser im Einkauf');
   assert.ok(burgerStep.purchases.some((p) => p.itemId === 12155), 'Beutel Mehl im Einkauf');
   assert.ok(burgerStep.purchases.some((p) => p.itemId === 12158), 'Paket Hefe im Einkauf');
   assert.equal(burgerStep.purchases.some((p) => p.itemId === 12132), false, 'Brotlaib wird nicht gekauft');
 
-  // Keine unbepreisten Posten mehr dank Händlerpreisen
+  // No more unpriced items thanks to vendor prices
   assert.equal(burgerStep.unpricedCount, 0, 'Alle Händler- und TP-Posten sind bepreist');
   assert.ok(burgerStep.cost > 0, 'Kosten sind positiv');
 });
@@ -878,7 +878,7 @@ test('Legendary Material-Klassifikation: Herstellbar, Nicht Herstellbar, Was gek
   assert.equal(mfRes.category, 'craftable');
   assert.equal(mfRes.procurementType, 'mystic_forge');
 
-  // 3. Was gekauft werden MUSS: Fester Händlerpreis (19676 Eisiger Runenstein)
+  // 3. What MUST be bought: Fixed vendor price (19676 Icy Runestone)
   const vendorRes = classifyMaterialProcurement({
     itemId: 19676,
     canCraft: false,
@@ -887,7 +887,7 @@ test('Legendary Material-Klassifikation: Herstellbar, Nicht Herstellbar, Was gek
   assert.equal(vendorRes.category, 'must_buy');
   assert.equal(vendorRes.procurementType, 'vendor_fixed');
 
-  // 4. Was gekauft werden MUSS: Handelsposten-Rohstoffe (z.B. 24295 Mächtiges Blut)
+  // 4. What MUST be bought: Trading Post raw materials (e.g. 24295 Powerful Blood)
   const tpRes = classifyMaterialProcurement({
     itemId: 24295,
     canCraft: false,
@@ -896,7 +896,7 @@ test('Legendary Material-Klassifikation: Herstellbar, Nicht Herstellbar, Was gek
   assert.equal(tpRes.category, 'must_buy');
   assert.equal(tpRes.procurementType, 'tp_buy');
 
-  // 5. Nicht herstellbar: Spiel-Belohnungen / Kontowährungen (z.B. 19677 Geschenk des Kampfes)
+  // 5. Non-craftable: Game rewards / account currencies (e.g. 19677 Gift of Battle)
   const rewardRes = classifyMaterialProcurement({
     itemId: 19677,
     canCraft: false,
@@ -905,7 +905,7 @@ test('Legendary Material-Klassifikation: Herstellbar, Nicht Herstellbar, Was gek
   assert.equal(rewardRes.category, 'non_craftable');
   assert.equal(rewardRes.procurementType, 'account_reward');
 
-  // 6. Direktkauf-Override: wenn der Nutzer auf Direktkauf geschaltet hat
+  // 6. Direct purchase override: when user toggled direct purchase
   const boughtRes = classifyMaterialProcurement({
     itemId: 19621,
     canCraft: true,

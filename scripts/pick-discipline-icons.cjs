@@ -1,4 +1,4 @@
-// Dev: Kandidaten für Berufs-Icons (echte GW2-Item-Icons) auswählen
+// Dev: select discipline icon candidates (real GW2 item icons)
 const R = require('./.cache/recipes.json');
 const pick = {
   Armorsmith: 'Coat',

@@ -5,6 +5,7 @@
 # ✨ Omnitria • Guild Wars 2 In-Game Overlay
 
 [![GitHub Release](https://img.shields.io/github/v/release/Booster1212/guildwars2-omnitria?color=d4a359&label=Release&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![GitHub Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=CI%20Status&color=22c55e&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/actions)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?logo=windows&style=for-the-badge)](#-system-requirements)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
@@ -28,11 +29,13 @@ Crafted with authentic Guild Wars 2 visual aesthetics: dark slate backdrop, anti
 
 ## 🌟 Key Highlights
 
-* 🕒 **Second-Accurate Rotation Schedule:** Continuous live countdowns across all expansions (*Core, HoT, PoF, EoD, SotO, Janthir Wilds, Visions of Eternity*).
+* 🕒 **Second-Accurate Rotation Schedule:** Continuous live countdowns across all expansions (*Core, HoT, PoF, EoD, SotO, Janthir Wilds, Visions of Eternity*), including Orr Temple Meta-Events (Cathedral of Zephyrs / Dwayna and Cathedral of Eternal Radiance / Lyssa).
+* ⚔️ **WvW Tactical Assistant:** Real-time strategic objective scoring, Righteous Indignation (RI) countdown timers, interactive vector radar map, live EU/NA match standings, and automated team detection.
 * 💬 **1-Click Game Chat Callouts:** Broadcast waypoint chat codes and remaining boss countdowns directly into map chat (`/m`).
 * 🔨 **Intelligent 0–500 Crafting Level Planner:** Optimal, algorithmically generated lowest-cost routes with embedded discovery recipes and automatic material storage deductions.
-* ⚔️ **Interactive Legendary Armory:** Hierarchical Mystic Forge recipe trees, live Black Lion Trading Post material pricing, and step-by-step precursor achievement tracking.
+* 🗡️ **Interactive Legendary Armory:** Hierarchical Mystic Forge recipe trees, live Black Lion Trading Post material pricing, and step-by-step precursor achievement tracking.
 * 🏆 **Hero Panel & Achievements:** Pin achievements to a custom watchlist, track sub-objectives with interactive checkboxes, and view tier rewards with Mastery Point badges.
+* ⚡ **Seamless In-Game Workflow:** Quick minimize with `[Esc]`, instant `[F9]` toggle, click-through mode with `[F10]`, and over-chat dock anchoring.
 * 🔄 **Built-in Auto-Updater:** Seamless in-app version checks against GitHub Releases with 1-click background downloading and automated restart.
 * 🛡️ **100% Safe & Read-Only:** Official ArenaNet API key integration stored locally on your machine. Zero tracking, zero telemetry, zero modifications to game files.
 * 🌐 **Bilingual Support:** Instant 1-click toggle between **English** and **Deutsch** throughout the entire application.
@@ -51,6 +54,7 @@ Stay on top of every meta-event, world boss, and timed group activity in Tyria w
 | *Full Hero Board with real-time rotation schedule, boss tactics, and loot highlights.* | *Filtered by currently active or upcoming meta-events.* | *Minimalist HUD hovering directly over the in-game GW2 chat box.* |
 
 * **Deterministic Second-by-Second Accuracy:** Calculations are computed locally against Tyria's fixed 2-hour rotation schedule — guaranteed zero lag, zero server desync.
+* **Temple Meta-Events:** Integrated coverage for Malchor's Leap temple metas: Cathedral of Zephyrs (Dwayna) and Cathedral of Eternal Radiance (Lyssa).
 * **1-Click Map Chat Broadcasts:** Click the send icon to automatically paste waypoints and countdown timers into your game chat.
 * **Waypoint Fast Travel:** Click any waypoint code to immediately copy it to your clipboard for instant in-game map navigation.
 * **Boss Cheat Sheets:** Expand any card for boss mechanics, defiance bar (CC) triggers, phase timings, and rare drop highlights.
@@ -90,7 +94,7 @@ Level any of the 8 crafting disciplines (*Armorsmith, Weaponsmith, Artificer, Je
 
 ---
 
-### ⚔️ 4. Legendary Armory & Mystic Forge Trees (`Legendary`)
+### 🗡️ 4. Legendary Armory & Mystic Forge Trees (`Legendary`)
 
 Comprehensive blueprint database for crafting legendary weapons across all generations (*Gen 1, Gen 2, Gen 3 / Aurene, and Gen 4 / Janthir Wilds*).
 
@@ -106,7 +110,24 @@ Comprehensive blueprint database for crafting legendary weapons across all gener
 
 ---
 
-### ⚙️ 5. In-App Settings, Account Sync & Auto-Updater (`Settings`)
+### ⚔️ 5. WvW Tactical Assistant & Live Map (`WvW Tactics`)
+
+Real-time World vs. World companion providing algorithmic objective scoring, interactive radar mapping, and live match dashboard tracking across European and North American matchups.
+
+| Tactical Objective Advisor | Interactive Tactical Map | Match Dashboard & Standings |
+| :---: | :---: | :---: |
+| [![Tactical Advisor](docs/screenshots/wvw-advisor.png)](docs/screenshots/wvw-advisor.png) | [![Tactical Map](docs/screenshots/wvw-map.png)](docs/screenshots/wvw-map.png) | [![Match Dashboard](docs/screenshots/wvw-dashboard.png)](docs/screenshots/wvw-dashboard.png) |
+| *Smart priority scoring with Righteous Indignation (RI) timers and tactical rationale.* | *Interactive SVG radar map showing objective nodes, team control borders, and guild claims.* | *Live match standings, server lineups, VP progression, and WvXP activity rankings.* |
+
+* **Smart Multi-Factor Scoring Engine:** Evaluates Righteous Indignation (RI) vulnerability, Points Per Tick (PPT) strategic value, structure upgrade tiers, distance from home spawn, and match leadership momentum.
+* **Dynamic Tactical Presets:** One-click strategy presets (`Balanced`, `Aggressive`, `Territorial`, `Roamer`) or customizable priority weight sliders.
+* **Interactive Vector Radar Map:** Covers Eternal Battlegrounds (EBG) and Alpine / Desert Borderlands with real-time objective nodes (Camps, Towers, Keeps, Stonemist Castle, Mercenaries, Ruins).
+* **Live Server & Match Resolution:** Queries `/v2/wvw/matches` and `/v2/worlds` to resolve authentic team names (e.g. *Far Shiverpeaks / Vabbi / Fissure of Woe*) and automatically derives your team color from your account home world.
+* **Session Capture Logger:** Tracks objective flips live with timestamps, team transitions, and RI countdown timers.
+
+---
+
+### ⚙️ 6. In-App Settings, Account Sync & Auto-Updater (`Settings`)
 
 Configure appearance, customize chat callouts, sync your account credentials, and receive automatic version updates with zero friction.
 
@@ -158,6 +179,7 @@ Omnitria communicates exclusively with official **ArenaNet API servers** (`https
 
 | Action | Shortcut / Control | Description |
 | :--- | :---: | :--- |
+| **Minimize Window** | `[Esc]` | Minimizes or hides the overlay window, immediately returning focus to Guild Wars 2. |
 | **Toggle Overlay** | `[F9]` | Instantly show or hide the overlay window over Guild Wars 2. |
 | **Click-Through Mode** | `[F10]` | Makes the overlay click-transparent so mouse clicks pass directly into the game. |
 | **Chat Dock Anchor** | `🧭 Compass Icon` | Automatically docks the window directly above your in-game chat box (bottom-left). |
@@ -203,7 +225,7 @@ npm run overlay
 # Run TypeScript typechecks
 npm run typecheck
 
-# Run automated domain & calculation test suite (38 tests)
+# Run automated domain & calculation test suite (63 tests)
 npm test
 
 # Build production client bundle

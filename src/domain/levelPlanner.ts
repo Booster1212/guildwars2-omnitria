@@ -1,16 +1,16 @@
 /**
- * Levelplaner für Handwerksberufe.
+ * Level planner for crafting disciplines.
  *
- * Eingaben stammen ausschließlich aus der offiziellen API (Rezepte, Preise) und optional aus dem Account
- * (bekannte Rezepte). Die Herstellungsmenge pro Rang ist eine SCHÄTZUNG (siehe craftingXp.ts).
+ * Inputs originate exclusively from the official API (recipes, prices) and optionally from account
+ * (known recipes). The crafted quantity per rank is an ESTIMATE (see craftingXp.ts).
  *
- * Vorgehen:
- *  1. Für jeden Rang N im Zielbereich wird unter allen zulässigen Rezepten dasjenige gewählt, das die
- *     geringsten Materialkosten pro gewonnenem Rang verursacht (mit Hysterese gegen Flackern).
- *  2. Aufeinanderfolgende Ränge mit demselben Rezept werden zu einem Schritt zusammengefasst.
- *  3. Zutaten werden – falls erlaubt und günstiger – über Zwischenprodukte (eigene Rezepte desselben Berufs)
- *     aufgelöst, sonst gekauft.
- *  4. Ränge ohne zulässiges Rezept werden als LÜCKE ausgewiesen (statt etwas zu erfinden).
+ * Approach:
+ *  1. For each rank N in the target range, select among eligible recipes the one with
+ *     lowest material cost per rank gained (with hysteresis against flickering).
+ *  2. Consecutive ranks with the same recipe are consolidated into a single step.
+ *  3. Ingredients are – if allowed and cheaper – resolved via intermediate components
+ *     (own recipes in the same discipline), otherwise bought.
+ *  4. Ranks without an eligible recipe are reported as a GAP (rather than fabricated).
  */
 import type { PriceInfo, Recipe } from './types.ts';
 import { categoryOf, ranksPerCraft } from './craftingXp.ts';
@@ -18,11 +18,11 @@ import type { XpCategory } from './craftingXp.ts';
 import { unitPrice } from './costs.ts';
 
 export interface PlannerOptions {
-  /** Auch Entdeckungsrezepte (ohne AutoLearned/LearnedFromItem-Flag) zulassen */
+  /** Allow discovery recipes (without AutoLearned/LearnedFromItem flags) */
   allowDiscovery: boolean;
-  /** Zwischenprodukte selbst herstellen, wenn günstiger als kaufen */
+  /** Self-craft intermediate components if cheaper than buying */
   craftIntermediates: boolean;
-  /** Dem Account bekannte Rezepte (API: /v2/account/recipes), falls verfügbar */
+  /** Recipes known to account (API: /v2/account/recipes), if available */
   knownRecipeIds?: ReadonlySet<number> | null;
 }
 
@@ -58,13 +58,13 @@ export interface PlanStep {
   fromRank: number;
   toRank: number;
   crafts: number;
-  /** Direkte Zutaten (bereits mit Anzahl Herstellungen multipliziert) */
+  /** Direct ingredients (already multiplied by number of craft runs) */
   ingredients: StepMaterial[];
   /** Vorbereitende Eigenherstellungsschritte in Produktionsreihenfolge (z.B. Seidenballen => Seiden-Insignie) */
   prepSteps: StepPrepItem[];
   /** Zu kaufende Basismaterialien dieses Schritts (inkl. Zwischenprodukt-Zutaten) */
   purchases: StepMaterial[];
-  /** Summe bepreisbarer Einkäufe in Kupfer */
+  /** Total priceable purchases in copper */
   cost: number;
   unpricedCount: number;
   needsDiscovery: boolean;
@@ -119,7 +119,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const isUsable = (r: Recipe): boolean =>
     isLearned(r) || (options.allowDiscovery && isDiscovery(r));
 
-  // Kandidaten für Levelschritte
+  // Candidates for leveling steps
   const candidates: { recipe: Recipe; category: XpCategory }[] = [];
   for (const r of recipes) {
     if (!r.disciplines.includes(discipline)) continue;
@@ -184,8 +184,8 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         cost += a.unit * ing.count;
       }
     }
-    // Efficient Leveling: Rezepte, die mehr als 25 Ränge über ihrer Freischaltung gecraftet werden,
-    // verlieren in GW2 rapide an Erfahrung (gelbe/grüne Rezepte). Alterszuschlag fördert neue Stufenrezepte:
+    // Efficient Leveling: Recipes crafted more than 25 ranks above unlock
+    // lose experience rapidly in GW2 (yellow/green recipes). Age penalty encourages new tier recipes:
     const age = rank - c.recipe.rating;
     const agePenalty = age > 25 ? 1 + (age - 25) * 0.2 : 1;
     return { recipe: c.recipe, category: c.category, costPerRank: (cost * agePenalty) / rpc, unknown };
@@ -224,7 +224,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       continue;
     }
     let chosen = best;
-    // Hysterese gegen Flackern nur anwenden, wenn das vorherige Rezept noch im gleichen 25er-Rangband liegt
+    // Apply hysteresis against flickering only if previous recipe is within same 25-rank band
     if (
       prevChoice &&
       (n - prevChoice.recipe.rating <= 25) &&
@@ -244,7 +244,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     }
   }
 
-  // ---- Zutaten auflösen --------------------------------------------------------------------------
+  // ---- Resolve ingredients ---------------------------------------------------------------------
   const purchases = new Map<number, number>();
   const intermediateMap = new Map<string, IntermediateCraft>();
   const unpriced = new Set<number>();
@@ -340,7 +340,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   };
 }
 
-/** Alle Item-IDs, die der Planer für Preise/Namen braucht (Ausgaben + Zutaten, 2 Ebenen tief) */
+/** All item IDs required by planner for prices/names (outputs + ingredients, 2 levels deep) */
 export function collectPlannerItemIds(
   discipline: string,
   recipes: readonly Recipe[],

@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-// 1. Version ermitteln (entweder aus CLI-Argument wie v0.1.0 oder aus package.json)
+// 1. Determine version (either from CLI argument like v0.1.5 or from package.json)
 const pkgJsonPath = path.join(rootDir, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
 
@@ -24,20 +24,20 @@ console.log(` Target Version: ${version}`);
 console.log(` Root Directory: ${rootDir}`);
 console.log(`=======================================================\n`);
 
-// 2. Prüfen, ob der Produktionsbuild (dist/index.html) vorhanden ist
+// 2. Verify production build exists (dist/index.html)
 const distHtml = path.join(rootDir, 'dist', 'index.html');
 if (!fs.existsSync(distHtml)) {
-  console.log('[-] dist/index.html nicht gefunden. Fuehre Vite Produktionsbuild aus...');
+  console.log('[-] dist/index.html not found. Running Vite production build...');
   execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
 } else {
-  console.log('[+] Vite Produktionsbuild (dist/) ist vorhanden.');
+  console.log('[+] Vite production build (dist/) verified.');
 }
 
-// 3. Prüfen, ob Electron Binary in node_modules vorhanden ist
+// 3. Verify Electron binary exists in node_modules
 const electronDistDir = path.join(rootDir, 'node_modules', 'electron', 'dist');
 if (!fs.existsSync(electronDistDir)) {
-  console.error(`[-] Fehler: Electron-Distributable nicht gefunden unter: ${electronDistDir}`);
-  console.error('    Bitte fuehre "npm ci" oder "npm install" aus.');
+  console.error(`[-] Error: Electron distributable not found at: ${electronDistDir}`);
+  console.error('    Please run "npm ci" or "npm install".');
   process.exit(1);
 }
 
@@ -59,76 +59,76 @@ const requiredFiles = [
 for (const f of requiredFiles) {
   const p = path.join(electronDistDir, f);
   if (!fs.existsSync(p)) {
-    console.error(`[-] KRITISCHER FEHLER: Erforderliche Datei fehlt in Electron-Dist: ${p}`);
-    console.error('    Bitte fuehre "npm install electron" aus.');
+    console.error(`[-] CRITICAL ERROR: Required file missing in Electron distribution: ${p}`);
+    console.error('    Please run "npm install electron".');
     process.exit(1);
   }
 }
-console.log(`[+] Alle ${requiredFiles.length} essenziellen Electron-Dateien (inkl. pak & dlls) verifiziert.`);
+console.log(`[+] All ${requiredFiles.length} essential Electron files (pak & dlls) verified.`);
 
-// 4. Zielverzeichnisse vorbereiten
+// 4. Prepare target directories
 const releaseDir = path.join(rootDir, 'release');
 const stagingDirName = `Omnitria-${version}-windows-x64`;
 const stagingDir = path.join(releaseDir, stagingDirName);
 
 if (fs.existsSync(stagingDir)) {
-  console.log(`[*] Bereinige vorherigen Staging-Ordner: ${stagingDir}`);
+  console.log(`[*] Cleaning previous staging directory: ${stagingDir}`);
   fs.rmSync(stagingDir, { recursive: true, force: true });
 }
 fs.mkdirSync(stagingDir, { recursive: true });
 
-// 5. Electron Runtime-Dateien kopieren
-console.log('[+] Kopiere Electron Runtime-Dateien in Staging-Verzeichnis...');
+// 5. Copy Electron runtime files
+console.log('[+] Copying Electron runtime files to staging directory...');
 fs.cpSync(electronDistDir, stagingDir, { recursive: true });
 
-// Validierung im Staging-Ordner
+// Validate files in staging directory
 for (const f of requiredFiles) {
   const destName = f === 'electron.exe' ? 'Omnitria.exe' : f;
   const destPath = path.join(stagingDir, f === 'electron.exe' ? f : destName);
   if (!fs.existsSync(destPath)) {
-    console.error(`[-] FEHLER: Kopieren von ${f} nach Staging fehlgeschlagen!`);
+    console.error(`[-] ERROR: Copying ${f} to staging directory failed!`);
     process.exit(1);
   }
 }
 
-// 6. electron.exe in Omnitria.exe umbenennen
+// 6. Rename electron.exe to Omnitria.exe
 const electronExe = path.join(stagingDir, 'electron.exe');
 const omnitriaExe = path.join(stagingDir, 'Omnitria.exe');
 if (fs.existsSync(electronExe)) {
   fs.renameSync(electronExe, omnitriaExe);
-  console.log('[+] electron.exe erfolgreich zu Omnitria.exe umbenannt.');
+  console.log('[+] Renamed electron.exe to Omnitria.exe successfully.');
 } else {
-  console.warn('[!] Warnung: electron.exe nicht gefunden.');
+  console.warn('[!] Warning: electron.exe not found.');
 }
 
-// default_app.asar entfernen, damit Electron sauber aus resources/app startet
+// Remove default_app.asar so Electron boots cleanly from resources/app
 const defaultAppAsar = path.join(stagingDir, 'resources', 'default_app.asar');
 if (fs.existsSync(defaultAppAsar)) {
   fs.rmSync(defaultAppAsar, { force: true });
-  console.log('[+] default_app.asar entfernt (ersetzt durch eigene App).');
+  console.log('[+] Removed default_app.asar (replaced by application bundle).');
 }
 
-// 7. App-Ressourcen unter resources/app anlegen
+// 7. Assemble application resources under resources/app
 const appDir = path.join(stagingDir, 'resources', 'app');
 fs.mkdirSync(appDir, { recursive: true });
 
-// Kopiere dist/
-console.log('[+] Kopiere dist/ nach resources/app/dist...');
+// Copy dist/
+console.log('[+] Copying dist/ to resources/app/dist...');
 fs.cpSync(path.join(rootDir, 'dist'), path.join(appDir, 'dist'), { recursive: true });
 
-// Kopiere electron/
-console.log('[+] Kopiere electron/ nach resources/app/electron...');
+// Copy electron/
+console.log('[+] Copying electron/ to resources/app/electron...');
 fs.cpSync(path.join(rootDir, 'electron'), path.join(appDir, 'electron'), {
   recursive: true,
   filter: (src) => !src.endsWith('electron.log'),
 });
 
-// Kopiere assets/
-console.log('[+] Kopiere assets/ nach resources/app/assets...');
+// Copy assets/
+console.log('[+] Copying assets/ to resources/app/assets...');
 fs.cpSync(path.join(rootDir, 'assets'), path.join(appDir, 'assets'), { recursive: true });
 
-// Kopiere package.json (fuer Metadaten und main-Entrypoint)
-console.log('[+] Erstelle package.json fuer resources/app...');
+// Copy package.json for metadata and main entrypoint
+console.log('[+] Creating package.json for resources/app...');
 const appPkg = {
   name: pkg.name || 'omnitria',
   version: version.replace(/^v/, ''),
@@ -139,7 +139,7 @@ const appPkg = {
 };
 fs.writeFileSync(path.join(appDir, 'package.json'), JSON.stringify(appPkg, null, 2), 'utf8');
 
-// 8. Launcher-Skripte im Hauptverzeichnis des Release-Pakets bereitstellen
+// 8. Provide launcher scripts in release root
 const launcherBat = `@echo off
 title Omnitria • Guild Wars 2
 cd /d "%~dp0"
@@ -158,15 +158,15 @@ shell.Run """" & currentDir & "\\Omnitria.exe""", 0, False
 `;
 fs.writeFileSync(path.join(stagingDir, 'Omnitria-Silent.vbs'), silentVbs, 'utf8');
 
-// Lies README.md und kopiere es
+// Read and copy README.md
 const readmeSrc = path.join(rootDir, 'README.md');
 if (fs.existsSync(readmeSrc)) {
   fs.copyFileSync(readmeSrc, path.join(stagingDir, 'README.md'));
 }
 
-console.log('[+] Staging-Verzeichnis vollstaendig befuellt.');
+console.log('[+] Staging directory populated successfully.');
 
-// 9. ZIP-Archiv erstellen
+// 9. Create ZIP archive
 const zipFileName = `Omnitria-${version}-windows-x64.zip`;
 const zipFilePath = path.join(releaseDir, zipFileName);
 
@@ -174,20 +174,20 @@ if (fs.existsSync(zipFilePath)) {
   fs.rmSync(zipFilePath, { force: true });
 }
 
-console.log(`[+] Erstelle ZIP-Archiv: ${zipFileName}...`);
-// Verwende tar.exe fuer schnelle, verlustfreie ZIP-Erstellung auf Windows
+console.log(`[+] Creating ZIP archive: ${zipFileName}...`);
+// Use tar.exe for fast, lossless zip packaging on Windows
 try {
   execSync(`tar -a -cf "${zipFilePath}" -C "${releaseDir}" "${stagingDirName}"`, {
     stdio: 'inherit',
   });
 } catch (e) {
-  console.log('[*] Fallback auf PowerShell Compress-Archive...');
+  console.log('[*] Falling back to PowerShell Compress-Archive...');
   const psCmd = `Compress-Archive -Path "${stagingDir}" -DestinationPath "${zipFilePath}" -Force`;
   execSync(`powershell -NoProfile -Command "${psCmd}"`, { stdio: 'inherit' });
 }
 
-// 10. SHA256-Prüfsumme generieren
-console.log('[+] Berechne SHA256-Pruefsumme...');
+// 10. Generate SHA256 checksum
+console.log('[+] Calculating SHA256 checksum...');
 const fileBuffer = fs.readFileSync(zipFilePath);
 const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 const sha256FileName = `${zipFileName}.sha256`;
@@ -199,8 +199,8 @@ const stats = fs.statSync(zipFilePath);
 const sizeMb = (stats.size / (1024 * 1024)).toFixed(2);
 
 console.log('\n=======================================================');
-console.log(' Build erfolgreich abgeschlossen!');
-console.log(` Release-Paket: ${zipFilePath} (${sizeMb} MB)`);
-console.log(` SHA256:        ${hash}`);
-console.log(` Pruefsumme in: ${sha256FilePath}`);
+console.log(' Build completed successfully!');
+console.log(` Release Package: ${zipFilePath} (${sizeMb} MB)`);
+console.log(` SHA256:          ${hash}`);
+console.log(` Checksum File:   ${sha256FilePath}`);
 console.log('=======================================================\n');

@@ -9,7 +9,7 @@ import { DisciplineList } from './DisciplineList';
 import { DisciplineDetail } from './DisciplineDetail';
 import { MaterialDetail } from '../material/MaterialDetail';
 
-export const CraftingView: React.FC = () => {
+export const CraftingView: React.FC = React.memo(() => {
   const [selectedDiscipline, setSelectedDiscipline] = useState<DisciplineId>('Weaponsmith');
   const [materialHistory, setMaterialHistory] = useState<number[]>([]);
   const recipeDb = useRecipeDb(true);
@@ -82,4 +82,4 @@ export const CraftingView: React.FC = () => {
       )}
     </div>
   );
-};
+});

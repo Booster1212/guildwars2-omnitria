@@ -83,34 +83,8 @@ export function isSameUtcDay(t1: number, t2: number): boolean {
   );
 }
 
-export async function gw2ApiGet<T>(url: string): Promise<{ ok: boolean; status: number; data?: T; error?: string }> {
-  // 1. In Electron, route through main process IPC (bypasses browser CORS and file:// CSP restrictions completely!)
-  const electronApi = (window as unknown as {
-    electronAPI?: { fetchGw2Api?: (u: string) => Promise<{ ok: boolean; status: number; data?: T; error?: string }> };
-  }).electronAPI;
-
-  if (electronApi?.fetchGw2Api) {
-    return await electronApi.fetchGw2Api(url);
-  }
-
-  // 2. Direct browser fetch
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      let errText = res.statusText;
-      try {
-        const j = await res.json();
-        if (j && j.text) errText = j.text;
-      } catch (e) {}
-      return { ok: false, status: res.status, error: errText };
-    }
-    const data = await res.json();
-    return { ok: true, status: res.status, data };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Netzwerkfehler';
-    return { ok: false, status: 0, error: msg };
-  }
-}
+import { apiGet, buildUrl, gw2ApiGet } from './gw2/client.ts';
+export { gw2ApiGet };
 
 /**
  * Validate an API key and fetch account info
@@ -125,8 +99,8 @@ export async function validateApiKey(apiKey: string): Promise<{
     return { success: false, error: 'Bitte gib einen gültigen API-Schlüssel ein.' };
   }
 
-  const url = `https://api.guildwars2.com/v2/account?access_token=${encodeURIComponent(cleanKey)}&_t=${Date.now()}`;
-  const res = await gw2ApiGet<Gw2AccountInfo>(url);
+  const url = buildUrl('account', {}, cleanKey);
+  const res = await apiGet<Gw2AccountInfo>(url);
 
   if (!res.ok || !res.data) {
     if (res.status === 401 || res.status === 403) {
@@ -139,7 +113,7 @@ export async function validateApiKey(apiKey: string): Promise<{
 }
 
 /**
- * Fetch all account achievements for the given key (with cache busting)
+ * Fetch all account achievements for the given key
  */
 export async function fetchAccountAchievements(apiKey: string): Promise<{
   success: boolean;
@@ -151,8 +125,8 @@ export async function fetchAccountAchievements(apiKey: string): Promise<{
     return { success: false, error: 'Kein API-Schlüssel angegeben.' };
   }
 
-  const url = `https://api.guildwars2.com/v2/account/achievements?access_token=${encodeURIComponent(cleanKey)}&_t=${Date.now()}`;
-  const res = await gw2ApiGet<Gw2AccountAchievement[]>(url);
+  const url = buildUrl('account/achievements', {}, cleanKey);
+  const res = await apiGet<Gw2AccountAchievement[]>(url);
 
   if (!res.ok || !res.data) {
     return { success: false, error: res.error || 'Fehler beim Laden der Account-Erfolge (Berechtigung "progression" erforderlich).' };
@@ -172,8 +146,8 @@ export async function fetchAccountWorldBosses(apiKey: string): Promise<{
   const cleanKey = apiKey.trim();
   if (!cleanKey) return { success: false, error: 'Kein API-Schlüssel.' };
 
-  const url = `https://api.guildwars2.com/v2/account/worldbosses?access_token=${encodeURIComponent(cleanKey)}&_t=${Date.now()}`;
-  const res = await gw2ApiGet<string[]>(url);
+  const url = buildUrl('account/worldbosses', {}, cleanKey);
+  const res = await apiGet<string[]>(url);
 
   if (!res.ok || !Array.isArray(res.data)) {
     return { success: false, error: res.error || 'Fehler beim Laden der getöteten Weltenbosse (Berechtigung "progression").' };
@@ -192,8 +166,8 @@ export async function fetchAccountMapChests(apiKey: string): Promise<{
   const cleanKey = apiKey.trim();
   if (!cleanKey) return { success: false, error: 'Kein API-Schlüssel.' };
 
-  const url = `https://api.guildwars2.com/v2/account/mapchests?access_token=${encodeURIComponent(cleanKey)}&_t=${Date.now()}`;
-  const res = await gw2ApiGet<string[]>(url);
+  const url = buildUrl('account/mapchests', {}, cleanKey);
+  const res = await apiGet<string[]>(url);
 
   if (!res.ok || !Array.isArray(res.data)) {
     return { success: false, error: res.error || 'Fehler beim Laden der Meta-Truhen (Berechtigung "progression").' };
@@ -212,8 +186,8 @@ export async function fetchAccountWizardsVaultDaily(apiKey: string): Promise<{
   const cleanKey = apiKey.trim();
   if (!cleanKey) return { success: false, error: 'Kein API-Schlüssel.' };
 
-  const url = `https://api.guildwars2.com/v2/account/wizardsvault/daily?access_token=${encodeURIComponent(cleanKey)}&_t=${Date.now()}`;
-  const res = await gw2ApiGet<Gw2WizardsVaultDaily>(url);
+  const url = buildUrl('account/wizardsvault/daily', {}, cleanKey);
+  const res = await apiGet<Gw2WizardsVaultDaily>(url);
 
   if (!res.ok || !res.data) {
     return { success: false, error: res.error || 'Fehler beim Laden des Gewölbes des Zauberers.' };

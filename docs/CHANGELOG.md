@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.5] - 2026-10-27
+
+### Added
+
+#### WvW Tactical Assistant (Alpha / WvW Taktik-Assistent)
+* **Dedicated WvW Navigation Module (`wvw`)**:
+  * Persistent tab with live EU & NA match synchronization and background polling (30s interval).
+  * Direct match selector with real server and alliance names resolved through `/v2/worlds` and `/v2/wvw/matches`.
+  * Automatic player team detection based on connected ArenaNet account home world ID.
+* **Smart Tactical Objective Advisor (`WvwAdvisorView`)**:
+  * Multi-factor heuristic scoring engine evaluating Righteous Indignation (RI) vulnerability/timers, Points Per Tick (PPT) strategic value, structure upgrade tiers, distance from home spawn, and match leadership momentum.
+  * User-configurable weight sliders (`WvwWeightsModal`) with instant strategy presets:
+    * `Balanced`: Comprehensive tactical scoring across all objectives.
+    * `Aggressive`: Maximizes high-PPT capture recommendations and leader curbing.
+    * `Territorial`: Prioritizes defense of home borderland assets and contested camps.
+    * `Roamer`: Focuses on fast camp flips, sentries, and solo/small-scale capture opportunities.
+  * Top 3 Tactical Recommendations banner with instant map-focus and objective detail view.
+  * Top WvXP & Skirmish Track banner highlighting optimal activity hotspots (e.g. Stonemist Castle, camp refresh cycles).
+* **Interactive Tactical Radar Map (`WvwMapView`)**:
+  * Real-time vector SVG rendering for Eternal Battlegrounds (EBG) and Alpine / Desert Borderlands.
+  * Dynamic objective pins (Camps, Towers, Keeps, Stonemist Castle, Mercenary camps, Ruins) with owner color rings (Red, Blue, Green), RI countdown badges, and guild claim emblems.
+  * Filter controls by map type and team ownership.
+* **Live Match Dashboard (`WvwDashboard`)**:
+  * Real-time match scores, Victory Points (VP), current Points Per Tick (PPT), Kill/Death ratios (K/D), skirmish progress bars, and structure possession distribution.
+  * Map-specific activity rankings for optimal WvXP and reward track leveling.
+* **Session Flips & Activity History (`WvwFlipsHistory`)**:
+  * Live capture logger tracking objective ownership changes with timestamps, team transitions, and Righteous Indignation countdown timers.
+* **100% Bilingual Parity (German & English)**:
+  * Complete i18n translation coverage across all WvW views, labels, modal settings, advisor tactical rationale (`reasons`/`reasonsEn`), and uncertainty notes.
+  * Language-isolated in-memory caches (`inMemoryObjectivesDe` / `inMemoryObjectivesEn`, `inMemoryWorldsDe` / `inMemoryWorldsEn`) ensuring zero bilingual cache poisoning during on-the-fly language switching.
+
+#### Meta-Event System Expansion: Dwayna & Lyssa
+* **Cathedral of Zephyrs (Dwayna)**:
+  * Integrated into deterministic 2-hour rotation schedule in Malchor's Leap (`temple-dwayna` / `wb-dwayna`).
+  * Fast-travel waypoint chat code `[&BLcCAAA=]`, loot highlights, CC/mechanics cheat sheet, and achievement tracking (`2840` / `2854`).
+* **Cathedral of Eternal Radiance (Lyssa)**:
+  * Integrated into deterministic 2-hour rotation schedule in Malchor's Leap (`temple-lyssa` / `wb-lyssa`).
+  * Fast-travel waypoint chat code `[&BKcCAAA=]`, loot highlights, seal disruption mechanics, and achievement tracking (`2841` / `2856`).
+* **1-Click Game Chat Broadcasts & Linking**:
+  * Instant `/m` game chat broadcasting and achievement drawer integration across all Orr temple meta-events.
+
+### Changed
+* **Window Navigation & Controls**:
+  * `[Esc]` key now minimizes or hides the overlay window, immediately returning focus to Guild Wars 2.
+  * Updated controls table and documentation to reflect the Escape minimization behavior.
+* **Automated Domain & Calculation Test Suite**:
+  * Expanded automated test suite from 38 to **63 unit tests** (`tests/*.test.ts`).
+  * Added comprehensive test coverage for WvW translation key parity, team resolution, English tactical reason generation, and advisor heuristics (`tests/wvwTranslations.test.ts`).
+* **Documentation & Screenshot Assets**:
+  * Updated `README.md` with dedicated WvW Tactical Assistant feature showcase, updated controls table, and bilingual highlights.
+  * Refreshed all documentation screenshots in `docs/screenshots/` with high-resolution captures, fully loaded Render API icons, and updated 5-module navigation rail.
+
+### Performance & Engine
+* **Referentially Stable Store Subscriptions**:
+  * Optimized `useSyncExternalStore` snapshots across WvW service and account stores to eliminate redundant React reconciliation cycles.
+* **Debounced Logging & IPC Optimizations**:
+  * Buffered disk logging and optimized inter-process communication between Electron main and renderer processes.
+
+---
+
 ## [0.1.4] - 2026-10-25
 
 ### Fixed

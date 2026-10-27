@@ -1,14 +1,12 @@
 /**
- * Gemeinsamer Client für die offizielle GW2-API (https://api.guildwars2.com/v2).
+ * Shared client for official GW2 API (https://api.guildwars2.com/v2).
  *
- *  - nutzt den bestehenden Transport `gw2ApiGet` (Electron-IPC bzw. Browser-fetch)
- *  - begrenzt die Parallelität und den Durchsatz (Rate-Limit der API: 600 Anfragen/Minute)
- *  - dedupliziert identische laufende Anfragen
- *  - wiederholt bei 429/5xx/Netzwerkfehlern mit Backoff
- *  - lädt große ID-Listen in Blöcken à 200 (API-Maximum)
+ *  - utilizes the existing transport `gw2ApiGet` (Electron IPC or browser fetch)
+ *  - limits concurrency and throughput (API rate limit: 600 requests/minute)
+ *  - deduplicates identical ongoing requests
+ *  - retries on 429/5xx/network errors with backoff
+ *  - loads large ID lists in batches of 200 (API maximum)
  */
-import { gw2ApiGet } from '../gw2Api';
-
 export const API_BASE = 'https://api.guildwars2.com/v2';
 
 export interface ApiResult<T> {
@@ -16,6 +14,33 @@ export interface ApiResult<T> {
   status: number;
   data?: T;
   error?: string;
+}
+
+export async function gw2ApiGet<T>(url: string): Promise<ApiResult<T>> {
+  const electronApi = (window as unknown as {
+    electronAPI?: { fetchGw2Api?: (u: string) => Promise<ApiResult<T>> };
+  }).electronAPI;
+
+  if (electronApi?.fetchGw2Api) {
+    return await electronApi.fetchGw2Api(url);
+  }
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      let errText = res.statusText;
+      try {
+        const j = await res.json();
+        if (j && j.text) errText = j.text;
+      } catch (e) {}
+      return { ok: false, status: res.status, error: errText };
+    }
+    const data = await res.json();
+    return { ok: true, status: res.status, data };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Netzwerkfehler';
+    return { ok: false, status: 0, error: msg };
+  }
 }
 
 const MAX_CONCURRENT = 4;
@@ -78,11 +103,11 @@ export function apiGet<T>(url: string, opts: GetOptions = {}): Promise<ApiResult
 
 export interface BatchResult<T> {
   items: T[];
-  /** Fehler, falls ein Block endgültig fehlgeschlagen ist (404 = IDs unbekannt gilt NICHT als Fehler) */
+  /** Error if a batch ultimately failed (404 = unknown IDs is NOT considered an error) */
   error?: string;
 }
 
-/** Lädt `endpoint?ids=…` in Blöcken. 404/206 (unbekannte IDs) werden toleriert. */
+/** Loads `endpoint?ids=…` in batches. 404/206 (unknown IDs) are tolerated. */
 export async function fetchByIds<T>(
   endpoint: string,
   ids: readonly (number | string)[],
@@ -108,7 +133,7 @@ export async function fetchByIds<T>(
   return { items: out, error };
 }
 
-/** Verständliche deutsche Fehlermeldung zu einem API-Fehler */
+/** Human-readable error message for an API error */
 export function describeApiError(res: { status: number; error?: string }, scope?: string): string {
   if (res.status === 401) return 'API-Schlüssel ungültig oder abgelaufen.';
   if (res.status === 403) {

@@ -81,7 +81,7 @@ test('Levelplaner Neustart-Szenario: Entdeckungsrezepte und Zwischenprodukte akt
     [40, { sell: 200, buy: 160, sellQty: 100, buyQty: 100 }],
   ]);
 
-  // 1. Levelroute berechnen mit beiden aktivierten Haken
+  // 1. Calculate leveling route with both checkboxes enabled
   const plan = planLevelRoute({
     discipline: 'Weaponsmith',
     fromRank: 0,
@@ -119,7 +119,7 @@ test('Levelplaner Neustart-Szenario: Entdeckungsrezepte und Zwischenprodukte akt
   assert.ok(calc.trees.length > 0, 'Baum darf nicht leer sein');
   assert.ok(calc.materials.length > 0, 'Materialtabelle darf nicht leer sein');
 
-  // Endprodukt muss positive Bedarfe haben (nicht 0)
+  // End product must have positive requirements (not 0)
   const endMat = calc.materials.find((m) => m.role === 'end_product');
   if (endMat) {
     assert.ok(endMat.grossDemand > 0, 'Endprodukt Bruttobedarf muss > 0 sein');
@@ -127,7 +127,7 @@ test('Levelplaner Neustart-Szenario: Entdeckungsrezepte und Zwischenprodukte akt
     assert.ok(endMat.craftRuns > 0, 'Endprodukt CraftRuns muss > 0 sein');
   }
 
-  // Zwischenprodukt-Bedarfe müssen positiv sein
+  // Intermediate product requirements must be positive
   const interMat = calc.materials.find((m) => m.role === 'intermediate');
   if (interMat) {
     assert.ok(interMat.grossDemand > 0, 'Zwischenprodukt Bruttobedarf muss > 0 sein');

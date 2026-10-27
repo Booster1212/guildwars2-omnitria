@@ -14,7 +14,7 @@ interface LegendaryViewProps {
   userAchievements: Map<number, Gw2AccountAchievement>;
 }
 
-export const LegendaryView: React.FC<LegendaryViewProps> = ({ userAchievements }) => {
+export const LegendaryView: React.FC<LegendaryViewProps> = React.memo(({ userAchievements }) => {
   const { lang } = useTranslation();
   const model = useLegendaryModel();
   const account = useAccountState();
@@ -108,4 +108,4 @@ export const LegendaryView: React.FC<LegendaryViewProps> = ({ userAchievements }
       )}
     </div>
   );
-};
+});

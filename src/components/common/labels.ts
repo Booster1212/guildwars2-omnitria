@@ -43,7 +43,7 @@ export const DISCIPLINE_DE: Record<DisciplineId, string> = {
   Huntsman: 'Waidmann',
 };
 
-/** Stellvertreter-Item je Beruf, dessen offizielles Icon als Berufssymbol dient (siehe scripts/pick-discipline-icons.cjs) */
+/** Proxy item per discipline whose official icon serves as the discipline symbol (see scripts/pick-discipline-icons.cjs) */
 export const DISCIPLINE_ICON_ITEM: Record<DisciplineId, number> = {
   Armorsmith: 47929,
   Weaponsmith: 47021,
@@ -55,7 +55,7 @@ export const DISCIPLINE_ICON_ITEM: Record<DisciplineId, number> = {
   Huntsman: 47012,
 };
 
-/** Offizielle Embleme der Handwerksdisziplinen */
+/** Official emblems of the crafting disciplines */
 export const DISCIPLINE_ICONS: Record<DisciplineId, string> = {
   Armorsmith: 'https://wiki.guildwars2.com/images/thumb/a/a2/Armorsmith_tango_icon_200px.png/64px-Armorsmith_tango_icon_200px.png',
   Weaponsmith: 'https://wiki.guildwars2.com/images/thumb/f/f3/Weaponsmith_tango_icon_200px.png/64px-Weaponsmith_tango_icon_200px.png',

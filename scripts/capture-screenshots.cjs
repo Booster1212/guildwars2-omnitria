@@ -267,12 +267,12 @@ app.whenReady().then(async () => {
     await snap('legendary-armory.png', 1100, 750);
 
     // ------------------------------------------------------------------------
-    // 7. Legendary Craft Tree (Twilight / Dämmerung 4 Mystic Forge branches)
+    // 7. Legendary Craft Tree (Twilight 4 Mystic Forge branches)
     // ------------------------------------------------------------------------
     log('[*] Capturing 7: legendary-tree.png...');
     await win.webContents.executeJavaScript(`
       (() => {
-        // Select Twilight (Dämmerung)
+        // Select Twilight
         const rows = Array.from(document.querySelectorAll('.weapon-row'));
         const twilightRow = rows.find(r => r.textContent.includes('Dämmerung') || r.textContent.includes('Twilight')) || rows[0];
         if (twilightRow) twilightRow.click();

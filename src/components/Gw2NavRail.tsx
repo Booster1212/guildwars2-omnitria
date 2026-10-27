@@ -5,6 +5,7 @@ import {
   GlyphAchievements,
   GlyphCrafting,
   GlyphLegendary,
+  GlyphWvW,
   GlyphGear,
 } from './common/Glyphs';
 import { useTranslation } from '../i18n';
@@ -15,7 +16,7 @@ interface Gw2NavRailProps {
   onOpenSettings: () => void;
 }
 
-export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
+export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
   currentTab,
   onSelectTab,
   onOpenSettings,
@@ -39,7 +40,7 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
 
 
 
-      {/* 3. Bosse & Erfolge */}
+      {/* 2. Bosse & Erfolge */}
       <button
         className={`nav-rail-item ${currentTab === 'achievements' ? 'active' : ''}`}
         onClick={() => onSelectTab('achievements')}
@@ -52,7 +53,7 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
         {currentTab === 'achievements' && <div className="nav-rail-active-notch" />}
       </button>
 
-      {/* 4. Berufe & Handwerk */}
+      {/* 3. Berufe & Handwerk */}
       <button
         className={`nav-rail-item ${currentTab === 'crafting' ? 'active' : ''}`}
         onClick={() => onSelectTab('crafting')}
@@ -65,7 +66,7 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
         {currentTab === 'crafting' && <div className="nav-rail-active-notch" />}
       </button>
 
-      {/* 5. Legendäre Waffen */}
+      {/* 4. Legendary Weapons */}
       <button
         className={`nav-rail-item ${currentTab === 'legendary' ? 'active' : ''}`}
         onClick={() => onSelectTab('legendary')}
@@ -76,6 +77,19 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
         </div>
         <span className="nav-rail-label">{t('nav.legendary')}</span>
         {currentTab === 'legendary' && <div className="nav-rail-active-notch" />}
+      </button>
+
+      {/* 5. WvW Taktik-Assistent */}
+      <button
+        className={`nav-rail-item ${currentTab === 'wvw' ? 'active' : ''}`}
+        onClick={() => onSelectTab('wvw')}
+        title={t('nav.wvw')}
+      >
+        <div className="nav-item-icon">
+          <GlyphWvW />
+        </div>
+        <span className="nav-rail-label">{t('nav.wvw')}</span>
+        {currentTab === 'wvw' && <div className="nav-rail-active-notch" />}
       </button>
 
       <div className="nav-rail-spacer" />
@@ -93,4 +107,4 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = ({
       </button>
     </nav>
   );
-};
+});

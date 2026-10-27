@@ -100,7 +100,7 @@ export function filterDiscoveryRecipes(
         }
       }
 
-      // 3. Recipe type (internal e.g. "Greatsword" or localized e.g. "Großschwert")
+      // 3. Recipe type (internal e.g. "Greatsword" or localized)
       const matchesType = Boolean(r.type?.toLowerCase().includes(normalizedSearch));
       const locTypeName = getRecipeTypeName && r.type ? getRecipeTypeName(r.type)?.toLowerCase() : undefined;
       const matchesLocType = Boolean(locTypeName && locTypeName.includes(normalizedSearch));
@@ -120,7 +120,7 @@ export function filterDiscoveryRecipes(
   });
 }
 
-/** Berechnet die voraussichtlichen Materialkosten für ein Rezept basierend auf TP-Preisen */
+/** Computes estimated material costs for a recipe based on Trading Post prices */
 export function estimateRecipeCost(
   recipe: Recipe,
   prices: ReadonlyMap<number, PriceInfo>,

@@ -1,18 +1,18 @@
 /**
- * Näherungsmodell für Handwerks-Erfahrung.
+ * Approximation model for crafting experience.
  *
- * WICHTIG – Grenze der Datenquellen:
- *   Die offizielle GW2-API liefert weder die Handwerks-XP je Rezept noch den XP-Stand innerhalb eines Ranges.
- *   Dieses Modell folgt der in der Community dokumentierten Wiki-Formel
+ * IMPORTANT – Data Source Limitation:
+ *   The official GW2 API provides neither crafting XP per recipe nor XP progress within a rank.
+ *   This model follows the wiki formula documented by the community:
  *
- *       xp_gewinn(N) = xp_benötigt(N+1) · multiplikator · (1 − (N − min_rang) / spanne)
+ *       xp_gain(N) = xp_required(N+1) · multiplier · (1 − (N − min_rank) / span)
  *
- *   Da der Gewinn proportional zum Bedarf der jeweiligen Stufe ist, kürzt sich xp_benötigt heraus:
- *   Pro Herstellung werden  multiplikator · (1 − (N − min_rang) / spanne)  Ränge gewonnen.
+ *   Since gain is proportional to the tier requirement, xp_required cancels out:
+ *   Per craft,  multiplier · (1 − (N − min_rank) / span)  ranks are gained.
  *
- *   Bewusst NICHT modelliert (konservativ = eher mehr Herstellungen als nötig):
- *   Entdeckungs-Bonus, Qualitäts-Boni (Meisterwerk/Selten), kritische Erfolge, Tageslimits.
- *   Die Formel konnte hier nicht gegen die Spieldaten verifiziert werden -> in der UI als "Schätzung" markiert.
+ *   Deliberately NOT modeled (conservative = rather more crafts than needed):
+ *   Discovery bonus, quality bonuses (Masterwork/Rare), critical successes, daily limits.
+ *   The formula could not be verified against raw game data here -> marked in UI as "Estimate".
  */
 
 export type XpCategory = 'refinement' | 'component' | 'item';
@@ -23,7 +23,7 @@ export const XP_MODEL: Record<XpCategory, { multiplier: number; span: number }> 
   item: { multiplier: 1.4, span: 40 },
 };
 
-/** Rezepttypen der API, die für die Levelroute NICHT in Frage kommen */
+/** API recipe types that do NOT qualify for leveling routes */
 const EXCLUDED_TYPES = new Set([
   'Bulk',
   'Dye',
@@ -44,7 +44,7 @@ export function categoryOf(recipeType: string | undefined): XpCategory | null {
   return 'item';
 }
 
-/** Gewonnene Ränge pro Herstellung bei aktuellem Rang `rank` (0 = keine XP mehr / noch nicht freigeschaltet) */
+/** Ranks gained per craft at current rank `rank` (0 = no more XP / not yet unlocked) */
 export function ranksPerCraft(
   category: XpCategory,
   rank: number,

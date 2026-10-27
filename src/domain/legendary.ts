@@ -1,6 +1,6 @@
 /**
- * Legendäre Waffen: Modell auf Basis des vendorten Community-Datensatzes (Mystische-Schmiede-Rezepte)
- * plus offizieller Item-Daten (Waffentyp wird zur Laufzeit aus /v2/items übernommen).
+ * Legendary weapons: model based on vendored community dataset (Mystic Forge recipes)
+ * plus official item data (weapon type is retrieved at runtime from /v2/items).
  */
 import type { GameItem, Recipe } from './types.ts';
 import type { RecipeProvider } from './recipeTree.ts';
@@ -29,9 +29,9 @@ export interface CommunityDataset {
 }
 
 /**
- * Erwarteter Erfolgsanteil bekannter Zufallsrezepte der Mystischen Schmiede.
- * Quelle: Community-Schätzung (nicht offiziell, nicht per API prüfbar) -> in der UI als Schätzung markiert.
- * Betrifft nur das 10er-Rezept für Mystische Kleeblätter (Ausgabe 10 bei Erfolg).
+ * Expected success rate of known Mystic Forge RNG recipes.
+ * Source: Community estimate (not official, not verifiable via API) -> marked in UI as estimate.
+ * Applies only to the 10x Mystic Clover recipe (yields 10 on success).
  */
 export const RANDOM_RECIPE_YIELD: Record<number, { yield: number; note: string; noteEn?: string }> = {
   19675: {
@@ -111,7 +111,7 @@ export const WEAPON_TYPE_DE: Record<string, string> = {
   Trident: 'Dreizack',
 };
 
-/** Die Generationsnummern des Datensatzes sind interne Gruppen; hier die Anzeigenamen. */
+/** Generation numbers of dataset are internal groups; display names are mapped here. */
 export const GENERATION_LABEL: Record<number, { short: string; long: string; shortEn: string; longEn: string }> = {
   1: {
     short: 'Generation 1',
@@ -175,7 +175,7 @@ export interface LegendaryModel extends RecipeProvider {
   weapons: LegendaryWeapon[];
   tags(itemId: number): string[];
   vendorRecipeFor(itemId: number): Recipe | undefined;
-  /** Alle Item-IDs, die in Rezeptbäumen des Datensatzes vorkommen */
+  /** All item IDs that appear in recipe trees of the dataset */
   allItemIds(): number[];
   meta: CommunityDataset['meta'];
 }
@@ -241,7 +241,7 @@ export function weaponSlot(w: LegendaryWeapon, item: GameItem | undefined): Weap
   return slotOf(item?.weaponType) ?? slotOf(w.type);
 }
 
-/** Ermittelt die Namensbasis für Sammlungs-Erfolge ("Sunrise I: …") */
+/** Determines base name for collection achievements ("Sunrise I: …") */
 export function collectionMatches(weaponNameEn: string, achievementNameEn: string): boolean {
   const base = weaponNameEn.toLowerCase();
   const n = achievementNameEn.toLowerCase();

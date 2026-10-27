@@ -1,4 +1,4 @@
-// Analyse des Community-Datensatzes (nur Entwicklung)
+// Analysis of community dataset (dev only)
 const L = require('./.cache/cl/legendaries.json').legendaries;
 const R = require('./.cache/cl/recipes.json').recipes;
 const I = require('./.cache/cl/items.json').items;

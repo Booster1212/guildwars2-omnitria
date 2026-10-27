@@ -21,6 +21,8 @@ import {
   getEventName,
   getEventZone,
   getEventWaypointName,
+  isBossEvent,
+  isMetaEvent,
 } from '../data/events';
 import { useProgress, progressStore } from '../data/progressStore';
 import { useTranslation } from '../i18n';
@@ -41,7 +43,7 @@ interface MiniWidgetProps {
   onLogCompletion?: (eventId: string, newTotal: number) => void;
 }
 
-export const MiniWidget: React.FC<MiniWidgetProps> = ({
+export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
   instances,
   onSendMessage,
   onTeleport,
@@ -98,19 +100,17 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
     }
   };
 
-  const isBoss = (cat: string) => cat === 'core' || cat === 'hardcore';
-
   // Category counts
   const activeCount = useMemo(() => {
     return instances.filter((i) => i.isActive || i.startsInSeconds <= 5 * 60).length;
   }, [instances]);
 
   const metaCount = useMemo(() => {
-    return instances.filter((i) => !isBoss(i.event.category) && (i.isActive || i.startsInSeconds <= 60 * 60)).length;
+    return instances.filter((i) => isMetaEvent(i.event) && (i.isActive || i.startsInSeconds <= 60 * 60)).length;
   }, [instances]);
 
   const coreCount = useMemo(() => {
-    return instances.filter((i) => isBoss(i.event.category) && (i.isActive || i.startsInSeconds <= 60 * 60)).length;
+    return instances.filter((i) => isBossEvent(i.event) && (i.isActive || i.startsInSeconds <= 60 * 60)).length;
   }, [instances]);
 
   const soonCount = useMemo(() => {
@@ -124,9 +124,9 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
     if (activeTab === 'active') {
       list = list.filter((i) => i.isActive || i.startsInSeconds <= 5 * 60);
     } else if (activeTab === 'metas') {
-      list = list.filter((i) => !isBoss(i.event.category));
+      list = list.filter((i) => isMetaEvent(i.event));
     } else if (activeTab === 'core') {
-      list = list.filter((i) => isBoss(i.event.category));
+      list = list.filter((i) => isBossEvent(i.event));
     } else if (activeTab === 'soon') {
       list = list.filter((i) => !i.isActive && i.startsInSeconds <= 30 * 60);
     }
@@ -446,4 +446,4 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
       </button>
     </div>
   );
-};
+});

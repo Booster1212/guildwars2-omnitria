@@ -1,16 +1,16 @@
 /**
- * Persönliche Accountdaten (benötigen einen API-Schlüssel mit passenden Berechtigungen).
+ * Personal account data (requires an API key with appropriate permissions).
  *
- *   Feature                      Endpunkt                        Berechtigung
- *   Materiallager                /v2/account/materials           inventories
+ *   Feature                      Endpoint                        Permission
+ *   Material Storage             /v2/account/materials           inventories
  *   Bank                         /v2/account/bank                inventories
- *   Geteiltes Inventar           /v2/account/inventory           inventories
- *   Charakter-Taschen/Handwerk   /v2/characters?ids=all          characters (+ inventories für Taschen)
- *   Geldbörse                    /v2/account/wallet              wallet
- *   Bekannte Rezepte             /v2/account/recipes             unlocks
- *   Legendäre Rüstkammer         /v2/account/legendaryarmory     unlocks
+ *   Shared Inventory             /v2/account/inventory           inventories
+ *   Character Bags/Crafting      /v2/characters?ids=all          characters (+ inventories for bags)
+ *   Wallet                       /v2/account/wallet              wallet
+ *   Known Recipes                /v2/account/recipes             unlocks
+ *   Legendary Armory             /v2/account/legendaryarmory     unlocks
  *
- * Fehlende Berechtigungen werden je Feature gemeldet; die übrigen Daten werden trotzdem geladen.
+ * Missing permissions are reported per feature; remaining data is still loaded.
  */
 import { useSyncExternalStore } from 'react';
 import { apiGet, buildUrl, describeApiError } from './client';
@@ -35,9 +35,9 @@ export interface AccountData {
   syncedAt: number;
   accountName?: string;
   permissions: string[];
-  /** Gesamtbestand je Item-ID über Lager, Bank, geteiltes Inventar und Charakter-Taschen */
+  /** Total inventory per item ID across material storage, bank, shared inventory, and character bags */
   stock: [number, number][];
-  /** Aufschlüsselung je Item: [Lager, Bank, Geteilt, Charaktere] */
+  /** Breakdown per item: [materialStorage, bank, shared, characters] */
   breakdown: Record<number, [number, number, number, number]>;
   wallet: [number, number][] | null;
   knownRecipes: number[] | null;
@@ -49,7 +49,7 @@ export interface AccountData {
 export interface AccountState {
   status: 'none' | 'loading' | 'ready';
   data: AccountData | null;
-  /** Abgeleitete Strukturen für schnellen Zugriff */
+  /** Derived structures for fast access */
   stockMap: ReadonlyMap<number, number>;
   knownRecipeSet: ReadonlySet<number> | null;
   armoryMap: ReadonlyMap<number, number> | null;
@@ -257,7 +257,7 @@ export function clearAccountData(): void {
   setState(derive(null, 'none'));
 }
 
-/** Lädt nur, wenn ein Schlüssel vorhanden und der Stand älter als `maxAgeMs` ist. */
+/** Loads only if an API key is present and cached data is older than `maxAgeMs`. */
 export async function syncIfStale(apiKey: string | undefined, maxAgeMs = 15 * 60 * 1000): Promise<void> {
   if (!apiKey?.trim()) return;
   if (state.status === 'loading') return;
@@ -265,6 +265,6 @@ export async function syncIfStale(apiKey: string | undefined, maxAgeMs = 15 * 60
   try {
     await syncAccountData(apiKey);
   } catch {
-    /* Fehler werden über den Zustand/Banner angezeigt */
+    /* Errors are surfaced via state/banner */
   }
 }

@@ -1,9 +1,9 @@
 /**
- * Kostenberechnung auf Basis von Handelsgesellschafts-Preisen (offizielle API: /v2/commerce/prices).
+ * Cost calculation based on Trading Post prices (official API: /v2/commerce/prices).
  *
- * Ausgewiesen wird der SOFORTKAUF-Preis (niedrigstes Angebot). Gebühren (15 %) spielen beim Einkauf keine Rolle.
- * Items ohne Angebot oder nicht handelbare Items fließen NICHT in die Summe ein, sondern werden separat
- * ausgewiesen, damit keine falsche Vollständigkeit vorgetäuscht wird.
+ * Reported price is the INSTANT BUY price (lowest sell listing). Fees (15%) play no role when purchasing.
+ * Items without sell listings or non-tradeable items do NOT factor into the sum; they are reported separately
+ * so that no false completeness is implied.
  */
 import type { GameItem, PriceInfo } from './types.ts';
 import { isUntradable } from './types.ts';
@@ -21,34 +21,34 @@ export interface CostSummary {
   total: number;
   lines: Map<number, CostLine>;
   pricedCount: number;
-  /** Positionen, für die kein Preis ermittelt werden konnte */
+  /** Items for which no price could be determined */
   unpriced: CostLine[];
 }
 
-/** Bekannte Händlerpreise in Kupfer (z. B. Koch- und Handwerksmeister-Zutaten) */
+/** Known vendor prices in copper (e.g. Chef and Master Craftsman ingredients) */
 export const KNOWN_VENDOR_PRICES: ReadonlyMap<number, number> = new Map([
-  // Koch-Zutaten vom Meisterkoch (offizielle Händlerpreise in Kupfer)
+  // Chef ingredients from Master Craftsman (official vendor prices in copper)
   [12156, 16], // Krug Wasser (Jug of Water)
   [12155, 16], // Beutel Mehl (Bag of Flour)
   [12158, 16], // Paket Hefe (Packet of Yeast)
   [12153, 16], // Paket Salz (Packet of Salt)
   [12151, 16], // Paket Backpulver (Packet of Baking Powder)
   [12157, 16], // Flasche Essig (Bottle of Vinegar)
-  [12159, 16], // Flasche Sojasoße (Bottle of Soy Sauce)
+  [12159, 16], // Bottle of Soy Sauce
   [12240, 16], // Glas Buttermilch (Glass of Buttermilk)
   [12337, 16], // Beutel Zucker (Bag of Sugar)
   [12338, 16], // Flasche einfacher Sirup (Bottle of Simple Syrup)
   [12176, 16], // Beutel Maismehl (Bag of Cornmeal)
-  [12165, 35], // Stück Butter (Stick of Butter - Karma/Vendor)
-  [12166, 35], // Käsestück (Cheese Wedge - Karma/Vendor)
+  [12165, 35], // Stick of Butter (Karma/Vendor)
+  [12166, 35], // Cheese Wedge (Karma/Vendor)
   [12177, 35], // Paprika (Bell Pepper - Karma/Vendor)
   [12178, 35], // Vanilleschote (Vanilla Bean - Karma/Vendor)
-  [12134, 16], // Scheibe Käse (Cheese Slice)
-  [12144, 40], // Schneetrüffel (Snow Truffle)
-  [12145, 16], // Reisbällchen (Rice Ball)
-  [12132, 48], // Brotlaib (Loaf of Bread - Eigenherstellung aus 16c Wasser + 16c Mehl + 16c Hefe)
+  [12134, 16], // Cheese Slice
+  [12144, 40], // Snow Truffle
+  [12145, 16], // Rice Ball
+  [12132, 48], // Loaf of Bread (self-crafting from 16c Water + 16c Flour + 16c Yeast)
 
-  // Handwerksmeister-Basiskomponenten (alle Disziplinen)
+  // Master Craftsman basic ingredients (all disciplines)
   [19704, 8],   // Klumpen Zinn (Lump of Tin)
   [19750, 16],  // Klumpen Kohle (Lump of Coal)
   [19924, 48],  // Klumpen Primordium (Lump of Primordium)
@@ -60,8 +60,8 @@ export const KNOWN_VENDOR_PRICES: ReadonlyMap<number, number> = new Map([
   [19791, 48],  // Spule Seidenfaden (Spool of Silk Thread)
   [19790, 64],  // Spule Gazefaden (Spool of Gossamer Thread)
 
-  // Legendäre Komponenten mit festen Händlerpreisen (offizielle Händlerpreise in Kupfer)
-  [19676, 10000], // Eisiger Runenstein (Icy Runestone) – 1 Gold (10.000 Kupfer) bei Rojan dem Büßer
+  // Legendary components with fixed vendor prices (official vendor prices in copper)
+  [19676, 10000], // Icy Runestone – 1 Gold (10,000 copper) from Rojan the Penitent
 ]);
 
 export function unitPrice(price: PriceInfo | undefined, itemId?: number): number | null {

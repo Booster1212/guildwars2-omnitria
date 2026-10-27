@@ -1,6 +1,6 @@
 /**
- * Legendäre-Waffen-Modell: vendorter Community-Datensatz (siehe src/data/community/NOTICE.md) +
- * offizielle Rüstkammer-Liste für Waffen, die dem Datensatz fehlen.
+ * Legendary weapons model: vendored community dataset (see src/data/community/NOTICE.md) +
+ * official Legendary Armory list for weapons missing from the dataset.
  */
 import { useMemo } from 'react';
 import dataset from './community/legendary-weapons.json';

@@ -1,9 +1,9 @@
 /**
- * Offizielle Handwerksrezepte (/v2/recipes). Es gibt kein "ids=all": die ID-Liste wird einmal geladen,
- * danach in Blöcken à 200 (~66 Anfragen). Ergebnis wird kompakt in IndexedDB gehalten und nur bei neuer
- * Spielversion (/v2/build) oder nach 14 Tagen neu geladen.
+ * Official crafting recipes (/v2/recipes). There is no "ids=all": the ID list is loaded once,
+ * then in batches of 200 (~66 requests). Results are kept compactly in IndexedDB and only reloaded upon new
+ * game build (/v2/build) or reloaded after 14 days.
  *
- * Hinweis: Mystische-Schmiede-Rezepte sind NICHT in dieser API (siehe docs/DATA_SOURCES.md).
+ * Note: Mystic Forge recipes are NOT in this API (see docs/DATA_SOURCES.md).
  */
 import { useEffect, useSyncExternalStore } from 'react';
 import type { Recipe } from '../../domain/types';
@@ -111,7 +111,7 @@ export function loadRecipeDb(force = false): Promise<void> {
       const idsRes = await apiGet<number[]>(buildUrl('recipes'));
       if (!idsRes.ok || !idsRes.data) {
         if (cached) {
-          // Veraltete Daten sind besser als keine – mit Hinweis
+          // Stale data is better than none – with warning
           const idx = index(cached.value.recipes);
           set({
             status: 'ready',

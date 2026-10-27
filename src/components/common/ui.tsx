@@ -9,7 +9,7 @@ import { getPrice } from '../../data/gw2/prices';
 import { getAccountState } from '../../data/gw2/account';
 import { ITEM_TYPE_DE, RARITY_DE, fmtInt, DISCIPLINE_ICONS, DISCIPLINE_ICON_ITEM, DISCIPLINE_DE } from './labels';
 
-/* ---------- Münzen ---------- */
+/* ---------- Coins ---------- */
 export const Coin: React.FC<{ copper: number | null | undefined; approx?: boolean }> = ({ copper, approx }) => {
   if (copper === null || copper === undefined) return <span className="coin none">–</span>;
   const { gold, silver, copper: c } = splitCoins(copper);
@@ -116,7 +116,7 @@ export const OriginBadge: React.FC<{ origin: Origin | 'personal' }> = ({ origin 
   </span>
 );
 
-/* ---------- Kontrollkästchen ---------- */
+/* ---------- Checkboxes ---------- */
 export const Check: React.FC<{
   checked: boolean;
   onChange: () => void;
@@ -138,7 +138,7 @@ export const Spinner: React.FC<{ label?: string }> = ({ label }) => (
   </span>
 );
 
-/* ---------- Item-Symbol mit Tooltip im Spielstil ---------- */
+/* ---------- Item icon with game-style tooltip ---------- */
 interface TipState {
   x: number;
   y: number;
@@ -149,7 +149,7 @@ export const ItemIcon: React.FC<{
   count?: number;
   size?: 's' | 'm' | 'l';
   onClick?: () => void;
-  /** Zusätzliche Tooltip-Zeilen (z. B. „Bedarf 12 / Vorhanden 4“) */
+  /** Additional tooltip lines (e.g. "Demand 12 / Owned 4") */
   extra?: string[];
   dim?: boolean;
   fallbackIcon?: string;
@@ -210,7 +210,7 @@ export const ItemIcon: React.FC<{
   );
 };
 
-/* ---------- Berufs-Symbol (Offizielles Disziplin-Emblem mit Fallback) ---------- */
+/* ---------- Discipline symbol (Official discipline emblem with fallback) ---------- */
 export const DisciplineIcon: React.FC<{
   discipline: DisciplineId;
   size?: 's' | 'm' | 'l';
@@ -246,7 +246,7 @@ const ItemTooltip: React.FC<{ id: number; x: number; y: number; extra?: string[]
   const hasStock = getAccountState().hasStockData;
   const isEn = getItemLanguage() === 'en';
   const ref = useRef<HTMLDivElement | null>(null);
-  // Position korrigieren, falls der Tooltip aus dem Fenster ragt
+  // Correct position if tooltip overflows window boundary
   const [pos, setPos] = useState({ left: x, top: y });
   React.useLayoutEffect(() => {
     const el = ref.current;

@@ -45,7 +45,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   const discProgress = progress.crafting[discipline];
   const charRating = account.data?.crafting?.[discipline]?.rating;
 
-  // Level direkt von dem jeweiligen Beruf ziehen
+  // Pull current level directly from character discipline
   const effectiveStart = charRating !== undefined ? charRating : (discProgress?.start ?? 0);
   const rawTarget = discProgress?.target ?? (discipline === 'Jeweler' ? 400 : Math.min(500, maxRank));
   const initialTarget = effectiveStart >= rawTarget && effectiveStart < maxRank
@@ -54,17 +54,17 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const [fromRank, setFromRank] = useState<number>(effectiveStart);
   const [toRank, setToRank] = useState<number>(initialTarget);
-  // Entdeckungs- und Zwischenschritt-Optionen: Zwischenschritte standardmäßig selbst herstellen
+  // Discovery and intermediate options: craft intermediates by default
   const [allowDiscovery, setAllowDiscovery] = useState<boolean>(false);
   const [craftIntermediates, setCraftIntermediates] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'steps' | 'materials' | 'tree' | 'intermediates' | 'shopping'>('steps');
 
-  // Strategie für Eigenherstellung vs. Einkauf: Standard all_craft (soweit wie möglich alles selbst herstellen)
+  // Strategy for self-crafting vs. buying: default all_craft (craft everything where possible)
   const [strategy, setStrategy] = useState<CraftingStrategy>('all_craft');
   const [itemOverrides, setItemOverrides] = useState<Map<number, ItemProcurement>>(new Map());
   const [onlyOpenSteps, setOnlyOpenSteps] = useState<boolean>(false);
 
-  // Ziehe das Level direkt vom jeweiligen Beruf bei Disziplinwechsel oder neuem Rating
+  // Pull level directly from discipline on change or new character rating
   React.useEffect(() => {
     const start = charRating !== undefined ? charRating : (discProgress?.start ?? 0);
     setFromRank(start);
@@ -175,7 +175,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const doneSteps = discProgress?.doneSteps ?? [];
 
-  // Berechnungsziele für die rekursive Materialauflösung
+  // Calculation targets for recursive material resolution
   const calculationTargets: TargetCraftItem[] = useMemo(() => {
     if (!plan) return [];
     return plan.steps
@@ -194,7 +194,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
       }));
   }, [plan, onlyOpenSteps, doneSteps]);
 
-  // Disziplin-spezifischer Rezept-Provider
+  // Discipline-specific recipe provider
   const recipeProvider = useMemo(() => {
     if (recipeDb.status !== 'ready') return { recipeFor: () => undefined };
     return createDisciplineRecipeProvider(recipeDb.byOutput, discipline, {
@@ -204,7 +204,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     });
   }, [recipeDb.byOutput, recipeDb.status, discipline, allowDiscovery, account.knownRecipeSet, toRank]);
 
-  // Vollständige rekursive Materialbedarfsberechnung
+  // Complete recursive material requirements calculation
   const craftingPlanResult = useMemo(() => {
     if (!calculationTargets.length || recipeDb.status !== 'ready') return null;
     return calculateCraftingPlan(calculationTargets, recipeProvider, {
@@ -446,7 +446,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </Notice>
       )}
 
-      {/* Strategie-Leiste: Eigenherstellung vs. Fertig kaufen */}
+      {/* Strategy bar: Self-crafting vs. Buying */}
       <div className="planner-strategy-bar">
         <div className="strategy-row">
           <div className="strategy-label-group">
@@ -499,7 +499,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       </div>
 
-      {/* Subtabs: Schritte / Gesamter Materialbedarf / Herstellungskette / Einkaufsliste / Zwischenprodukte */}
+      {/* Subtabs: Steps / Total Material Demand / Crafting Tree / Shopping List / Intermediates */}
       <div className="planner-subtabs-row">
         <div className="subtabs-group">
           <button
@@ -540,7 +540,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       </div>
 
-      {/* Tab 1: Schritte */}
+      {/* Tab 1: Steps */}
       {activeTab === 'steps' && plan && (
         <div className="planner-steps-list">
           {plan.steps.length === 0 ? (
@@ -592,7 +592,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                       )}
                     </div>
 
-                    {/* Vorher selbst herstellen (Vorbereitungskette) */}
+                    {/* Craft beforehand (preparation chain) */}
                     {st.prepSteps && st.prepSteps.length > 0 && (
                       <div className="planner-step-prep-box">
                         <div className="psp-header">
@@ -632,7 +632,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                     </div>
                                   </div>
 
-                                  {/* Sub-Ingredients / Rezept-Auflistung für dieses Zwischenprodukt */}
+                                  {/* Sub-ingredients / recipe listing for this intermediate component */}
                                   {prep.ingredients && prep.ingredients.length > 0 && (
                                     <div className="psp-sub-ingredients">
                                       <span className="psp-sub-label dim">
@@ -791,7 +791,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       )}
 
-      {/* Tab 2: Gesamter Materialbedarf (Vollständig rekursiv aufgelöst) */}
+      {/* Tab 2: Total Material Demand (fully recursively resolved) */}
       {activeTab === 'materials' && (
         <MaterialDemandTable
           materials={craftingPlanResult?.materials ?? []}
@@ -802,7 +802,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         />
       )}
 
-      {/* Tab 3: Herstellungskette (Hierarchische aufklappbare Baumstruktur) */}
+      {/* Tab 3: Crafting Tree (hierarchical expandable tree structure) */}
       {activeTab === 'tree' && (
         <CraftingTreeView
           trees={craftingPlanResult?.trees ?? []}
@@ -812,7 +812,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         />
       )}
 
-      {/* Tab 4: Einkaufsliste (Kompakte Liste) */}
+      {/* Tab 4: Shopping List (compact list) */}
       {activeTab === 'shopping' && plan && (
         <div className="planner-shopping-wrap">
           <table className="gw2-dense-table shopping-table">
@@ -863,7 +863,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       )}
 
-      {/* Tab 5: Zwischenprodukte */}
+      {/* Tab 5: Intermediate Components */}
       {activeTab === 'intermediates' && plan && (
         <div className="planner-intermediates-wrap">
           {plan.intermediates.length === 0 ? (

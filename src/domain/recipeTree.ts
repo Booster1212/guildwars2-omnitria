@@ -1,15 +1,15 @@
 /**
- * Rekursive Auflösung von Herstellungsketten.
+ * Recursive resolution of crafting chains.
  *
- * Reine Berechnung (keine UI, keine Netzwerkzugriffe) -> testbar mit `node --test`.
+ * Pure calculation (no UI, no network calls) -> testable with `node --test`.
  *
- * Regeln:
- *  - Bedarf gleicher Materialien wird über ALLE Äste hinweg aggregiert (BOM).
- *  - Vorhandener Bestand wird als gemeinsamer Pool von oben nach unten (Tiefensuche, Rezeptreihenfolge)
- *    verbraucht -> kein Material wird doppelt als "vorhanden" gezählt.
- *  - Zufallsrezepte (`recipe.yield < 1`) benötigen im Erwartungswert mehr Herstellungen.
- *  - Als erledigt markierte Knoten (`doneNodes`) tragen nichts mehr zum Bedarf bei.
- *  - `buyItems`: Gegenstände, die der Nutzer kaufen statt herstellen will (Knoten wird zum Blatt).
+ * Rules:
+ *  - Demand for identical materials is aggregated across ALL branches (BOM).
+ *  - Inventory stock is consumed as a shared pool top-to-bottom (depth-first, recipe order)
+ *    -> no material is counted as "owned" more than once.
+ *  - RNG recipes (`recipe.yield < 1`) require more crafts on expected average.
+ *  - Nodes marked as completed (`doneNodes`) no longer contribute to demand.
+ *  - `buyItems`: Items the user chooses to buy rather than craft (node becomes leaf).
  */
 import type { Recipe } from './types.ts';
 
@@ -18,7 +18,7 @@ export interface RecipeProvider {
 }
 
 export interface TreeNode {
-  /** Pfadschlüssel (Artikel-IDs von der Wurzel, mit ">" getrennt). Stabil für "erledigt"-Markierungen. */
+  /** Path key (item IDs from root, separated by ">"). Stable for "completed" flags. */
   key: string;
   itemId: number;
   depth: number;
@@ -26,17 +26,17 @@ export interface TreeNode {
   demand: number;
   /** Durch Bestand gedeckt */
   fromStock: number;
-  /** Nach Bestand noch offen */
+  /** Remaining after inventory stock */
   missing: number;
-  /** Benötigte Herstellungen (Erwartungswert bei Zufallsrezepten) */
+  /** Required crafts (expected value for RNG recipes) */
   crafts: number;
   recipe?: Recipe;
-  /** Gibt an, ob für diesen Knoten ein Herstellungsrezept existiert (unabhängig davon, ob der Nutzer auf Direktkauf umgeschaltet hat) */
+  /** Indicates whether a crafting recipe exists for this node (regardless of whether user toggled direct buy) */
   canCraft: boolean;
   children: TreeNode[];
   /** Vom Nutzer als erledigt markiert */
   done: boolean;
-  /** Trägt nicht zum Bedarf bei (erledigt oder bereits durch Bestand gedeckt) */
+  /** Does not contribute to demand (completed or already covered by stock) */
   muted: boolean;
   cyclic: boolean;
   /** Nutzer will diesen Gegenstand kaufen statt herstellen */
@@ -50,24 +50,24 @@ export interface BomEntry {
   itemId: number;
   /** Gesamtbedarf ohne Bestand/Markierungen */
   total: number;
-  /** Fehlende Menge nach Bestand/Markierungen */
+  /** Missing quantity after inventory stock / checkmarks */
   missing: number;
-  /** Aus Zufallsrezepten stammende Menge oder Berechnung (Schätzung) */
+  /** Quantity or calculation originating from RNG recipes (estimate) */
   estimated: boolean;
 }
 
 export interface CraftEntry {
   recipe: Recipe;
-  /** Anzahl Herstellungen (Erwartungswert bei Zufallsrezepten) */
+  /** Number of crafts (expected value for RNG recipes) */
   count: number;
   random: boolean;
 }
 
 export interface TreeOptions {
-  /** Vorhandene Bestände je Item-ID (null = unbekannt) */
+  /** Owned inventory per item ID (null = unknown) */
   stock?: ReadonlyMap<number, number> | null;
   doneNodes?: ReadonlySet<string>;
-  /** Blatt-Materialien, die der Nutzer als vollständig vorhanden markiert hat */
+  /** Leaf materials user has marked as fully owned */
   doneMaterials?: ReadonlySet<number>;
   buyItems?: ReadonlySet<number>;
   maxDepth?: number;
@@ -76,13 +76,13 @@ export interface TreeOptions {
 export interface TreeResult {
   root: TreeNode;
   bom: Map<number, BomEntry>;
-  /** Herstellungen nach Rezept-ID (nur Netto, also nach Bestand) */
+  /** Crafts by recipe ID (net only, i.e. after inventory stock) */
   crafts: Map<string, CraftEntry>;
   /** Fortschritt des Wurzelknotens 0..1 */
   progress: number;
-  /** Anzahl direkter Komponenten (Kinder der Wurzel) und davon abgeschlossene */
+  /** Number of direct components (root children) and completed count */
   components: { total: number; complete: number };
-  /** Enthält Zufallsrezepte -> Mengen sind Schätzungen */
+  /** Contains RNG recipes -> quantities are estimates */
   hasRandom: boolean;
 }
 
@@ -137,7 +137,7 @@ function runPass(
         fromStock = Math.min(demand, avail);
         if (fromStock > 0) pool.set(itemId, avail - fromStock);
       } else {
-        // Blatt-Materialien: Jeder Knoten zeigt den tatsächlich im Account vorhandenen Bestand für diesen Schritt
+        // Leaf materials: each node shows actual account inventory for this step
         const totalStock = opts.stock.get(itemId) ?? 0;
         fromStock = Math.min(demand, totalStock);
       }
@@ -145,7 +145,7 @@ function runPass(
 
     let missing = muted ? 0 : Math.max(0, demand - fromStock);
     if (!recipe && !muted && opts.doneMaterials.has(itemId)) {
-      // Blatt wurde manuell als "vollständig" markiert
+      // Leaf was manually marked as "complete"
       fromStock = demand;
       missing = 0;
     }
@@ -188,7 +188,7 @@ function runPass(
         visit(ing.itemId, ing.count * mult, [...path, itemId], childMuted, depth + 1),
       );
       if (node.random && !muted) {
-        // Alle darunterliegenden Mengen sind Schätzungen
+        // All descendant quantities are estimates
         const mark = (n: TreeNode) => {
           estimated.add(n.itemId);
           n.children.forEach(mark);
@@ -246,7 +246,7 @@ export function buildTree(
     buyItems: common.buyItems,
     maxDepth: common.maxDepth,
   });
-  // Pass 2: Netto (mit Bestand und erledigten Schritten)
+  // Pass 2: Net (with inventory stock and completed steps)
   const net = runPass(rootItemId, rootCount, provider, {
     stock: options.stock ?? null,
     doneNodes: options.doneNodes ?? new Set<string>(),
@@ -268,7 +268,7 @@ export function buildTree(
       estimated: gross.estimated.has(itemId),
     });
   }
-  // Material, das nur im Netto-Pass auftaucht (kann nicht passieren, aber robust bleiben)
+  // Material appearing only in net pass (cannot occur, but kept for robustness)
   for (const [itemId, qty] of net.total) {
     if (!bom.has(itemId)) {
       const stockQty = options.stock?.get(itemId) ?? 0;
@@ -292,7 +292,7 @@ export function buildTree(
   };
 }
 
-/** Alle Knoten flach (Tiefensuche) – für Suche/Statistik */
+/** All nodes flattened (depth-first search) – for search/statistics */
 export function flattenTree(root: TreeNode): TreeNode[] {
   const out: TreeNode[] = [];
   const walk = (n: TreeNode) => {
