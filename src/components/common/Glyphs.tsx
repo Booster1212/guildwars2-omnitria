@@ -64,6 +64,16 @@ export const GlyphWvW: React.FC = () => (
   </svg>
 );
 
+export const GlyphInventory: React.FC = () => (
+  <svg {...base}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M3 10h18" />
+    <path d="M10 8.5h4v3h-4z" />
+    <circle cx="15.5" cy="15" r="2.2" />
+    <path d="M17.2 16.7l1.8 1.8" />
+  </svg>
+);
+
 export const GlyphGear: React.FC = () => (
   <svg {...base}>
     <circle cx="12" cy="12" r="3" />

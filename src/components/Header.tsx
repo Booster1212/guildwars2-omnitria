@@ -61,13 +61,16 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
   const getSubTitle = () => {
     switch (currentTab) {
-
+      case 'inventory':
+        return t('nav.inventory');
       case 'achievements':
         return t('achievements.title');
       case 'crafting':
         return t('crafting.title');
       case 'legendary':
         return t('legendary.title');
+      case 'wvw':
+        return t('nav.wvw');
       case 'events':
       default:
         return t('nav.events');

@@ -1,19 +1,19 @@
-# Hinweis zu Community-Daten (Crafty Legend)
+# Community Dataset Attribution & Notice (`crafty_legend`)
 
-Die in diesem Verzeichnis hinterlegte Datei `legendary-weapons.json` basiert auf Daten des Open-Source-Projekts **crafty_legend** von **PieOrCake**:
-- **Quelle:** https://github.com/PieOrCake/crafty_legend
-- **Lizenz:** MIT License (Copyright (c) 2024 PieOrCake)
-- **Commit:** `8b6742297807a19678f863101ceea3cc6399a4f3` (19. September 2024)
+The `legendary-weapons.json` dataset in this directory is derived from the open-source project **crafty_legend** by **PieOrCake**:
+- **Source Repository:** https://github.com/PieOrCake/crafty_legend
+- **License:** MIT License (`Copyright (c) 2024 PieOrCake`)
+- **Upstream Commit:** `8b6742297807a19678f863101ceea3cc6399a4f3` (September 19, 2024)
 
-### Warum ein Community-Datensatz erforderlich ist:
-Die offizielle Guild Wars 2 API (`api.guildwars2.com/v2`) stellt prinzipbedingt keine Rezepte der **Mystischen Schmiede** bereit (wie auch im offiziellen API-Wiki dokumentiert). Da legendäre Waffen und ihre Vorläufer über die Mystische Schmiede kombiniert werden, ist ein geprüfter Datensatz dieser Rezepturen notwendig.
+### Why a Community Dataset Is Needed
+The official Guild Wars 2 API (`https://api.guildwars2.com/v2`) does not expose **Mystic Forge** recipes (`/v2/recipes/search` only covers crafting discipline stations). Because Legendary weapons and their Gift/Mystic Tribute sub-components are combined in the Mystic Forge, a verified static component graph is required.
 
-### Trennung der Datenquellen:
-1. **Community-Datensatz (`crafty_legend`):**
-   - Ausschließlich die Rezepturen der Mystischen Schmiede (Zutaten und Ausgabemengen).
-   - Herkunfts-Tags (z. B. `trading_post`, `gathering`, `vendor`, `drop`).
-2. **Offizielle ArenaNet GW2-API:**
-   - Alle Namen, Beschreibungen, Symbole und Waffentypen (zur Laufzeit in deutscher Sprache).
-   - Alle aktuellen Marktpreise der Handelsgesellschaft (`/v2/commerce/prices`).
-   - Alle offiziellen Handwerksrezepte (`/v2/recipes`).
-   - Alle persönlichen Accountdaten (`/v2/account/*`).
+### Separation of Data Sources
+1. **Community Dataset (`crafty_legend`):**
+   - Mystic Forge recipe graphs (ingredient item IDs, output quantities, and discipline tags).
+   - Item acquisition source tags (`trading_post`, `gathering`, `vendor`, `drop`, `mystic_forge`, `achievement`, `map_completion`).
+2. **Official ArenaNet Guild Wars 2 API (`api.guildwars2.com/v2`):**
+   - Localized item names, descriptions, rarities, icons, and weapon types resolved at runtime in English (`en`) and German (`de`) via `/v2/items`.
+   - Live Black Lion Trading Post buy/sell prices via `/v2/commerce/prices`.
+   - Official discipline crafting recipes via `/v2/recipes`.
+   - Personal read-only account, inventory, character, and progression data via `/v2/account/*` and `/v2/characters`.

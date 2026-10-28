@@ -54,6 +54,8 @@ export interface Gw2DailyProgression {
   lastSynced: number;
 }
 
+export type DailyProgressionData = Gw2DailyProgression;
+
 export interface Gw2ApiState {
   apiKey: string;
   isValid: boolean;

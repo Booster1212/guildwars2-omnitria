@@ -31,6 +31,32 @@ export const FEATURE_INFO: Record<AccountFeature, { label: string; scope: string
   armory: { label: 'Legendäre Rüstkammer', scope: 'unlocks' },
 };
 
+export interface AccountCharacterDiscipline {
+  discipline: string;
+  rating: number;
+  active: boolean;
+}
+
+export interface AccountCharacter {
+  name: string;
+  race?: string;
+  gender?: string;
+  profession: string;
+  level: number;
+  age?: number;
+  created?: string;
+  deaths?: number;
+  guild?: string;
+  crafting: AccountCharacterDiscipline[];
+  bagCount: number;
+  bagSlotsTotal: number;
+  bagSlotsUsed: number;
+  /** Item stacks inside this character's inventory bags: [itemId, count][] */
+  bagItems: [number, number][];
+  /** Equipped items on this character: [itemId, slot][] */
+  equipment?: [number, string][];
+}
+
 export interface AccountData {
   syncedAt: number;
   accountName?: string;
@@ -39,6 +65,10 @@ export interface AccountData {
   stock: [number, number][];
   /** Breakdown per item: [materialStorage, bank, shared, characters] */
   breakdown: Record<number, [number, number, number, number]>;
+  /** Per-character bag inventory quantities per item ID: itemId -> { characterName: count } */
+  characterBreakdown?: Record<number, Record<string, number>>;
+  /** Character summaries from /v2/characters?ids=all */
+  characters?: AccountCharacter[] | null;
   wallet: [number, number][] | null;
   knownRecipes: number[] | null;
   armory: [number, number][] | null;
@@ -103,12 +133,28 @@ interface Slot {
   count: number;
 }
 interface ApiBag {
+  id?: number;
+  size?: number;
   inventory?: (Slot | null)[];
+}
+interface ApiEquipmentSlot {
+  id: number;
+  slot?: string;
+  binding?: string;
 }
 interface ApiCharacter {
   name: string;
+  race?: string;
+  gender?: string;
+  profession?: string;
+  level?: number;
+  age?: number;
+  created?: string;
+  deaths?: number;
+  guild?: string;
   crafting?: { discipline: string; rating: number; active: boolean }[];
   bags?: (ApiBag | null)[];
+  equipment?: (ApiEquipmentSlot | null)[];
 }
 
 export async function syncAccountData(apiKey: string): Promise<void> {
@@ -121,9 +167,17 @@ export async function syncAccountData(apiKey: string): Promise<void> {
 
   const errors: AccountData['errors'] = {};
   const breakdown: AccountData['breakdown'] = {};
+  const characterBreakdown: NonNullable<AccountData['characterBreakdown']> = {};
   const add = (id: number, count: number, idx: 0 | 1 | 2 | 3) => {
+    if (!id || count <= 0) return;
     const b = (breakdown[id] ??= [0, 0, 0, 0]);
     b[idx] += count;
+  };
+  const addCharacterItem = (id: number, count: number, characterName: string) => {
+    if (!id || count <= 0 || !characterName) return;
+    add(id, count, 3);
+    const map = (characterBreakdown[id] ??= {});
+    map[characterName] = (map[characterName] ?? 0) + count;
   };
 
   const tokenRes = await apiGet<{ name: string; permissions: string[] }>(buildUrl('tokeninfo', {}, key));
@@ -138,7 +192,7 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   const need = (feature: AccountFeature): boolean => {
     const scope = FEATURE_INFO[feature].scope;
     if (!can(scope)) {
-      errors[feature] = `Berechtigung „${scope}“ fehlt im API-Schlüssel.`;
+      errors[feature] = `Missing "${scope}" permission in API key.`;
       return false;
     }
     return true;
@@ -152,12 +206,13 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   let knownRecipes: number[] | null = null;
   let armory: [number, number][] | null = null;
   let crafting: AccountData['crafting'] = null;
+  let characters: AccountCharacter[] | null = null;
 
   if (need('materials')) {
     tasks.push(
       apiGet<(Slot & { category?: number })[]>(buildUrl('account/materials', {}, key)).then((r) => {
         if (!r.ok || !r.data) return failed('materials', r);
-        r.data.forEach((s) => s.count > 0 && add(s.id, s.count, 0));
+        r.data.forEach((s) => s && s.count > 0 && add(s.id, s.count, 0));
       }),
     );
   }
@@ -165,7 +220,7 @@ export async function syncAccountData(apiKey: string): Promise<void> {
     tasks.push(
       apiGet<(Slot | null)[]>(buildUrl('account/bank', {}, key)).then((r) => {
         if (!r.ok || !r.data) return failed('bank', r);
-        r.data.forEach((s) => s && add(s.id, s.count, 1));
+        r.data.forEach((s) => s && s.count > 0 && add(s.id, s.count, 1));
       }),
     );
   }
@@ -173,28 +228,92 @@ export async function syncAccountData(apiKey: string): Promise<void> {
     tasks.push(
       apiGet<(Slot | null)[]>(buildUrl('account/inventory', {}, key)).then((r) => {
         if (!r.ok || !r.data) return failed('shared', r);
-        r.data.forEach((s) => s && add(s.id, s.count, 2));
+        r.data.forEach((s) => s && s.count > 0 && add(s.id, s.count, 2));
       }),
     );
   }
   if (need('characters')) {
     tasks.push(
-      apiGet<ApiCharacter[]>(buildUrl('characters', { ids: 'all' }, key)).then((r) => {
+      apiGet<ApiCharacter[]>(buildUrl('characters', { ids: 'all' }, key)).then(async (r) => {
         if (!r.ok || !r.data) return failed('characters', r);
         const best: NonNullable<AccountData['crafting']> = {};
+        const charList: AccountCharacter[] = [];
+
         for (const c of r.data) {
+          if (!c || !c.name) continue;
+          const charCrafting: AccountCharacterDiscipline[] = [];
           for (const cr of c.crafting ?? []) {
+            if (!cr || !cr.discipline) continue;
+            charCrafting.push({
+              discipline: cr.discipline,
+              rating: cr.rating ?? 0,
+              active: Boolean(cr.active),
+            });
             if (!best[cr.discipline] || cr.rating > best[cr.discipline].rating) {
               best[cr.discipline] = { rating: cr.rating, character: c.name };
             }
           }
-          if (can('inventories')) {
-            for (const bag of c.bags ?? []) {
-              for (const s of bag?.inventory ?? []) if (s) add(s.id, s.count, 3);
+
+          let rawBags = c.bags;
+          if (can('inventories') && rawBags === undefined) {
+            const invRes = await apiGet<{ bags?: (ApiBag | null)[] }>(
+              buildUrl(`characters/${encodeURIComponent(c.name)}/inventory`, {}, key),
+            );
+            if (invRes.ok && invRes.data?.bags) {
+              rawBags = invRes.data.bags;
             }
           }
+
+          let bagCount = 0;
+          let bagSlotsTotal = 0;
+          let bagSlotsUsed = 0;
+          const charBagMap = new Map<number, number>();
+
+          if (can('inventories') && Array.isArray(rawBags)) {
+            for (const bag of rawBags) {
+              if (!bag) continue;
+              bagCount++;
+              const inv = Array.isArray(bag.inventory) ? bag.inventory : [];
+              bagSlotsTotal += typeof bag.size === 'number' && bag.size > 0 ? bag.size : inv.length;
+              for (const s of inv) {
+                if (s && s.id && s.count > 0) {
+                  bagSlotsUsed++;
+                  addCharacterItem(s.id, s.count, c.name);
+                  charBagMap.set(s.id, (charBagMap.get(s.id) ?? 0) + s.count);
+                }
+              }
+            }
+          }
+
+          const equipmentList: [number, string][] = [];
+          if (Array.isArray(c.equipment)) {
+            for (const eq of c.equipment) {
+              if (eq && eq.id) {
+                equipmentList.push([eq.id, eq.slot ?? 'Equipped']);
+              }
+            }
+          }
+
+          charList.push({
+            name: c.name,
+            race: c.race,
+            gender: c.gender,
+            profession: c.profession ?? 'Unknown',
+            level: c.level ?? 80,
+            age: c.age,
+            created: c.created,
+            deaths: c.deaths,
+            guild: c.guild,
+            crafting: charCrafting,
+            bagCount,
+            bagSlotsTotal,
+            bagSlotsUsed,
+            bagItems: Array.from(charBagMap.entries()),
+            equipment: equipmentList.length > 0 ? equipmentList : undefined,
+          });
         }
         crafting = best;
+        characters = charList;
       }),
     );
   }
@@ -231,6 +350,8 @@ export async function syncAccountData(apiKey: string): Promise<void> {
     permissions,
     stock,
     breakdown,
+    characterBreakdown,
+    characters,
     wallet,
     knownRecipes,
     armory,

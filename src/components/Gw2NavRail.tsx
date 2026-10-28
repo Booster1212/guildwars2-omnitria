@@ -2,6 +2,7 @@ import React from 'react';
 import type { OverlayTab } from '../types';
 import {
   GlyphEvents,
+  GlyphInventory,
   GlyphAchievements,
   GlyphCrafting,
   GlyphLegendary,
@@ -36,6 +37,19 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
         </div>
         <span className="nav-rail-label">Events</span>
         {currentTab === 'events' && <div className="nav-rail-active-notch" />}
+      </button>
+
+      {/* 2. Inventar, Gegenstandssuche & PvE-Zentrale */}
+      <button
+        className={`nav-rail-item ${currentTab === 'inventory' ? 'active' : ''}`}
+        onClick={() => onSelectTab('inventory')}
+        title={t('nav.inventoryTip')}
+      >
+        <div className="nav-item-icon">
+          <GlyphInventory />
+        </div>
+        <span className="nav-rail-label">{t('nav.inventory')}</span>
+        {currentTab === 'inventory' && <div className="nav-rail-active-notch" />}
       </button>
 
 

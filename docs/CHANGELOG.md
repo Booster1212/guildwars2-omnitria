@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.8] - 2026-10-28
+
+### Added & Improved
+
+#### Account-Wide Item Search (`Inventory & PvE Hub`)
+* **Consolidated Account Inventory Index (`src/domain/inventorySearch.ts`, `src/data/gw2/account.ts`):**
+  * Searches items across **Material Storage** (`/v2/account/materials`), **Bank** (`/v2/account/bank`), **Shared Inventory Slots** (`/v2/account/inventory`), **Character Bags** (`/v2/characters?ids=all` + fallback `/v2/characters/:id/inventory`), and **Character Equipment** without double-counting.
+  * Supports full-name and partial-name case-insensitive search in both English (`en`) and German (`de`), item ID search, chat code search, and character name search.
+  * Displays color-coded per-location and per-character storage badges (`Material Storage`, `Bank`, `Shared Inv.`, `Character Name`, `Equipped`), total account-wide quantity, and live Black Lion Trading Post valuation.
+  * Includes filters for storage location (`All`, `Material Storage`, `Bank`, `Shared Inventory`, `Characters`, `Equipped`, `Multiple Locations`), individual character name, item rarity, and item type.
+
+#### Character Overview & PvE Progression Hub
+* **Characters & Bags View:** Displays character cards with level, profession, race, playtime hours, bag slot utilization (`used / total` across equipped bags), active crafting disciplines with ratings, notable bag inventory stacks, and equipped Legendary/Ascended gear.
+* **PvE Goals & Resources Hub:**
+  * Consolidates **Key Resources & Account Currencies** (Gold, Karma, Spirit Shards, Laurels, Imperial Favor, Fractal Relics, Badges of Honor, Mystic Clovers, Mystic Coins, Globs of Ectoplasm, Gifts of Battle, Gifts of Exploration, T6 Materials) with exact storage location breakdowns.
+  * **Tracked Legendary Projects & Next Steps:** Shows overall completion percentage and immediate next craftable component step for each tracked Legendary weapon.
+  * **Deduplicated Multi-Goal Material Planning (`computeMultiGoalMaterialPlan`):** Aggregates shared material demand across multiple tracked Legendary goals against a single shared account stock pool so owned materials are never double-counted across goals.
+  * **Per-Character Breakdown in BOMs:** Enhanced Legendary `MaterialTable`, Crafting `MaterialDemandTable`, and `MaterialDetail` modal to display individual character names holding materials in their bags.
+
+#### WvW Tactical Overview Restructuring (`WvW Tactics`)
+* **Central WvW Tactical Command Overview (`src/components/wvw/WvwAdvisorView.tsx`, `src/data/gw2/wvw/progression.ts`):**
+  * Consolidates public match standings (Victory Points, Points Per Tick, Kill/Death ratio, Castles/Keeps/Towers/Camps counts), data sync age indicator (`Synced Xs ago`), quick view shortcuts (`Tactical Map`, `Match Dashboard`, `Observed Flips`), and interactive map biome pills (**Eternal Battlegrounds**, **Desert Borderlands [Red]**, **Alpine Borderlands [Blue/Green]**, plus explicit **Edge of the Mists** API limitation notice).
+* **Personal WvW Progression Panel (Account):**
+  * Clearly separated from public match data; displays WvW Rank, official WvW Title, Prestige Tier progress (*Bronze* through *Diamond*), WvW Ability Mastery progress (toward Rank 1,226 cap), daily Wizard's Vault WvW progress, and account stockpiles of **Gifts of Battle**, **Memories of Battle**, **Badges of Honor**, and **WvW Skirmish Claim Tickets**.
+* **Deterministic Rule-Based Situational Insights:**
+  * Generates transparent, rule-based alerts for stale match data (>90s), enemy fortifications on the player's Home Borderland, enemy structures in the vulnerable 5–20 minute post-flip T0 window, Stonemist Castle ownership, and leading enemy team momentum.
+* **Complete Filterable Objective Browser:**
+  * Added full objective browser supporting simultaneous filtering by **Map**, **Objective Type** (`Castle`, `Keep`, `Tower`, `Camp`, `Ruins`, `Mercenary`), **Owner** (`All Teams`, `Enemy Only`, `My Team`, `Red`, `Blue`, `Green`), **Status** (`All`, `Vulnerable T0`, `Active RI`, `Guild Claimed`, `Pinned`), and **Search Query**.
+
+---
+
 ## [0.1.7] - 2026-10-27
 
 ### Security & ToS Compliance Overhaul

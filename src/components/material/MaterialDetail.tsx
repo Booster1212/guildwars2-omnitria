@@ -74,6 +74,13 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
   ];
   const stock = account.stockMap.get(itemId) ?? 0;
   const bd = account.data?.breakdown[itemId];
+  const charBd = account.data?.characterBreakdown?.[itemId];
+  const charEntries = useMemo(() => {
+    if (!charBd) return [];
+    return Object.entries(charBd)
+      .filter(([name, cnt]) => Boolean(name) && cnt > 0)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [charBd]);
   const untradable = isUntradable(item);
 
   const usedInOutputs = useMemo(() => {
@@ -154,11 +161,23 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
               {bd &&
                 bd.map((n, i) =>
                   n > 0 ? (
-                    <tr key={i} className="sub">
-                      <td>{breakdownLabels[i]}</td>
-                      <td className="num">{fmtInt(n)}</td>
-                      <td />
-                    </tr>
+                    <React.Fragment key={i}>
+                      <tr className="sub">
+                        <td>{breakdownLabels[i]}</td>
+                        <td className="num">{fmtInt(n)}</td>
+                        <td />
+                      </tr>
+                      {i === 3 &&
+                        charEntries.map(([charName, charCnt]) => (
+                          <tr key={`char-${charName}`} className="sub">
+                            <td style={{ paddingLeft: '22px' }} className="dim">
+                              ↳ {charName}
+                            </td>
+                            <td className="num dim">{fmtInt(charCnt)}</td>
+                            <td />
+                          </tr>
+                        ))}
+                    </React.Fragment>
                   ) : null,
                 )}
             </tbody>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { AggregatedMaterial, ItemProcurement } from '../../domain/craftingCalculator';
 import { getItem } from '../../data/gw2/items';
+import { useAccountState } from '../../data/gw2/account';
 import { fmtInt } from '../common/labels';
 import { Coin, ItemIcon } from '../common/ui';
 import { Search, Hammer, ShoppingCart, Check, AlertCircle, Sparkles } from 'lucide-react';
@@ -21,6 +22,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
   hasStockData,
 }) => {
   const { t, lang } = useTranslation();
+  const account = useAccountState();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'missing' | 'base' | 'intermediates' | 'end' | 'discovery'>('all');
 
@@ -238,7 +240,36 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                     <td className="num font-mono dim">
                       {hasStockData ? (
                         m.stock > 0 ? (
-                          <span className="text-emerald-400">{fmtInt(m.stock)}</span>
+                          (() => {
+                            const bd = account.data?.breakdown[m.itemId];
+                            const charBd = account.data?.characterBreakdown?.[m.itemId];
+                            const locParts: string[] = [];
+                            if (bd) {
+                              if (bd[0] > 0) locParts.push(`Mat: ${fmtInt(bd[0])}`);
+                              if (bd[1] > 0) locParts.push(`Bank: ${fmtInt(bd[1])}`);
+                              if (bd[2] > 0) locParts.push(`${lang === 'en' ? 'Shared' : 'Geteilt'}: ${fmtInt(bd[2])}`);
+                              if (bd[3] > 0) {
+                                if (charBd && Object.keys(charBd).length > 0) {
+                                  for (const [cName, cCnt] of Object.entries(charBd)) {
+                                    if (cCnt > 0) locParts.push(`${cName}: ${fmtInt(cCnt)}`);
+                                  }
+                                } else {
+                                  locParts.push(`Chars: ${fmtInt(bd[3])}`);
+                                }
+                              }
+                            }
+                            const locTitle = locParts.join(' · ');
+                            return (
+                              <div title={locTitle || undefined}>
+                                <span className="text-emerald-400">{fmtInt(m.stock)}</span>
+                                {locTitle && (
+                                  <div className="dim text-[9px] truncate" style={{ maxWidth: '105px', marginLeft: 'auto' }}>
+                                    {locTitle}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()
                         ) : (
                           '0'
                         )

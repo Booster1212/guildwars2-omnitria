@@ -366,6 +366,24 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
     });
 
     const isKnownVendor = KNOWN_VENDOR_PRICES.has(e.itemId);
+    const bd = account.data?.breakdown[e.itemId];
+    const charBd = account.data?.characterBreakdown?.[e.itemId];
+    const locParts: string[] = [];
+    if (bd) {
+      if (bd[0] > 0) locParts.push(`${lang === 'en' ? 'Mat' : 'Mat'}: ${fmtInt(bd[0])}`);
+      if (bd[1] > 0) locParts.push(`${lang === 'en' ? 'Bank' : 'Bank'}: ${fmtInt(bd[1])}`);
+      if (bd[2] > 0) locParts.push(`${lang === 'en' ? 'Shared' : 'Geteilt'}: ${fmtInt(bd[2])}`);
+      if (bd[3] > 0) {
+        if (charBd && Object.keys(charBd).length > 0) {
+          for (const [cName, cCnt] of Object.entries(charBd)) {
+            if (cCnt > 0) locParts.push(`${cName}: ${fmtInt(cCnt)}`);
+          }
+        } else {
+          locParts.push(`${lang === 'en' ? 'Chars' : 'Chars'}: ${fmtInt(bd[3])}`);
+        }
+      }
+    }
+    const locSummary = locParts.join(' · ');
 
     return (
       <tr
@@ -491,7 +509,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
               />
             </div>
 
-            <div className="stock-status-tag">
+            <div className="stock-status-tag" title={locSummary || undefined}>
               {e.progressPercent >= 100 ? (
                 <span className="stock-pill pill-complete">
                   <CheckCircle2 size={10} /> {t('legendary.statusComplete')}
@@ -504,6 +522,11 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
                 <span className="stock-pill pill-empty">
                   <AlertCircle size={10} /> {t('legendary.statusMissing')}
                 </span>
+              )}
+              {locSummary && (
+                <div className="dim text-[10px] font-mono mt-0.5 truncate" style={{ maxWidth: '170px' }}>
+                  {locSummary}
+                </div>
               )}
             </div>
           </div>

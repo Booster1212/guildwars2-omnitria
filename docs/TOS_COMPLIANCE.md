@@ -11,17 +11,21 @@ This document provides a comprehensive technical and policy analysis of **Omnitr
 ## 1. Project Scope
 
 ### What is Omnitria?
-Omnitria is an open-source, external desktop companion and HUD overlay for **Guild Wars 2**. It is designed to grant players convenient in-game access to publicly available game information without requiring alt-tabbing or navigating external browsers.
+Omnitria is an open-source, external desktop companion and HUD overlay for **Guild Wars 2**. It is designed to grant players convenient in-game access to publicly available game information and personal read-only account data without requiring alt-tabbing or navigating external browsers.
 
 ### Core Modules
-1. **Event & World Boss Timers:** Local calculation of Tyria's fixed, deterministic 2-hour UTC rotation schedule across Core Tyria, Expansions, and Living World seasons with fast-travel waypoint codes.
-2. **WvW Tactical Assistant (World vs. World):** Real-time aggregation of public match standings, objective ownership, and Points Per Tick (PPT) from the official ArenaNet REST API, alongside transparent heuristic priority scoring.
-3. **Crafting & Leveling Planner (0–500):** Algorithmic lowest-cost route calculation based on community XP progression formulas, live Black Lion Trading Post prices, and automated inventory deduction.
-4. **Legendary Armory & Mystic Forge Trees:** Hierarchical breakdown of legendary weapon recipes and component materials, supporting live material valuations and inventory deductions via API keys.
-5. **Hero Panel & Achievement Tracker:** Actionable achievement checklists, daily tracking, and tier rewards synchronized through personal read-only ArenaNet API keys.
+1. **Event & World Boss Timers (`Events`):** Local calculation of Tyria's fixed, deterministic 2-hour UTC rotation schedule across Core Tyria, Expansions, Living World seasons, and The Icebrood Saga with fast-travel waypoint codes.
+2. **Account Inventory, Characters & PvE Progression Hub (`Inventory & PvE Hub`):**
+   - **Account-Wide Item Search:** Searches items across Material Storage (`/v2/account/materials`), Bank (`/v2/account/bank`), Shared Inventory (`/v2/account/inventory`), Character Bags (`/v2/characters?ids=all` and `/v2/characters/:id/inventory`), and Equipped Gear without double-counting.
+   - **Characters & Bags Overview:** Displays character level, profession, race, playtime, active crafting disciplines, bag slot utilization, bag stacks, and equipped gear.
+   - **PvE Progression Hub:** Consolidates tracked Legendary projects with next crafting steps, deduplicated multi-goal material planning, active crafting disciplines, pinned achievements, and key wallet currencies.
+3. **WvW Tactical Overview (`WvW Tactics`):** Real-time aggregation of public match standings, map biome states (*Eternal Battlegrounds*, *Desert Borderlands*, *Alpine Borderlands*, and explicit *Edge of the Mists* API boundary notice), complete filterable objective browser, personal WvW rank/title/ability mastery progression, and transparent rule-based situational insights.
+4. **Crafting & Leveling Planner (0–500) (`Crafting`):** Algorithmic lowest-cost route calculation based on community XP progression formulas, live Black Lion Trading Post prices, and automated per-location inventory deduction.
+5. **Legendary Armory & Mystic Forge Trees (`Legendary`):** Hierarchical breakdown of legendary weapon recipes and component materials, supporting live material valuations and per-location inventory deductions via API keys.
+6. **Hero Panel & Achievement Tracker (`Achievements`):** Actionable achievement checklists, daily tracking, and tier rewards synchronized through personal read-only ArenaNet API keys.
 
 ### Target Audience
-The tool is intended for casual players, veterans, guild commanders, and squads who want routine game data (timers, recipes, waypoints, standings) presented cleanly and conveniently above their game screen.
+The tool is intended for casual players, veterans, crafters, and WvW commanders/roamers who want routine game data (timers, inventory locations, recipes, waypoints, match standings) presented cleanly and conveniently above their game screen.
 
 ---
 
@@ -76,10 +80,10 @@ Omnitria relies exclusively on information that is either publicly known or retr
 | Data Category | Data Source | Technical Mechanism | Known Constraints & Boundaries |
 |---|---|---|---|
 | **Event Rotation Timers** | Local deterministic calculation | Computed against Tyria's fixed, public 2-hour UTC rotation cycle | Does not dynamically detect individual map instance/IP progression states. |
-| **WvW Match & Objectives** | ArenaNet REST API (`/v2/wvw/matches`, `/v2/wvw/objectives`) | Public JSON endpoints polled every 30s with adaptive backoff | Reflects macro structure states only. Zero visibility into player counts, zergs, or siege. |
+| **WvW Match & Objectives** | ArenaNet REST API (`/v2/wvw/matches`, `/v2/wvw/objectives`) | Public JSON endpoints polled every 30s with adaptive backoff | Reflects macro structure states only. Zero visibility into player counts, zergs, or siege. Edge of the Mists is not exposed in `/v2/wvw/matches`. |
 | **Worlds & Server Names** | ArenaNet REST API (`/v2/worlds`) | Public endpoint resolving world IDs to localized server names | Static world metadata; no server capacity data. |
 | **Trading Post Prices** | ArenaNet REST API (`/v2/commerce/prices`) | Public market prices cached locally for 5 minutes | Slight server caching delay (typically 1–5 minutes). |
-| **Account Progress & Bank** | Authenticated ArenaNet API (`/v2/account/*`) | Read-only requests authenticated with user's personal API key | Read-only by design. Cannot execute trades, delete items, or access account credentials. |
+| **Account, Inventory & Characters** | Authenticated ArenaNet API (`/v2/account/*`, `/v2/characters`) | Read-only requests authenticated with user's personal API key | Read-only by design. Cannot move items, execute trades, delete items, or access account credentials. |
 | **Mystic Forge Recipes** | Open-source community dataset (`crafty_legend`) | Local JSON graph files pruned to legendary weapons | Static offline snapshot; newly introduced recipes must be manually updated. |
 
 ### Data Explicitly NOT Available or Used
@@ -98,7 +102,7 @@ Omnitria enforces the following architecture:
 1. **No Automated Chat Opening:** Omnitria does not send keystrokes to the game client.
 2. **No Automated Text Insertion or Enter Keys:** Legacy automation helpers (such as Windows Script Host, VBScript `gw2_send.vbs`, or `SendKeys` simulating `Enter -> Ctrl+V -> Enter`) have been **completely eliminated**.
 3. **Explicit Clipboard-Only Workflow:**
-   - Clicking a waypoint code or callout button exclusively places the formatted text into the Windows clipboard via Electron's native `clipboard.writeText`.
+   - Clicking a waypoint code, item chat link, or callout button exclusively places the formatted text into the Windows clipboard via Electron's native `clipboard.writeText`.
    - The user interface immediately displays clear confirmation toast feedback (*"Copied to clipboard! Paste in-game with [Enter] + [Ctrl+V]"*).
    - The player always retains full control over when to open in-game chat, paste the content, and press Enter.
 4. **No Background Input Loops or Macros:** The codebase contains zero timers, loops, or background processes that simulate keyboard or mouse actions in the operating system.
@@ -108,20 +112,23 @@ Omnitria enforces the following architecture:
 ## 5. World vs. World (WvW) Tactical Features
 
 ### How the Module Works
-The WvW module aggregates data from `/v2/wvw/matches` and `/v2/wvw/objectives`. Using this public information, Omnitria computes transparent heuristics to support strategic situational awareness:
+The WvW Tactical Overview aggregates public match data from `/v2/wvw/matches`, `/v2/wvw/objectives`, and `/v2/worlds` and clearly separates it from personal account progression (`/v2/account`, `/v2/account/wallet`):
 
+- **Public Match Overview & Map Biomes:**  
+  Displays live Victory Points, Skirmish Scores, PPT, Kill/Death ratios, and objective ownership across Eternal Battlegrounds (`Center`), Desert Borderlands (`RedHome`), and Alpine Borderlands (`BlueHome` and `GreenHome`), while explicitly noting that Edge of the Mists is not exposed in `/v2/wvw/matches`.
+- **Personal WvW Progression (Account):**  
+  Displays the player's personal WvW Rank, official WvW Title, Prestige Tier progress, WvW Ability Mastery progress (toward the Rank 1,226 cap), owned Gifts of Battle and Memories of Battle, and wallet balances for Badges of Honor and WvW Skirmish Claim Tickets.
 - **Righteous Indignation (RI) Timers:**  
-  The 5-minute post-capture invulnerability window is calculated based on the recorded objective capture timestamp.  
+  The 5-minute post-capture invulnerability window is calculated based on the recorded objective capture timestamp (`last_flipped`).  
   *Note:* Because the API does not expose a dedicated countdown field, this value is an **algorithmic estimation**.
-- **Tactical Prioritization:**  
-  A multi-factor heuristic scores objectives based on Points Per Tick (PPT), upgrade tier (T0–T3), proximity to home spawn, and match leadership deficit.  
-  Every recommendation in the UI is explicitly marked as a **heuristic suggestion** (`isEstimated: true`) and lists its underlying rationale.
+- **Rule-Based Situational Insights & Tactical Prioritization:**  
+  Deterministic rules highlight stale data (>90s), enemy fortifications on the player's Home Borderland, enemy structures in the 5–20 minute post-flip T0 window, Stonemist Castle control, and the current match leader. Multi-factor priority scoring evaluates objectives based on PPT, upgrade tier (T0–T3), proximity to home spawn, and match leadership deficit. Every recommendation is explicitly marked as a **heuristic suggestion** (`isEstimated: true`) and lists its underlying rationale.
 - **Data Staleness & Outage Tolerance:**  
-  - If data has not refreshed for more than **90 seconds**, the interface displays a prominent staleness warning banner.
+  - If data has not refreshed for more than **90 seconds**, the interface displays a prominent staleness warning banner and insight card.
   - If API requests fail, an exponential backoff policy engages (30s → 45s → 60s → 120s → 300s), preventing aggressive retry loops and server load during ArenaNet outages.
 
 ### Inherent Boundaries of the Assistant
-The tactical assistant has zero insight into actual battlefield combat conditions, defensive siege equipment, or defending squad sizes. It functions strictly as a macro-level situational overview.
+The tactical assistant has zero insight into actual battlefield combat conditions, enemy player positions, defensive siege equipment, or defending squad sizes. It functions strictly as a macro-level situational overview based on official API endpoints.
 
 ---
 
@@ -130,7 +137,7 @@ The tactical assistant has zero insight into actual battlefield combat condition
 We categorize compliance and technical risk into three distinct tiers:
 
 ### A. Technically Standard-Compliant / Low Risk
-- **Rotation Timers & Calculators:** Purely informative mathematical models derived from public rotation data without game interaction.
+- **Rotation Timers, Inventory Search & Calculators:** Purely informative mathematical and indexing models derived from public rotation data and official read-only API endpoints without game interaction.
 - **Read-Only REST API Ingestion:** Standard HTTP queries conforming to ArenaNet rate limits and local caching guidelines.
 - **Manual Clipboard Copying:** Placing text into the OS clipboard is a standard system utility action that involves zero game process tampering.
 
@@ -155,6 +162,15 @@ We categorize compliance and technical risk into three distinct tiers:
 ---
 
 ## 8. Compliance-Relevant Changelog
+
+### Version 0.1.8 (WvW Tactical Overview & PvE Expansion)
+- **Account-Wide Item Search & PvE Progression Hub:**
+  - Added read-only account inventory indexing across `/v2/account/materials`, `/v2/account/bank`, `/v2/account/inventory`, and `/v2/characters` without exposing API keys in logs, UI screenshots, or error messages.
+  - Added clear permission diagnostics when `inventories` or `characters` scopes are missing on an API key.
+- **WvW Tactical Overview Restructuring:**
+  - Clearly separated Public Match Data (`/v2/wvw/matches`) from Personal WvW Account Progression (`/v2/account`, `/v2/account/wallet`).
+  - Added deterministic, rule-based Situational Insights with transparent criteria and explicit data age indicators.
+  - Documented the official API boundary regarding Edge of the Mists.
 
 ### Version 0.1.7 (Compliance & Security Overhaul)
 - **Removal of Input and Keystroke Simulation:**

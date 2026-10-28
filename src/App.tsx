@@ -22,6 +22,7 @@ import { DISCIPLINE_ICON_ITEM } from './components/common/labels';
 import { useTranslation } from './i18n';
 
 // Code-split heavy views to reduce initial bundle and startup time
+const InventoryHubView = lazy(() => import('./components/inventory/InventoryHubView').then((m) => ({ default: m.InventoryHubView })));
 const AchievementsView = lazy(() => import('./components/AchievementsView').then((m) => ({ default: m.AchievementsView })));
 const CraftingView = lazy(() => import('./components/crafting/CraftingView').then((m) => ({ default: m.CraftingView })));
 const LegendaryView = lazy(() => import('./components/legendary/LegendaryView').then((m) => ({ default: m.LegendaryView })));
@@ -611,6 +612,17 @@ export const App: React.FC = () => {
                 </div>
               </>
 
+            ) : currentTab === 'inventory' ? (
+              <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
+                <InventoryHubView
+                  apiKey={settings.apiKey}
+                  dailyProgression={dailyProgression}
+                  userAchievements={userAchievements}
+                  onOpenSettings={handleOpenSettings}
+                  onNavigateTab={setCurrentTab}
+                  onToast={handleToast}
+                />
+              </Suspense>
             ) : currentTab === 'crafting' ? (
               <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
                 <CraftingView />
@@ -624,6 +636,8 @@ export const App: React.FC = () => {
                 <WvwView
                   settings={settings}
                   accountInfo={accountInfo}
+                  dailyProgression={dailyProgression}
+                  onOpenSettings={handleOpenSettings}
                   onToast={handleToast}
                 />
               </Suspense>

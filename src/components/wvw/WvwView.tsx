@@ -27,7 +27,7 @@ import { evaluateMapOpportunities } from '../../data/gw2/wvw/mapAdvisor.ts';
 import { detectPlayerTeamFromWorld } from '../../data/gw2/wvw/teamUtils.ts';
 import { playCopyChime } from '../../data/audio.ts';
 import type { OverlaySettings } from '../../types.ts';
-import type { Gw2AccountInfo } from '../../data/gw2Api.ts';
+import type { Gw2AccountInfo, DailyProgressionData } from '../../data/gw2Api.ts';
 import { useTranslation } from '../../i18n';
 
 import { WvwHeader, type WvwSubTab } from './WvwHeader.tsx';
@@ -43,10 +43,18 @@ const CONFIG_STORAGE_KEY = 'gw2_omnitria_wvw_config';
 interface WvwViewProps {
   settings: OverlaySettings;
   accountInfo: Gw2AccountInfo | null;
+  dailyProgression?: DailyProgressionData | null;
+  onOpenSettings?: () => void;
   onToast: (msg: string) => void;
 }
 
-export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountInfo, onToast }) => {
+export const WvwView: React.FC<WvwViewProps> = React.memo(({
+  settings,
+  accountInfo,
+  dailyProgression,
+  onOpenSettings,
+  onToast,
+}) => {
   const { lang } = useTranslation();
   const serviceState = useSyncExternalStore(subscribeWvwService, getWvwServiceSnapshot);
 
@@ -313,10 +321,16 @@ export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountIn
             topRecommendations={topRecommendations}
             alternativeRecommendations={alternativeRecommendations}
             allRanked={allRanked}
+            objectives={combinedObjectives}
             mapRecommendations={mapRecommendations}
             match={serviceState.match}
             worldsMap={worldsMap}
             config={advisorConfig}
+            accountInfo={accountInfo}
+            dailyProgression={dailyProgression ?? null}
+            isStale={serviceState.isStale}
+            lastUpdated={serviceState.lastSuccessfulFetch}
+            flipsCount={serviceState.sessionFlips.length}
             onUpdateConfig={updateConfig}
             onSelectObjective={(obj) => setSelectedObjId(obj.id)}
             onSendChat={handleCopyCallout}
@@ -325,6 +339,8 @@ export const WvwView: React.FC<WvwViewProps> = React.memo(({ settings, accountIn
             onToggleIgnore={handleToggleIgnore}
             onOpenWeightsModal={() => setIsWeightsModalOpen(true)}
             onSwitchToMap={handleSwitchToMap}
+            onSelectSubTab={setCurrentSubTab}
+            onOpenSettings={onOpenSettings}
           />
         )}
 
