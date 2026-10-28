@@ -382,11 +382,12 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
           )}
 
           <div className="gw2-achieve-search-box">
-            <Search size={12} className="search-icon" />
+            <Search size={12} className="search-icon" aria-hidden="true" />
             <input
               type="text"
               className="gw2-input-clean"
               placeholder={t('achievements.searchPlaceholder')}
+              aria-label={t('achievements.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -921,10 +922,14 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
             <span className="dock-label dim">GW2-API:</span>
             <span className="dock-val gold">{accountInfo.name}</span>
             {accountInfo.fractal_level !== undefined && (
-              <span className="dock-pill">Fraktal {accountInfo.fractal_level}</span>
+              <span className="dock-pill">
+                {lang === 'en' ? `Fractal ${accountInfo.fractal_level}` : `Fraktal ${accountInfo.fractal_level}`}
+              </span>
             )}
             {accountInfo.wvw_rank !== undefined && (
-              <span className="dock-pill">WvW-Rang {accountInfo.wvw_rank}</span>
+              <span className="dock-pill">
+                {lang === 'en' ? `WvW Rank ${accountInfo.wvw_rank}` : `WvW-Rang ${accountInfo.wvw_rank}`}
+              </span>
             )}
             <span className="dock-hint dim">{t('achievements.synced')}</span>
           </div>
@@ -935,20 +940,21 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
             </span>
             {onOpenSettings && (
               <button
+                type="button"
                 className="gw2-btn-gold sm"
                 onClick={onOpenSettings}
-                style={{ padding: '2px 8px', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                style={{ padding: '2px 8px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
-                <Key size={10} />
+                <Key size={10} aria-hidden="true" />
                 <span>{lang === 'en' ? 'Connect Key' : 'Key eintragen'}</span>
               </button>
             )}
           </div>
         )}
 
-        <button className="gw2-text-btn" onClick={onSwitchToEvents}>
+        <button type="button" className="gw2-text-btn dock-back-btn" onClick={onSwitchToEvents}>
           <span>{t('achievements.backToEvents')}</span>
-          <Compass size={11} />
+          <Compass size={11} aria-hidden="true" />
         </button>
       </div>
     </div>

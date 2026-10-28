@@ -118,75 +118,91 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         <div className="gw2-header-controls">
           {/* Quick Language Toggle */}
           <button
+            type="button"
             className="gw2-nav-icon-btn lang-toggle-pill"
             title={lang === 'de' ? 'Switch to English / Auf Englisch wechseln' : 'Auf Deutsch wechseln / Switch to German'}
+            aria-label={lang === 'de' ? 'Switch language to English' : 'Sprache auf Deutsch wechseln'}
             onClick={() => {
               const next = lang === 'de' ? 'en' : 'de';
               setLanguage(next);
               onUpdateSettings({ language: next });
             }}
           >
-            <Globe size={11} className="lang-globe-icon" />
+            <Globe size={11} className="lang-globe-icon" aria-hidden="true" />
             <span className="lang-code font-bold">{lang === 'de' ? 'DE' : 'EN'}</span>
           </button>
 
           {/* Dock Reset Button (Position above chat) */}
           {isElectron && (
             <button
+              type="button"
               className="gw2-nav-icon-btn"
               title={lang === 'en' ? 'Reset position above GW2 chat' : 'Standardposition über dem GW2-Chat wiederherstellen'}
+              aria-label={lang === 'en' ? 'Reset position above GW2 chat' : 'Standardposition über dem GW2-Chat wiederherstellen'}
               onClick={handleResetPosition}
             >
-              <Compass size={13} />
+              <Compass size={13} aria-hidden="true" />
             </button>
           )}
 
           {/* Mini Widget Toggle */}
           <button
+            type="button"
             className={`gw2-nav-icon-btn ${settings.widgetMode ? 'active' : ''}`}
             title={settings.widgetMode ? (lang === 'en' ? 'Open Expanded View' : 'Erweiterte Ansicht öffnen') : (lang === 'en' ? 'Compact Chat Overlay (Omnitria Mini)' : 'Kompaktes Chat-Overlay (Omnitria Mini)')}
+            aria-label={settings.widgetMode ? (lang === 'en' ? 'Open Expanded View' : 'Erweiterte Ansicht öffnen') : (lang === 'en' ? 'Compact Chat Overlay (Omnitria Mini)' : 'Kompaktes Chat-Overlay (Omnitria Mini)')}
+            aria-pressed={settings.widgetMode}
             onClick={handleToggleMini}
           >
-            {settings.widgetMode ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
+            {settings.widgetMode ? <Maximize2 size={13} aria-hidden="true" /> : <Minimize2 size={13} aria-hidden="true" />}
           </button>
 
           {/* Sound Toggle */}
           <button
+            type="button"
             className={`gw2-nav-icon-btn ${settings.soundEnabled ? 'active' : ''}`}
             title={settings.soundEnabled ? (lang === 'en' ? 'Mute Sounds' : 'Signaltöne stummschalten') : (lang === 'en' ? 'Enable Sounds' : 'Signaltöne aktivieren')}
+            aria-label={settings.soundEnabled ? (lang === 'en' ? 'Mute Sounds' : 'Signaltöne stummschalten') : (lang === 'en' ? 'Enable Sounds' : 'Signaltöne aktivieren')}
+            aria-pressed={settings.soundEnabled}
             onClick={handleToggleSound}
           >
-            {settings.soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+            {settings.soundEnabled ? <Volume2 size={13} aria-hidden="true" /> : <VolumeX size={13} aria-hidden="true" />}
           </button>
 
           {/* Settings Button */}
           <button
+            type="button"
             className="gw2-nav-icon-btn"
             title={t('nav.settings')}
+            aria-label={t('nav.settings')}
             onClick={onOpenSettings}
           >
-            <Settings size={13} />
+            <Settings size={13} aria-hidden="true" />
           </button>
 
           {/* Electron Minimize */}
           {isElectron && (
             <button
+              type="button"
               className="gw2-nav-icon-btn"
               title={lang === 'en' ? 'Minimize' : 'Minimieren'}
+              aria-label={lang === 'en' ? 'Minimize' : 'Minimieren'}
               onClick={handleMinimizeWindow}
             >
-              <Minus size={13} />
+              <Minus size={13} aria-hidden="true" />
             </button>
           )}
 
           {/* Authentic GW2 Square Parchment Close Button [X] */}
           {isElectron && (
             <button
+              type="button"
               className="gw2-parchment-close-btn"
               title={lang === 'en' ? 'Close' : 'Schließen'}
+              aria-label={lang === 'en' ? 'Close' : 'Schließen'}
               onClick={handleCloseWindow}
             >
-              <span className="close-x">✕</span>
+              <span className="close-x" aria-hidden="true">✕</span>
             </button>
           )}
         </div>

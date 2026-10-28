@@ -75,11 +75,28 @@ export const App: React.FC = () => {
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
   }, []);
 
-  // Load settings from localStorage
+  // Load settings from localStorage (normalizing legacy widgetMode/opacity shapes)
   const [settings, setSettings] = useState<OverlaySettings>(() => {
     try {
       const saved = localStorage.getItem('gw2_overlay_settings');
-      if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const rawWidget = parsed.widgetMode;
+        const normalizedWidgetMode =
+          rawWidget === true || rawWidget === 'mini' || rawWidget === 'compact';
+        const rawOpacity =
+          typeof parsed.opacity === 'number' && Number.isFinite(parsed.opacity)
+            ? parsed.opacity > 1
+              ? Math.min(1, Math.max(0.2, parsed.opacity / 100))
+              : Math.min(1, Math.max(0.2, parsed.opacity))
+            : DEFAULT_SETTINGS.opacity;
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          widgetMode: normalizedWidgetMode,
+          opacity: rawOpacity,
+        };
+      }
     } catch (e) {
       console.error('Failed to load settings', e);
     }
@@ -472,11 +489,15 @@ export const App: React.FC = () => {
       progressActions.syncApiCompletions(daily.worldBosses, daily.mapChests, achs);
     }
     if (acc) {
-      setToastMessage(`🔑 API verbunden: Account ${acc.name} (${achs.size} Erfolge synchronisiert)`);
+      setToastMessage(
+        lang === 'en'
+          ? `🔑 API connected: Account ${acc.name} (${achs.size} achievements synced)`
+          : `🔑 API verbunden: Account ${acc.name} (${achs.size} Erfolge synchronisiert)`
+      );
     } else {
-      setToastMessage(`API-Schlüssel entfernt.`);
+      setToastMessage(lang === 'en' ? 'API key disconnected.' : 'API-Schlüssel entfernt.');
     }
-  }, []);
+  }, [lang]);
 
   return (
     <div
@@ -498,8 +519,8 @@ export const App: React.FC = () => {
       />
 
       {clickThroughActive && (
-        <div className="gw2-clickthrough-banner">
-          Maus-Durchklick aktiv (F10 zum Deaktivieren)
+        <div className="gw2-clickthrough-banner" role="status" aria-live="polite">
+          {t('app.clickThroughActive')}
         </div>
       )}
 

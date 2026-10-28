@@ -1,8 +1,8 @@
 import React from 'react';
 import type { DisciplineId } from '../../domain/types';
 import { DISCIPLINES } from '../../data/gw2/recipes';
-import { useAccountState } from '../../data/gw2/account';
-import { useProgress } from '../../data/progressStore';
+import { useAccountState, getCharacterDisciplineInfo } from '../../data/gw2/account';
+import { useProgress, progressActions } from '../../data/progressStore';
 import { getDisciplineName } from '../common/labels';
 import { DisciplineIcon, ProgressBar } from '../common/ui';
 import { useTranslation } from '../../i18n';
@@ -21,6 +21,7 @@ export const DisciplineList: React.FC<DisciplineListProps> = ({
   const { t, lang } = useTranslation();
   const account = useAccountState();
   const progress = useProgress();
+  const selectedCharacter = progress.plannerPreferences?.selectedCharacter ?? null;
 
   return (
     <div className="gw2-master-list disciplines-list">
@@ -34,10 +35,13 @@ export const DisciplineList: React.FC<DisciplineListProps> = ({
           const isSelected = disc === selectedDiscipline;
           const maxRank = maxRanks[disc] ?? (disc === 'Jeweler' ? 400 : 500);
 
-          // Get current rank from account characters or manual start rank in progress
-          const accountCrafting = account.data?.crafting?.[disc];
-          const manualProgress = progress.crafting[disc];
-          const currentRank = accountCrafting?.rating ?? manualProgress?.start ?? 0;
+          // Resolve character-specific or account-wide discipline rank & progress
+          const accountCrafting = getCharacterDisciplineInfo(account.data, selectedCharacter, disc);
+          const charProgress = progressActions.getCharacterDiscipline(selectedCharacter, disc);
+          const currentRank =
+            charProgress.start !== null && charProgress.start !== undefined
+              ? charProgress.start
+              : (accountCrafting?.rating ?? 0);
           const charName = accountCrafting?.character;
 
           const progressFrac = Math.min(1, currentRank / maxRank);
@@ -71,13 +75,13 @@ export const DisciplineList: React.FC<DisciplineListProps> = ({
                 <div className="row-meta-sub">
                   {charName ? (
                     <span className="dim char-indicator">Char: {charName}</span>
-                  ) : manualProgress?.start !== null && manualProgress?.start !== undefined ? (
+                  ) : charProgress.start !== null && charProgress.start !== undefined ? (
                     <span className="dim">{t('crafting.manuallySet')}</span>
                   ) : (
                     <span className="dim">{t('crafting.levelZero')}</span>
                   )}
-                  {manualProgress?.target ? (
-                    <span className="target-indicator">{t('crafting.target', { rank: manualProgress.target })}</span>
+                  {charProgress.target ? (
+                    <span className="target-indicator">{t('crafting.target', { rank: charProgress.target })}</span>
                   ) : null}
                 </div>
               </div>

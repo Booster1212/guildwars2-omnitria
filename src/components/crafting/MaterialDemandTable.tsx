@@ -26,8 +26,27 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'missing' | 'base' | 'intermediates' | 'end' | 'discovery'>('all');
 
-  const discoveryCount = useMemo(() => {
-    return materials.filter((m) => m.needsDiscovery || m.requiredForDiscovery).length;
+  const filterCounts = useMemo(() => {
+    let missing = 0;
+    let intermediates = 0;
+    let base = 0;
+    let end = 0;
+    let discovery = 0;
+    for (const m of materials) {
+      if (m.netDemand > 0) missing++;
+      if (m.role === 'intermediate') intermediates++;
+      if (m.role === 'base_material') base++;
+      if (m.role === 'end_product') end++;
+      if (m.needsDiscovery || m.requiredForDiscovery) discovery++;
+    }
+    return {
+      all: materials.length,
+      missing,
+      intermediates,
+      base,
+      end,
+      discovery,
+    };
   }, [materials]);
 
   const filteredMaterials = useMemo(() => {
@@ -90,7 +109,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
       case 'forge':
         return t('crafting.actionForge');
       default:
-        return lang === 'en' ? 'Procurement Unknown' : 'Beschaffung unbekannt';
+        return t('crafting.procurementUnknown');
     }
   };
 
@@ -103,7 +122,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
           <input
             type="text"
             className="mat-search-input font-ui"
-            placeholder={lang === 'en' ? 'Search materials...' : 'Materialien filtern...'}
+            placeholder={t('crafting.searchMaterialsPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -119,40 +138,40 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
             className={`mat-pill ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            {t('crafting.filterAll')} ({materials.length})
+            {t('crafting.filterAll')} ({filterCounts.all})
           </button>
           <button
             className={`mat-pill ${filter === 'missing' ? 'active' : ''}`}
             onClick={() => setFilter('missing')}
           >
-            {t('crafting.filterMissingOnly')} ({materials.filter((m) => m.netDemand > 0).length})
+            {t('crafting.filterMissingOnly')} ({filterCounts.missing})
           </button>
           <button
             className={`mat-pill ${filter === 'intermediates' ? 'active' : ''}`}
             onClick={() => setFilter('intermediates')}
           >
-            {t('crafting.filterIntermediatesOnly')} ({materials.filter((m) => m.role === 'intermediate').length})
+            {t('crafting.filterIntermediatesOnly')} ({filterCounts.intermediates})
           </button>
           <button
             className={`mat-pill ${filter === 'base' ? 'active' : ''}`}
             onClick={() => setFilter('base')}
           >
-            {t('crafting.filterBaseOnly')} ({materials.filter((m) => m.role === 'base_material').length})
+            {t('crafting.filterBaseOnly')} ({filterCounts.base})
           </button>
           <button
             className={`mat-pill ${filter === 'end' ? 'active' : ''}`}
             onClick={() => setFilter('end')}
           >
-            {t('crafting.roleEnd')} ({materials.filter((m) => m.role === 'end_product').length})
+            {t('crafting.roleEnd')} ({filterCounts.end})
           </button>
-          {discoveryCount > 0 && (
+          {filterCounts.discovery > 0 && (
             <button
               className={`mat-pill ${filter === 'discovery' ? 'active' : ''}`}
               onClick={() => setFilter('discovery')}
-              title={lang === 'en' ? 'Show all discovery recipes and their required materials' : 'Zeigt alle Entdeckungsrezepte und deren benötigte Zutaten'}
+              title={t('crafting.discoveryTooltip')}
             >
               <Sparkles size={11} className="inline mr-1 text-amber-400" />
-              {t('crafting.filterDiscovery')} ({discoveryCount})
+              {t('crafting.filterDiscovery')} ({filterCounts.discovery})
             </button>
           )}
         </div>
@@ -163,7 +182,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
         <table className="gw2-dense-table material-demand-table">
           <thead>
             <tr>
-              <th style={{ width: '40px' }}>Icon</th>
+              <th style={{ width: '40px' }}>{t('legendary.colIcon')}</th>
               <th>{t('crafting.colItem')}</th>
               <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colGross')}</th>
               <th style={{ width: '90px', textAlign: 'right' }}>{t('crafting.colStock')}</th>
@@ -177,7 +196,7 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
             {filteredMaterials.length === 0 ? (
               <tr>
                 <td colSpan={8} className="empty-table-cell dim">
-                  {lang === 'en' ? 'No matching materials found.' : 'Keine passenden Materialien gefunden.'}
+                  {t('crafting.noMaterialsFound')}
                 </td>
               </tr>
             ) : (
@@ -308,12 +327,8 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                             onClick={() => onToggleProcurement(m.itemId)}
                             title={
                               m.action === 'craft'
-                                ? lang === 'en'
-                                  ? 'Click to switch to purchasing on Trading Post'
-                                  : 'Klicken, um stattdessen fertig zu kaufen'
-                                : lang === 'en'
-                                  ? 'Click to switch to self-crafting'
-                                  : 'Klicken, um stattdessen selbst herzustellen'
+                                ? t('crafting.switchToBuyTip')
+                                : t('crafting.switchToCraftTip')
                             }
                           >
                             {m.action === 'craft' ? (
@@ -344,9 +359,9 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                       ) : m.action === 'craft' ? (
                         <span className="dim text-xs">–</span>
                       ) : (
-                        <span className="unpriced-pill" title="Kein Handelsgesellschafts-Angebot">
+                        <span className="unpriced-pill" title={t('crafting.unpricedItemsNote')}>
                           <AlertCircle size={10} className="inline mr-1" />
-                          {lang === 'en' ? 'Unpriced' : 'Ohne Preis'}
+                          {t('crafting.unpricedWord')}
                         </span>
                       )}
                     </td>
@@ -358,14 +373,14 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
           <tfoot>
             <tr className="summary-row">
               <td colSpan={2} className="font-serif font-bold text-amber-200">
-                {lang === 'en' ? 'Total (Purchasable Materials):' : 'Gesamtsumme (Einkaufsposten):'}
+                {t('crafting.totalPurchasableLabel')}
               </td>
               <td colSpan={3} className="num font-mono text-xs dim">
-                <span>{summary.missingCount} {lang === 'en' ? 'positions missing' : 'Positionen offen'}</span>
+                <span>{t('crafting.positionsMissing', { count: summary.missingCount })}</span>
                 {summary.discoveryRecipesCount > 0 && (
                   <span className="summary-discovery-note" style={{ marginLeft: '12px' }}>
                     <Sparkles size={11} className="inline mr-1 text-amber-400" />
-                    {summary.discoveryRecipesCount} {lang === 'en' ? 'discoveries' : 'Entdeckungen'}
+                    {t('crafting.discoveriesCount', { count: summary.discoveryRecipesCount })}
                   </span>
                 )}
               </td>

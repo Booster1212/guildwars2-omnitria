@@ -1,13 +1,28 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Origin } from '../../domain/sources';
 import { splitCoins } from '../../domain/costs';
 import { isUntradable, DisciplineId } from '../../domain/types';
 import { WEAPON_TYPE_DE } from '../../domain/legendary';
-import { getItem, useItems, cleanDescription, getItemLanguage } from '../../data/gw2/items';
+import {
+  getItem,
+  useItem,
+  cleanDescription,
+  getItemLanguage,
+  markIconUrlFailed,
+  isIconUrlFailed,
+} from '../../data/gw2/items';
 import { getPrice } from '../../data/gw2/prices';
 import { getAccountState } from '../../data/gw2/account';
-import { ITEM_TYPE_DE, RARITY_DE, fmtInt, DISCIPLINE_ICONS, DISCIPLINE_ICON_ITEM, DISCIPLINE_DE } from './labels';
+import {
+  ITEM_TYPE_DE,
+  RARITY_DE,
+  fmtInt,
+  DISCIPLINE_ICONS,
+  DISCIPLINE_ICON_ITEM,
+  DISCIPLINE_DE,
+  DISCIPLINE_EN,
+} from './labels';
 
 /* ---------- Coins ---------- */
 export const Coin: React.FC<{ copper: number | null | undefined; approx?: boolean }> = ({ copper, approx }) => {
@@ -103,18 +118,47 @@ export function Tabs<T extends string>({
 }
 
 /* ---------- Herkunft ---------- */
-const ORIGIN_META: Record<Origin | 'personal', { label: string; title: string }> = {
-  official: { label: 'API', title: 'Offizielle GW2-API' },
-  community: { label: 'Community', title: 'Community-Datensatz (nicht offiziell, nicht per API prüfbar)' },
-  derived: { label: 'Berechnet', title: 'Aus den vorhandenen Daten berechnet' },
-  unknown: { label: 'Unbekannt', title: 'Keine verlässliche Quelle vorhanden' },
-  personal: { label: 'Konto', title: 'Persönliche Daten aus deinem Account' },
+const ORIGIN_META: Record<Origin | 'personal', { label: string; labelEn: string; title: string; titleEn: string }> = {
+  official: {
+    label: 'API',
+    labelEn: 'API',
+    title: 'Offizielle GW2-API',
+    titleEn: 'Official GW2 API',
+  },
+  community: {
+    label: 'Community',
+    labelEn: 'Community',
+    title: 'Community-Datensatz (nicht offiziell, nicht per API prüfbar)',
+    titleEn: 'Community dataset (curated, not verifiable via official API)',
+  },
+  derived: {
+    label: 'Berechnet',
+    labelEn: 'Derived',
+    title: 'Aus den vorhandenen Daten berechnet',
+    titleEn: 'Calculated from available data',
+  },
+  unknown: {
+    label: 'Unbekannt',
+    labelEn: 'Unknown',
+    title: 'Keine verlässliche Quelle vorhanden',
+    titleEn: 'No verified source available',
+  },
+  personal: {
+    label: 'Konto',
+    labelEn: 'Account',
+    title: 'Persönliche Daten aus deinem Account',
+    titleEn: 'Personal data from your synced GW2 account',
+  },
 };
-export const OriginBadge: React.FC<{ origin: Origin | 'personal' }> = ({ origin }) => (
-  <span className={`origin o-${origin}`} title={ORIGIN_META[origin].title}>
-    {ORIGIN_META[origin].label}
-  </span>
-);
+export const OriginBadge: React.FC<{ origin: Origin | 'personal' }> = ({ origin }) => {
+  const isEn = getItemLanguage() === 'en';
+  const meta = ORIGIN_META[origin];
+  return (
+    <span className={`origin o-${origin}`} title={isEn ? meta.titleEn : meta.title}>
+      {isEn ? meta.labelEn : meta.label}
+    </span>
+  );
+};
 
 /* ---------- Checkboxes ---------- */
 export const Check: React.FC<{
@@ -144,6 +188,12 @@ interface TipState {
   y: number;
 }
 
+const ICON_SIZE_PX: Record<'s' | 'm' | 'l', number> = {
+  s: 22,
+  m: 34,
+  l: 44,
+};
+
 export const ItemIcon: React.FC<{
   id: number;
   count?: number;
@@ -153,13 +203,17 @@ export const ItemIcon: React.FC<{
   extra?: string[];
   dim?: boolean;
   fallbackIcon?: string;
-}> = ({ id, count, size = 'm', onClick, extra, dim, fallbackIcon }) => {
-  // Automatically subscribe and fetch item icon from official API
-  const { get } = useItems(id > 0 ? [id] : []);
-  const item = id > 0 ? get(id) : undefined;
+}> = React.memo(({ id, count, size = 'm', onClick, extra, dim, fallbackIcon }) => {
+  // Subscribe only to this specific item ID to prevent O(N) mass re-renders across all icons
+  const item = useItem(id);
   const ref = useRef<HTMLElement | null>(null);
   const [tip, setTip] = useState<TipState | null>(null);
-  const [imgFailed, setImgFailed] = useState(false);
+  const primaryIconUrl = item?.icon;
+  const [imgFailed, setImgFailed] = useState<boolean>(() => isIconUrlFailed(primaryIconUrl));
+
+  useEffect(() => {
+    setImgFailed(isIconUrlFailed(primaryIconUrl));
+  }, [id, primaryIconUrl]);
 
   const show = () => {
     const r = ref.current?.getBoundingClientRect();
@@ -167,21 +221,30 @@ export const ItemIcon: React.FC<{
   };
   const rarity = item?.rarity ?? 'Basic';
   const cls = `gi gi-${size} r-${rarity} ${onClick ? 'clickable' : ''} ${dim ? 'dim' : ''}`;
-  
-  const iconSrc = (!imgFailed && item?.icon) ? item.icon : fallbackIcon;
+  const pxDim = ICON_SIZE_PX[size] ?? 34;
+
+  const iconSrc = !imgFailed && primaryIconUrl ? primaryIconUrl : fallbackIcon;
+  const isEn = getItemLanguage() === 'en';
+  const accessibleLabel = item?.name ?? (isEn ? `Item ${id}` : `Gegenstand ${id}`);
 
   const inner = (
     <>
-      {iconSrc ? (
+      {iconSrc && !isIconUrlFailed(iconSrc) ? (
         <img
           src={iconSrc}
           alt={item?.name || ''}
+          width={pxDim}
+          height={pxDim}
           loading="lazy"
+          decoding="async"
           draggable={false}
-          onError={() => setImgFailed(true)}
+          onError={() => {
+            markIconUrlFailed(iconSrc);
+            setImgFailed(true);
+          }}
         />
       ) : (
-        <span className="gi-empty" />
+        <span className="gi-empty" aria-hidden="true" />
       )}
       {count !== undefined && count > 1 && <span className="gi-count">{count > 9999 ? '9999+' : fmtInt(count)}</span>}
     </>
@@ -195,7 +258,7 @@ export const ItemIcon: React.FC<{
           ref={ref as React.RefObject<HTMLButtonElement>}
           className={cls}
           onClick={onClick}
-          aria-label={item?.name ?? `Gegenstand ${id}`}
+          aria-label={accessibleLabel}
           {...handlers}
         >
           {inner}
@@ -208,36 +271,59 @@ export const ItemIcon: React.FC<{
       {tip && createPortal(<ItemTooltip id={id} x={tip.x} y={tip.y} extra={extra} />, document.body)}
     </>
   );
-};
+});
 
 /* ---------- Discipline symbol (Official discipline emblem with fallback) ---------- */
 export const DisciplineIcon: React.FC<{
   discipline: DisciplineId;
   size?: 's' | 'm' | 'l';
   onClick?: () => void;
-}> = ({ discipline, size = 'm', onClick }) => {
-  const [imgFailed, setImgFailed] = useState(false);
+}> = React.memo(({ discipline, size = 'm', onClick }) => {
   const iconUrl = DISCIPLINE_ICONS[discipline];
+  const [imgFailed, setImgFailed] = useState<boolean>(() => isIconUrlFailed(iconUrl));
   const repItemId = DISCIPLINE_ICON_ITEM[discipline];
+  const pxDim = ICON_SIZE_PX[size] ?? 34;
+  const isEn = getItemLanguage() === 'en';
+  const discLabel = isEn ? DISCIPLINE_EN[discipline] : DISCIPLINE_DE[discipline];
+
+  useEffect(() => {
+    setImgFailed(isIconUrlFailed(iconUrl));
+  }, [discipline, iconUrl]);
 
   if (!imgFailed && iconUrl) {
     const cls = `gi gi-${size} r-Ascended disc-emblem-wrap ${onClick ? 'clickable' : ''}`;
+    const imgEl = (
+      <img
+        src={iconUrl}
+        alt={discLabel}
+        width={pxDim - 4}
+        height={pxDim - 4}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+        onError={() => {
+          markIconUrlFailed(iconUrl);
+          setImgFailed(true);
+        }}
+        className="disc-emblem-img"
+      />
+    );
+    if (onClick) {
+      return (
+        <button type="button" className={cls} onClick={onClick} title={discLabel} aria-label={discLabel}>
+          {imgEl}
+        </button>
+      );
+    }
     return (
-      <span className={cls} onClick={onClick} title={DISCIPLINE_DE[discipline]}>
-        <img
-          src={iconUrl}
-          alt={DISCIPLINE_DE[discipline]}
-          loading="lazy"
-          draggable={false}
-          onError={() => setImgFailed(true)}
-          className="disc-emblem-img"
-        />
+      <span className={cls} title={discLabel}>
+        {imgEl}
       </span>
     );
   }
 
   return <ItemIcon id={repItemId} size={size} onClick={onClick} />;
-};
+});
 
 const ItemTooltip: React.FC<{ id: number; x: number; y: number; extra?: string[] }> = ({ id, x, y, extra }) => {
   const item = getItem(id);

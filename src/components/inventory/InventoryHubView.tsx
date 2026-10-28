@@ -1,8 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { useAccountState, syncAccountData, type AccountCharacter } from '../../data/gw2/account';
+import {
+  useAccountState,
+  syncAccountData,
+  getCharacterDisciplineInfo,
+  type AccountCharacter,
+} from '../../data/gw2/account';
 import { getItem, useItems } from '../../data/gw2/items';
 import { usePrices } from '../../data/gw2/prices';
-import { useProgress } from '../../data/progressStore';
+import { useProgress, progressActions } from '../../data/progressStore';
 import { useLegendaryModel } from '../../data/legendaryModel';
 import { buildTree, flattenTree } from '../../domain/recipeTree';
 import {
@@ -954,7 +959,10 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                                 key={cr.discipline}
                                 type="button"
                                 className={`inv-char-disc-chip ${cr.active ? 'is-active' : ''}`}
-                                onClick={() => onNavigateTab('crafting')}
+                                onClick={() => {
+                                  progressActions.setSelectedCharacter(ch.name);
+                                  onNavigateTab('crafting');
+                                }}
                                 title={t('characters.openDiscipline')}
                               >
                                 <DisciplineIcon
@@ -1365,10 +1373,14 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
 
                 <div className="pve-crafting-grid">
                   {ALL_DISCIPLINES.map(({ id, maxRank }) => {
-                    const accCraft = account.data?.crafting?.[id];
-                    const manual = progress.crafting[id];
-                    const rank = accCraft?.rating ?? manual?.start ?? 0;
-                    const target = manual?.target ?? maxRank;
+                    const selChar = progress.plannerPreferences?.selectedCharacter ?? null;
+                    const accCraft = getCharacterDisciplineInfo(account.data, selChar, id);
+                    const manual = progressActions.getCharacterDiscipline(selChar, id);
+                    const rank =
+                      manual.start !== null && manual.start !== undefined
+                        ? manual.start
+                        : (accCraft?.rating ?? 0);
+                    const target = manual.target ?? maxRank;
                     const frac = Math.min(1, rank / maxRank);
 
                     return (

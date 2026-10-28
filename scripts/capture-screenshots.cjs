@@ -397,11 +397,11 @@ function buildSeedStoragePayload() {
   const settings = {
     language: 'en',
     apiKey: '',
-    opacity: 95,
+    opacity: 0.95,
     alwaysOnTop: true,
     soundEnabled: true,
     leadTimeMinutes: 10,
-    widgetMode: 'expanded',
+    widgetMode: false,
     sortMode: 'time',
   };
 

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.9] - 2026-10-28
+
+### Added & Improved
+
+#### Interactive Level & Progression Planner Overhaul (`Crafting & Disciplines`)
+* **Progression Overview & Next Recommended Action (`src/components/crafting/LevelPlanner.tsx`, `src/domain/levelPlanner.ts`):**
+  * Added a prominent progression header displaying active character level and next character milestone (e.g., *Lv 10 Personal Story*, *Lv 21 1st Core Specialization*, *Lv 30 Elite Skill*, *Lv 80 Exotic Gear*), current crafting discipline rating and next tier milestone (`75` / `150` / `225` / `300` / `400` / `500`), and overall open/completed/skipped/deferred counts.
+  * Highlights the single highest-priority next action (crafting step or character progression task) with a transparent recommendation reason (`Why recommended`), estimated effort (`~X min` based on deterministic crafting and activity formulas), expected progression benefit (`+X ranks`, milestone unlock, or coin cost), and inline 1-click actions (**Complete**, **Defer**, **Skip**, **Undo**).
+* **Transparent Multi-Mode Task Prioritization (`Fast Leveling`, `Balanced Progression`, `Completionist`, `Goal-Oriented`):**
+  * Added 4 persisted planning modes that directly adjust route calculation and task ordering:
+    * **Fast Leveling:** Prioritizes discovery bonus XP (`1.62x` multiplier) and minimum crafting runs.
+    * **Balanced Progression:** Combines cost-optimal crafting with exploration, Hero Points, and level-appropriate gear.
+    * **Completionist:** Prioritizes undiscovered recipes, intermediate self-crafting, and map completion.
+    * **Goal-Oriented:** Prioritizes steps advancing the selected milestone or tracked Legendary weapon dependencies.
+  * Automatically filters out completed, skipped, prerequisite-blocked, or unowned-expansion tasks (`HeartOfThorns`, `PathOfFire`, `EndOfDragons`, `SecretsOfTheObscure`, `JanthirWilds` verified via `/v2/account` `access` flags).
+* **Stage-Grouped Interactive Workflow & Character Progression (Lv 1–80):**
+  * Grouped crafting steps into collapsible tier stages (*Novice 0–75*, *Initiate 75–150*, *Apprentice 150–225*, *Journeyman 225–300*, *Adept 300–400*, *Master 400–500*) with expandable recipe/discovery details on demand.
+  * Added a dedicated **Character Progression (Lv 1–80)** sub-tab covering 19 structured Guild Wars 2 progression tasks across 5 stages with live API auto-verification (`/v2/characters`, `/v2/account/worldbosses`, `/v2/account/dailycrafting`) and per-character local persistence (`src/data/progressStore.ts`).
+
+#### Performance, Accessibility (WCAG 2.2 AA) & Asset Loading Overhaul
+* **Typography Scale & Readability (`src/index.css`):**
+  * Established semantic typography tokens (`--text-2xs: 11px` through `--text-xl: 20px`) and upgraded sub-legible `8px`–`10px` font sizes across navigation labels, progress bars, item stack badges, category pills, dense tables, tooltips, and the compact Mini-HUD.
+* **WCAG 2.2 AA Contrast & Keyboard Operability:**
+  * Raised `--gw2-text-dim` from `#8e897d` (4.05:1) to `#a6a196` (**5.48:1** on `#15171c` and **5.89:1** on `#111215`, passing WCAG 2.2 AA) and `--gw2-text-muted` from `#5e5a52` (2.14:1) to `#827d73` (**3.65:1**).
+  * Replaced `display: none` on `.chk input[type="checkbox"]` with a screen-reader/keyboard-focusable input and `:focus-visible` gold outlines across all interactive controls, tabs, and dialogs.
+  * Enlarged cramped interactive hit targets (`.gw2-nav-icon-btn` to `26×26px`, `.mini-icon-btn` to `24×24px`, `.btn-tree-toggle` to `22×22px`) and added dialog/status ARIA semantics (`SettingsModal`, `Header`, `Gw2NavRail`, `Toast`).
+* **Faster Icon & Image Loading (`electron/main.cjs`, `src/data/gw2/items.ts`, `src/components/common/ui.tsx`):**
+  * Removed `disable-http-cache` in `electron/main.cjs` and configured a 50 MB persistent Chromium HTTP disk cache (`disk-cache-size=52428800`) for `render.guildwars2.com` icons.
+  * Added per-item selector hook `useItem(id)` (`useSyncExternalStore`) and `React.memo` on `ItemIcon` and `DisciplineIcon`, eliminating `O(N)` mass re-renders when item batches resolve, plus module-level failed icon URL deduplication (`markIconUrlFailed`, `isIconUrlFailed`) and `decoding="async"`.
+* **Layout & Visual Fixes:**
+  * Fixed search icon overlap in `AchievementsView`, unstyled flex utilities and `.btn` primitives in `WvwAdvisorView`, Tracked filter button clipping in `WeaponList`, and `widgetMode`/`opacity` hydration normalization in `App.tsx`.
+
+---
+
 ## [0.1.8] - 2026-10-28
 
 ### Added & Improved

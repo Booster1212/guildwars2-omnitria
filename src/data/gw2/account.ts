@@ -61,6 +61,8 @@ export interface AccountData {
   syncedAt: number;
   accountName?: string;
   permissions: string[];
+  /** Official /v2/account expansion/content access flags (e.g. HeartOfThorns, PathOfFire, EndOfDragons, SecretsOfTheObscure, JanthirWilds) */
+  access?: string[] | null;
   /** Total inventory per item ID across material storage, bank, shared inventory, and character bags */
   stock: [number, number][];
   /** Breakdown per item: [materialStorage, bank, shared, characters] */
@@ -207,6 +209,17 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   let armory: [number, number][] | null = null;
   let crafting: AccountData['crafting'] = null;
   let characters: AccountCharacter[] | null = null;
+  let access: string[] | null = null;
+
+  if (can('account')) {
+    tasks.push(
+      apiGet<{ access?: string[] }>(buildUrl('account', {}, key)).then((r) => {
+        if (r.ok && r.data && Array.isArray(r.data.access)) {
+          access = r.data.access;
+        }
+      }),
+    );
+  }
 
   if (need('materials')) {
     tasks.push(
@@ -348,6 +361,7 @@ export async function syncAccountData(apiKey: string): Promise<void> {
     syncedAt: Date.now(),
     accountName: tokenRes.data.name,
     permissions,
+    access,
     stock,
     breakdown,
     characterBreakdown,
@@ -360,8 +374,8 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    if (crafting) {
-      progressActions.syncAccountRatings(crafting);
+    if (crafting || characters) {
+      progressActions.syncAccountRatings(crafting, characters);
     }
   } catch (e) {
     console.error('Account-Cache konnte nicht gespeichert werden', e);
@@ -388,4 +402,64 @@ export async function syncIfStale(apiKey: string | undefined, maxAgeMs = 15 * 60
   } catch {
     /* Errors are surfaced via state/banner */
   }
+}
+
+/**
+ * Resolves a character's crafting discipline rating and metadata.
+ * If a specific character is selected, returns that character's discipline rating (or 0 if unlearned on that character).
+ * Otherwise falls back to the highest account rating for that discipline.
+ */
+export function getCharacterDisciplineInfo(
+  data: AccountData | null | undefined,
+  characterName: string | null | undefined,
+  discipline: string,
+): { rating: number; character: string; active: boolean; isCharacterSpecific: boolean } | null {
+  if (!data) return null;
+  const trimmed = characterName?.trim();
+  if (trimmed && Array.isArray(data.characters)) {
+    const ch = data.characters.find((c) => c.name === trimmed);
+    if (ch) {
+      const cr = ch.crafting?.find((d) => d.discipline === discipline);
+      return {
+        rating: cr ? cr.rating : 0,
+        character: ch.name,
+        active: Boolean(cr?.active),
+        isCharacterSpecific: true,
+      };
+    }
+  }
+  const best = data.crafting?.[discipline];
+  if (best) {
+    return {
+      rating: best.rating,
+      character: best.character,
+      active: true,
+      isCharacterSpecific: false,
+    };
+  }
+  return null;
+}
+
+/**
+ * Resolves the account's expansion/content access flags from AccountData or the gw2Api account cache.
+ * Returns null if no API account data is available (i.e. expansion ownership is unknown).
+ */
+export function getAccountAccessList(data?: AccountData | null): string[] | null {
+  if (data && Array.isArray(data.access) && data.access.length > 0) {
+    return data.access;
+  }
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('gw2_overlay_account_cache');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { access?: string[] };
+        if (parsed && Array.isArray(parsed.access) && parsed.access.length > 0) {
+          return parsed.access;
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
 }

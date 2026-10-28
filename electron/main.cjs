@@ -96,9 +96,10 @@ process.on('unhandledRejection', (reason) => {
 log('Main process starting up...');
 
 app.name = 'Omnitria';
-// Prevent Windows file lock conflicts (Zugriff verweigert 0x5) on GPU disk cache
+// Prevent Windows file lock conflicts (Zugriff verweigert 0x5) on GPU shader disk cache
+// while keeping Chromium's HTTP cache enabled (capped at 50 MB) for fast render.guildwars2.com icon loading
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
-app.commandLine.appendSwitch('disable-http-cache');
+app.commandLine.appendSwitch('disk-cache-size', '52428800');
 
 const customUserData = path.join(app.getPath('appData'), 'gw2-overlay-data');
 try {

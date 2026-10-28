@@ -2,9 +2,9 @@
  * Item data (official API /v2/items). Persistently cached, loaded in batches, deduplicated.
  */
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
-import type { GameItem, Rarity } from '../../domain/types';
-import { fetchByIds } from './client';
-import { cacheGet, cacheSet, createEmitter } from './cache';
+import type { GameItem, Rarity } from '../../domain/types.ts';
+import { fetchByIds } from './client.ts';
+import { cacheGet, cacheSet, createEmitter } from './cache.ts';
 import type { Language } from '../../types.ts';
 import { registerLanguageChangeHandler } from '../../i18n/index.ts';
 
@@ -46,10 +46,23 @@ interface ApiItem {
 const items = new Map<number, GameItem>();
 const missing = new Set<number>();
 const requested = new Set<number>();
+const failedIconUrls = new Set<string>();
 const emitter = createEmitter();
 let version = 0;
 let loadError: string | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function markIconUrlFailed(url: string): void {
+  if (url) failedIconUrls.add(url);
+}
+
+export function isIconUrlFailed(url: string | undefined): boolean {
+  return Boolean(url && failedIconUrls.has(url));
+}
+
+export function clearFailedIconUrls(): void {
+  failedIconUrls.clear();
+}
 
 export function getItemLanguage(): Language {
   return currentLang;
@@ -146,6 +159,24 @@ export function getAllItems(): ReadonlyMap<number, GameItem> {
 }
 export function itemLoadError(): string | null {
   return loadError;
+}
+
+/**
+ * Subscribe to a single item by ID. Using useSyncExternalStore with an item-specific
+ * selector ensures that ItemIcon only re-renders when THIS item's reference changes,
+ * avoiding O(N) mass re-renders across all mounted icons when unrelated batches resolve.
+ */
+export function useItem(id: number): GameItem | undefined {
+  const item = useSyncExternalStore(
+    emitter.subscribe,
+    () => (id > 0 ? items.get(id) : undefined),
+  );
+  useEffect(() => {
+    if (id > 0 && !items.has(id) && !missing.has(id) && !requested.has(id)) {
+      void ensureItems([id]);
+    }
+  }, [id]);
+  return item;
 }
 
 export function useItems(ids: readonly number[]): {

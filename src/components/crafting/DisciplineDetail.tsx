@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import type { DisciplineId } from '../../domain/types';
-import { useAccountState } from '../../data/gw2/account';
+import { useAccountState, getCharacterDisciplineInfo } from '../../data/gw2/account';
 import { useRecipeDb } from '../../data/gw2/recipes';
-import { useProgress } from '../../data/progressStore';
+import { useProgress, progressActions } from '../../data/progressStore';
 import { getDisciplineName } from '../common/labels';
 import { DisciplineIcon, ProgressBar, Tabs } from '../common/ui';
 import { LevelPlanner } from './LevelPlanner';
@@ -26,10 +26,14 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
   const progress = useProgress();
   const recipeDb = useRecipeDb(true);
 
-  const accountCrafting = account.data?.crafting?.[discipline];
-  const manualProgress = progress.crafting[discipline];
-  const currentRank = accountCrafting?.rating ?? manualProgress?.start ?? 0;
-  const charName = accountCrafting?.character;
+  const selectedCharacter = progress.plannerPreferences?.selectedCharacter ?? null;
+  const accountCrafting = getCharacterDisciplineInfo(account.data, selectedCharacter, discipline);
+  const manualProgress = progressActions.getCharacterDiscipline(selectedCharacter, discipline);
+  const currentRank =
+    manualProgress.start !== null && manualProgress.start !== undefined
+      ? manualProgress.start
+      : (accountCrafting?.rating ?? 0);
+  const charName = accountCrafting?.character ?? selectedCharacter;
 
   const progressFrac = Math.min(1, currentRank / maxRank);
 
@@ -102,7 +106,7 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
       {/* Tab Content */}
       <div className="detail-content-area">
         {activeTab === 'planner' && (
-          <LevelPlanner key={discipline} discipline={discipline} maxRank={maxRank} onOpenItem={onOpenItem} />
+          <LevelPlanner discipline={discipline} maxRank={maxRank} onOpenItem={onOpenItem} />
         )}
         {activeTab === 'discovery' && (
           <DiscoveryView

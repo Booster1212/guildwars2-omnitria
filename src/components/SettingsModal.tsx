@@ -340,15 +340,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-solid-dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-solid-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="modal-solid-header">
           <div className="modal-title-wrap">
-            <Sliders size={16} className="modal-gold-icon" />
-            <span className="modal-title-text">{t('settings.title')}</span>
+            <Sliders size={16} className="modal-gold-icon" aria-hidden="true" />
+            <span id="settings-modal-title" className="modal-title-text">{t('settings.title')}</span>
           </div>
-          <button className="gw2-parchment-close-btn" onClick={onClose} title={t('settings.doneClose')}>
-            <span className="close-x">✕</span>
+          <button
+            type="button"
+            className="gw2-parchment-close-btn"
+            onClick={onClose}
+            title={t('settings.doneClose')}
+            aria-label={t('settings.doneClose')}
+          >
+            <span className="close-x" aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -430,6 +442,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type={showKeyText ? 'text' : 'password'}
                   className="gw2-api-text-input"
                   placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXXXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+                  aria-label={t('settings.apiKey')}
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   spellCheck={false}
@@ -439,28 +452,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="api-reveal-btn"
                   onClick={() => setShowKeyText(!showKeyText)}
                   title={showKeyText ? t('settings.hideKey') : t('settings.showKey')}
+                  aria-label={showKeyText ? t('settings.hideKey') : t('settings.showKey')}
                 >
-                  <Eye size={12} />
+                  <Eye size={12} aria-hidden="true" />
                 </button>
               </div>
 
               <button
+                type="button"
                 className="gw2-gw-btn send-btn sync-btn"
                 onClick={handleValidateAndSync}
                 disabled={isValidating}
                 title={t('settings.sync')}
               >
-                <RefreshCw size={12} className={isValidating ? 'spin' : ''} />
+                <RefreshCw size={12} className={isValidating ? 'spin' : ''} aria-hidden="true" />
                 <span>{isValidating ? t('settings.checking') : t('settings.sync')}</span>
               </button>
 
               {accountInfo && (
                 <button
+                  type="button"
                   className="gw2-gw-btn danger-btn"
                   onClick={handleClearApiKey}
                   title="API Key disconnect"
+                  aria-label="API Key disconnect"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={12} aria-hidden="true" />
                 </button>
               )}
             </div>
