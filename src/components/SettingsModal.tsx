@@ -31,6 +31,10 @@ import {
   fetchAllAccountProgression,
   saveCachedApiData,
   loadCachedApiData,
+  retrieveApiKeySecurely,
+  storeApiKeySecurely,
+  clearApiKeySecurely,
+  getSafeCredentials,
   Gw2AccountInfo,
   Gw2AccountAchievement,
   Gw2DailyProgression,
@@ -66,6 +70,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [accountInfo, setAccountInfo] = useState<Gw2AccountInfo | null>(null);
   const [syncedAchCount, setSyncedAchCount] = useState<number>(0);
   const [showKeyText, setShowKeyText] = useState<boolean>(false);
+  const [isSecureStorageAvailable, setIsSecureStorageAvailable] = useState<boolean>(false);
 
   // Auto-Updater State
   const [currentVersion, setCurrentVersion] = useState<string>('0.1.0');
@@ -205,6 +210,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       } else if (settings.apiKey) {
         setApiKeyInput(settings.apiKey);
       }
+
+      // Check OS safeStorage
+      const safe = getSafeCredentials();
+      if (safe) {
+        safe.isAvailable().then((avail) => {
+          setIsSecureStorageAvailable(avail);
+          if (avail) {
+            safe.getApiKey().then((res) => {
+              if (res.success && res.apiKey) {
+                setApiKeyInput(res.apiKey);
+              }
+            });
+          }
+        });
+      }
+
       if (cached.account) {
         setAccountInfo(cached.account);
       }
@@ -257,6 +278,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setAccountInfo(progResult.account);
     setSyncedAchCount(progResult.achievements.length);
     onUpdateSettings({ apiKey: trimmed });
+    await storeApiKeySecurely(trimmed);
 
     try {
       await syncAccountData(trimmed);
@@ -271,12 +293,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsValidating(false);
   };
 
-  const handleClearApiKey = () => {
+  const handleClearApiKey = async () => {
     setApiKeyInput('');
     setAccountInfo(null);
     setSyncedAchCount(0);
     setApiError(null);
     clearAccountData();
+    await clearApiKeySecurely();
     saveCachedApiData('', null, [], null);
     onUpdateSettings({ apiKey: '' });
     if (onApiDataSynced) {
@@ -531,6 +554,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <span className="api-help-hint">
                 {t('settings.createKeyHint')}
               </span>
+              {isSecureStorageAvailable && (
+                <span className="os-security-badge" title="Encrypted via Windows DPAPI / OS Keychain" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: 'auto', color: 'var(--gw2-gold)', fontSize: '11px' }}>
+                  <ShieldCheck size={11} className="good inline" />
+                  <span>{lang === 'en' ? 'OS DPAPI Credential Protection' : 'OS DPAPI-Verschlüsselung'}</span>
+                </span>
+              )}
             </div>
 
             {/* API-Aktualisierungszyklen & Cache-Zeiten */}

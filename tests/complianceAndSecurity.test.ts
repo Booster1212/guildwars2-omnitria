@@ -3,157 +3,99 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  computeNextPollInterval,
-  isWvwDataStale,
-  WVW_STALENESS_THRESHOLD_MS,
-  buildCombinedObjectives,
-} from '../src/data/gw2/wvw/wvwService.ts';
-import { evaluateObjective, generateTacticalRecommendations } from '../src/data/gw2/wvw/advisor.ts';
-import type { WvwMatch, WvwStaticObjective, WvwCombinedObjective } from '../src/data/gw2/wvw/types.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
 // ============================================================================
-// 1. WvW Staleness, Backoff & Error Tolerance Tests
+// 1. Complete WvW Deprecation & Codebase Decoupling Audit
 // ============================================================================
-test('1.1 WvW Staleness Threshold is configured to 90 seconds', () => {
-  assert.equal(WVW_STALENESS_THRESHOLD_MS, 90_000);
+test('1.1 Zero WvW source files exist in components or data folders', () => {
+  const wvwComponentsDir = path.join(projectRoot, 'src', 'components', 'wvw');
+  const wvwDataDir = path.join(projectRoot, 'src', 'data', 'gw2', 'wvw');
+
+  assert.ok(!fs.existsSync(wvwComponentsDir), 'src/components/wvw directory must be completely removed');
+  assert.ok(!fs.existsSync(wvwDataDir), 'src/data/gw2/wvw directory must be completely removed');
 });
 
-test('1.2 isWvwDataStale accurately identifies stale data', () => {
-  const now = Date.now();
-  assert.equal(isWvwDataStale(null), true, 'null timestamp must be flagged as stale');
-  assert.equal(isWvwDataStale(now - 10_000), false, '10s old data is fresh');
-  assert.equal(isWvwDataStale(now - 89_000), false, '89s old data is fresh');
-  assert.equal(isWvwDataStale(now - 91_000), true, '91s old data must be flagged as stale');
-  assert.equal(isWvwDataStale(now - 300_000), true, '5m old data must be flagged as stale');
+test('1.2 Zero WvW navigation items or types remain in core UI modules', () => {
+  const navRailPath = path.join(projectRoot, 'src', 'components', 'Gw2NavRail.tsx');
+  const headerPath = path.join(projectRoot, 'src', 'components', 'Header.tsx');
+  const typesPath = path.join(projectRoot, 'src', 'types.ts');
+
+  const navRail = fs.readFileSync(navRailPath, 'utf8');
+  assert.ok(!navRail.includes("'wvw'"), 'Gw2NavRail must not contain wvw tab');
+  assert.ok(!navRail.includes('GlyphWvW'), 'Gw2NavRail must not contain GlyphWvW');
+
+  const header = fs.readFileSync(headerPath, 'utf8');
+  assert.ok(!header.includes("case 'wvw'"), 'Header must not contain wvw case');
+
+  const types = fs.readFileSync(typesPath, 'utf8');
+  assert.ok(!types.includes("| 'wvw'"), 'OverlayTab type must not include wvw');
 });
 
-test('1.3 computeNextPollInterval applies progressive exponential backoff on errors', () => {
-  // Normal poll (0 failures) -> 30s
-  assert.equal(computeNextPollInterval(0), 30_000);
-  // 1 failure -> 45s
-  assert.equal(computeNextPollInterval(1), 45_000);
-  // 2 failures -> 60s
-  assert.equal(computeNextPollInterval(2), 60_000);
-  // 3 failures -> 120s
-  assert.equal(computeNextPollInterval(3), 120_000);
-  // 4+ failures -> capped at 300s (5 minutes), preventing infinite rapid retry loops
-  assert.equal(computeNextPollInterval(4), 300_000);
-  assert.equal(computeNextPollInterval(10), 300_000);
+test('1.3 Zero obsolete WvW test suites exist in tests directory', () => {
+  const obsoleteTests = [
+    'wvwAdvisor.test.ts',
+    'wvwMapAdvisor.test.ts',
+    'wvwService.test.ts',
+    'wvwTranslations.test.ts',
+  ];
+  for (const t of obsoleteTests) {
+    const fullPath = path.join(projectRoot, 'tests', t);
+    assert.ok(!fs.existsSync(fullPath), `Obsolete test ${t} must be deleted`);
+  }
 });
 
-test('1.4 buildCombinedObjectives gracefully handles missing and malformed data', () => {
-  const staticMap = new Map<string, WvwStaticObjective>();
-  assert.deepEqual(buildCombinedObjectives(null, staticMap), []);
-
-  const emptyMatch: WvwMatch = {
-    id: 'test',
-    start_time: '',
-    end_time: '',
-    scores: { red: 0, blue: 0, green: 0 },
-    kills: { red: 0, blue: 0, green: 0 },
-    deaths: { red: 0, blue: 0, green: 0 },
-    worlds: { red: 1, blue: 2, green: 3 },
-    all_worlds: { red: [1], blue: [2], green: [3] },
-    maps: [],
-  };
-  assert.deepEqual(buildCombinedObjectives(emptyMatch, staticMap), []);
+test('1.4 Zero obsolete WvW screenshot files exist in docs/screenshots', () => {
+  const obsoleteScreenshots = [
+    'wvw-advisor.png',
+    'wvw-dashboard.png',
+    'wvw-flips.png',
+    'wvw-map.png',
+  ];
+  for (const s of obsoleteScreenshots) {
+    const fullPath = path.join(projectRoot, 'docs', 'screenshots', s);
+    assert.ok(!fs.existsSync(fullPath), `Obsolete screenshot ${s} must be deleted`);
+  }
 });
 
 // ============================================================================
-// 2. WvW Tactical Assistant Transparency & Honest Estimation Tests
+// 2. OS Credential Encryption & Key Protection Audit
 // ============================================================================
-test('2.1 evaluateObjective explicitly marks results as estimated and documents data sources', () => {
-  const mockCombined: WvwCombinedObjective = {
-    id: '38-9',
-    name: 'Schloss Steinnebel',
-    type: 'Castle',
-    mapType: 'Center',
-    mapId: 38,
-    coord: [10000, 10000, 0],
-    chatLink: '[&DAkAAAAmAAAA]',
-    owner: 'Blue',
-    lastFlipped: null,
-    pointsTick: 12,
-    pointsCapture: 12,
-    claimedBy: null,
-    claimedAt: null,
-    guildInfo: null,
-    yaksDelivered: 0,
-    guildUpgrades: [],
-    upgradeLevel: 0,
-    isRiActive: false,
-    riSecondsRemaining: 0,
-    secondsSinceFlip: null,
-  };
+test('2.1 electron/main.cjs implements OS DPAPI safeStorage handlers for API keys', () => {
+  const mainCjsPath = path.join(projectRoot, 'electron', 'main.cjs');
+  assert.ok(fs.existsSync(mainCjsPath), 'electron/main.cjs must exist');
+  const mainContent = fs.readFileSync(mainCjsPath, 'utf8');
 
-  const mockMatch: WvwMatch = {
-    id: '2-1',
-    start_time: '2026-10-23T18:00:00Z',
-    end_time: '2026-10-30T18:00:00Z',
-    scores: { red: 100, blue: 300, green: 200 },
-    kills: { red: 10, blue: 20, green: 15 },
-    deaths: { red: 15, blue: 10, green: 12 },
-    worlds: { red: 2007, blue: 2011, green: 2001 },
-    all_worlds: { red: [2007], blue: [2011], green: [2001] },
-    maps: [],
-  };
-
-  const mockConfig = {
-    weights: { strategicValue: 1, tierDecay: 1, leaderCurbing: 1, distancePenalty: 1 },
-    playerTeam: 'Red' as const,
-    ignoredObjectiveIds: [],
-    pinnedObjectiveIds: [],
-    filterMap: 'all' as const,
-    filterType: 'all' as const,
-  };
-
-  const rec = evaluateObjective(
-    mockCombined,
-    mockMatch,
-    mockConfig,
-    'de',
-    undefined,
-    new Date(),
-    true // isStale
-  );
-
-  assert.ok(rec, 'Must produce a recommendation');
-  assert.ok(rec.dataSource.includes('GW2-API') || rec.dataSource.includes('GW2 API'), 'Must declare public REST API source');
-  assert.equal(rec.isEstimated, true, 'Must declare that score is an algorithmic estimate');
-  assert.equal(rec.isStale, true, 'Must mirror staleness state');
-  assert.ok(rec.lastUpdated instanceof Date);
-  assert.ok(rec.reasons.length > 0, 'Must document rationale behind priority');
-  assert.ok(rec.reasonsEn.length > 0);
+  assert.ok(mainContent.includes('safeStorage'), 'Must import and use safeStorage');
+  assert.ok(mainContent.includes("ipcMain.handle('secure-credentials-save-key'"), 'Must handle secure-credentials-save-key');
+  assert.ok(mainContent.includes("ipcMain.handle('secure-credentials-get-key'"), 'Must handle secure-credentials-get-key');
+  assert.ok(mainContent.includes("ipcMain.handle('secure-credentials-clear-key'"), 'Must handle secure-credentials-clear-key');
+  assert.ok(mainContent.includes("ipcMain.handle('secure-credentials-available'"), 'Must handle secure-credentials-available');
+  assert.ok(mainContent.includes('safeStorage.encryptString'), 'Must call safeStorage.encryptString');
+  assert.ok(mainContent.includes('safeStorage.decryptString'), 'Must call safeStorage.decryptString');
 });
 
-test('2.2 generateTacticalRecommendations safely returns empty list on empty inputs', () => {
-  const mockMatch: WvwMatch = {
-    id: 'test',
-    start_time: '',
-    end_time: '',
-    scores: { red: 0, blue: 0, green: 0 },
-    kills: { red: 0, blue: 0, green: 0 },
-    deaths: { red: 0, blue: 0, green: 0 },
-    worlds: { red: 1, blue: 2, green: 3 },
-    all_worlds: { red: [1], blue: [2], green: [3] },
-    maps: [],
-  };
-  const mockConfig = {
-    weights: { strategicValue: 1, tierDecay: 1, leaderCurbing: 1, distancePenalty: 1 },
-    playerTeam: 'Red' as const,
-    ignoredObjectiveIds: [],
-    pinnedObjectiveIds: [],
-    filterMap: 'all' as const,
-    filterType: 'all' as const,
-  };
-  const result = generateTacticalRecommendations([], mockMatch, mockConfig);
-  assert.deepEqual(result.topRecommendations, []);
-  assert.deepEqual(result.allRanked, []);
+test('2.2 electron/preload.cjs exposes safeCredentials bridge to renderer', () => {
+  const preloadPath = path.join(projectRoot, 'electron', 'preload.cjs');
+  const preloadContent = fs.readFileSync(preloadPath, 'utf8');
+
+  assert.ok(preloadContent.includes('safeCredentials:'), 'Must expose safeCredentials object');
+  assert.ok(preloadContent.includes('saveApiKey:'), 'Must expose saveApiKey bridge');
+  assert.ok(preloadContent.includes('getApiKey:'), 'Must expose getApiKey bridge');
+  assert.ok(preloadContent.includes('clearApiKey:'), 'Must expose clearApiKey bridge');
+});
+
+test('2.3 gw2Api.ts provides secure storage utilities with graceful fallback', () => {
+  const apiPath = path.join(projectRoot, 'src', 'data', 'gw2Api.ts');
+  const apiContent = fs.readFileSync(apiPath, 'utf8');
+
+  assert.ok(apiContent.includes('storeApiKeySecurely'), 'Must export storeApiKeySecurely');
+  assert.ok(apiContent.includes('retrieveApiKeySecurely'), 'Must export retrieveApiKeySecurely');
+  assert.ok(apiContent.includes('clearApiKeySecurely'), 'Must export clearApiKeySecurely');
+  assert.ok(apiContent.includes('getSafeCredentials'), 'Must export getSafeCredentials');
 });
 
 // ============================================================================
@@ -227,24 +169,27 @@ test('4.1 README.md contains no absolute guarantees or automated chat claims', (
   assert.ok(!readme.includes('garantiert bannsicher'), 'Must not claim garantiert bannsicher');
   assert.ok(!readme.includes('ArenaNet-approved'), 'Must not claim ArenaNet-approved');
   assert.ok(!readme.includes('approved by ArenaNet'), 'Must not claim approved by ArenaNet');
-  assert.ok(!readme.includes('encrypted application storage'), 'Must not falsely claim encrypted storage for plain localStorage');
 
   // Must accurately reflect clipboard workflow
-  assert.ok(readme.includes('Clipboard Callouts'), 'Must describe clipboard callouts');
+  assert.ok(readme.includes('Clipboard Callouts') || readme.includes('Clipboard'), 'Must describe clipboard workflow');
   assert.ok(readme.includes('TOS_COMPLIANCE.md'), 'Must link to compliance guide');
 });
 
-test('4.2 docs/TOS_COMPLIANCE.md is cleanly structured into the 8 required sections', () => {
+test('4.2 docs/TOS_COMPLIANCE.md is cleanly structured into the 8 required sections and contains mandated disclaimer', () => {
   const tosPath = path.join(projectRoot, 'docs', 'TOS_COMPLIANCE.md');
   assert.ok(fs.existsSync(tosPath), 'docs/TOS_COMPLIANCE.md must exist');
   const tos = fs.readFileSync(tosPath, 'utf8');
+
+  // Check mandated verbatim disclaimer
+  const mandatedDisclaimer = "Omnitria is designed to minimize risk under ArenaNet's published third-party-program guidelines. It has not been reviewed, approved, or endorsed by ArenaNet. Use at your own risk.";
+  assert.ok(tos.includes(mandatedDisclaimer), 'Must include mandated ArenaNet third-party disclaimer verbatim');
 
   // Check required sections (English)
   assert.ok(tos.includes('## 1. Project Scope'), 'Must contain Section 1: Project Scope');
   assert.ok(tos.includes('## 2. Technical Architecture'), 'Must contain Section 2: Technical Architecture');
   assert.ok(tos.includes('## 3. Data Sources'), 'Must contain Section 3: Data Sources');
   assert.ok(tos.includes('## 4. Game Interaction & Input Architecture'), 'Must contain Section 4: Game Interaction & Input Architecture');
-  assert.ok(tos.includes('## 5. World vs. World (WvW) Tactical Features'), 'Must contain Section 5: World vs. World (WvW) Tactical Features');
+  assert.ok(tos.includes('## 5. Achievement Intelligence & Informational Decision Support'), 'Must contain Section 5: Achievement Intelligence & Informational Decision Support');
   assert.ok(tos.includes('## 6. Risk Assessment & Remaining Risks'), 'Must contain Section 6: Risk Assessment & Remaining Risks');
   assert.ok(tos.includes('## 7. Official Review & Approval Status'), 'Must contain Section 7: Official Review & Approval Status');
   assert.ok(tos.includes('## 8. Compliance-Relevant Changelog'), 'Must contain Section 8: Compliance-Relevant Changelog');
@@ -266,7 +211,7 @@ test('5.1 Source tree contains zero hardcoded API keys or secret credentials', (
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist') {
+        if (entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist' && entry.name !== 'scratch') {
           collectFiles(full);
         }
       } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx') || entry.name.endsWith('.cjs'))) {

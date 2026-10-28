@@ -5,16 +5,9 @@ import {
   filterAndSortAccountInventory,
   computeMultiGoalMaterialPlan,
 } from '../src/domain/inventorySearch.ts';
-import {
-  computeWvwRankProgression,
-  computeWvwStandings,
-  generateWvwSituationalInsights,
-  filterWvwObjectives,
-} from '../src/data/gw2/wvw/progression.ts';
 import { TRANSLATIONS, setLanguage } from '../src/i18n/index.ts';
 import type { AccountData } from '../src/data/gw2/account.ts';
 import type { GameItem, PriceInfo } from '../src/domain/types.ts';
-import type { WvwMatch, WvwCombinedObjective, WvwWorld } from '../src/data/gw2/wvw/types.ts';
 
 const mockAccount: AccountData = {
   accountName: 'ArcaneCommander.4812',
@@ -279,111 +272,7 @@ test('3. computeMultiGoalMaterialPlan deduplicates shared material demand across
   assert.equal(coinRow.netMissing, 69);
 });
 
-test('4. computeWvwRankProgression and generateWvwSituationalInsights provide deterministic rules in EN and DE', () => {
-  setLanguage('en');
-  const rankProg = computeWvwRankProgression(642);
-  assert.ok(rankProg);
-  assert.equal(rankProg.rank, 642);
-  assert.equal(rankProg.tierId, 'gold');
-  assert.ok(rankProg.titleName.includes('Gold'));
-  assert.equal(rankProg.abilityPointsMax, 1226);
-
-  const diamondProg = computeWvwRankProgression(4500);
-  assert.ok(diamondProg);
-  assert.equal(diamondProg.tierId, 'diamond');
-  assert.equal(diamondProg.abilityMasteryPct, 100);
-  assert.equal(diamondProg.isAbilityMaxed, true);
-
-  const mockMatch: WvwMatch = {
-    id: '2-1',
-    start_time: '2026-10-23T18:00:00Z',
-    end_time: '2026-10-30T18:00:00Z',
-    scores: { red: 100000, blue: 180000, green: 120000 },
-    victory_points: { red: 15, blue: 30, green: 20 },
-    kills: { red: 500, blue: 700, green: 600 },
-    deaths: { red: 600, blue: 450, green: 550 },
-    worlds: { red: 2007, blue: 2011, green: 2001 },
-    all_worlds: { red: [2007], blue: [2011], green: [2001] },
-    maps: [],
-  };
-
-  const nowMs = Date.now();
-  const tenMinAgoIso = new Date(nowMs - 10 * 60_000).toISOString();
-
-  const mockObjectives: WvwCombinedObjective[] = [
-    {
-      id: '38-9',
-      name: 'Stonemist Castle',
-      type: 'Castle',
-      mapId: 38,
-      mapType: 'Center',
-      owner: 'Blue',
-      lastFlipped: tenMinAgoIso,
-      secondsSinceFlip: 600,
-      isRiActive: false,
-      pointsTick: 35,
-      pointsCapture: 35,
-      yaksDelivered: 5,
-      guildUpgrades: [],
-    },
-    {
-      id: '1099-102',
-      name: 'Fire Keep',
-      type: 'Keep',
-      mapId: 1099,
-      mapType: 'RedHome',
-      owner: 'Blue',
-      lastFlipped: tenMinAgoIso,
-      secondsSinceFlip: 600,
-      isRiActive: false,
-      pointsTick: 8,
-      pointsCapture: 25,
-      yaksDelivered: 10,
-      guildUpgrades: [],
-    },
-  ];
-
-  const standings = computeWvwStandings(mockMatch, mockObjectives);
-  assert.equal(standings.Blue.victoryPoints, 30);
-  assert.equal(standings.Blue.castles, 1);
-  assert.equal(standings.Blue.keeps, 1);
-
-  const worldsMap = new Map<number, WvwWorld>([
-    [2007, { id: 2007, name: 'Far Shiverpeaks' }],
-    [2011, { id: 2011, name: 'Vabbi' }],
-    [2001, { id: 2001, name: 'Fissure of Woe' }],
-  ]);
-
-  const insights = generateWvwSituationalInsights(
-    mockObjectives,
-    mockMatch,
-    worldsMap,
-    'Red',
-    true,
-    nowMs - 120_000,
-    nowMs,
-  );
-
-  assert.ok(insights.some((i) => i.id === 'stale-data'));
-  assert.ok(insights.some((i) => i.id === 'home-defense'));
-  assert.ok(insights.some((i) => i.id === 'vulnerable-t0'));
-  assert.ok(insights.some((i) => i.id === 'stonemist-status'));
-  assert.ok(insights.some((i) => i.id === 'leader-swing'));
-
-  // Test objective filtering
-  const filtered = filterWvwObjectives(mockObjectives, {
-    map: 'RedHome',
-    type: 'Keep',
-    owner: 'Blue',
-    status: 'vulnerable',
-    search: 'Fire',
-    activeTeam: 'Red',
-  });
-  assert.equal(filtered.length, 1);
-  assert.equal(filtered[0].id, '1099-102');
-});
-
-test('5. Complete i18n key parity between German (de) and English (en) across the application', () => {
+test('4. Complete i18n key parity between German (de) and English (en) across the application', () => {
   const deKeys = Object.keys(TRANSLATIONS.de);
   const enKeys = Object.keys(TRANSLATIONS.en);
 

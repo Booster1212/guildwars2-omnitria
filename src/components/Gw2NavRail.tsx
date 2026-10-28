@@ -6,7 +6,6 @@ import {
   GlyphAchievements,
   GlyphCrafting,
   GlyphLegendary,
-  GlyphWvW,
   GlyphGear,
 } from './common/Glyphs';
 import { useTranslation } from '../i18n';
@@ -104,22 +103,6 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
         </div>
         <span className="nav-rail-label">{t('nav.legendary')}</span>
         {currentTab === 'legendary' && <div className="nav-rail-active-notch" />}
-      </button>
-
-      {/* 6. WvW Taktik-Assistent */}
-      <button
-        type="button"
-        className={`nav-rail-item ${currentTab === 'wvw' ? 'active' : ''}`}
-        onClick={() => onSelectTab('wvw')}
-        title={t('nav.wvw')}
-        aria-label={t('nav.wvw')}
-        aria-current={currentTab === 'wvw' ? 'page' : undefined}
-      >
-        <div className="nav-item-icon" aria-hidden="true">
-          <GlyphWvW />
-        </div>
-        <span className="nav-rail-label">{t('nav.wvw')}</span>
-        {currentTab === 'wvw' && <div className="nav-rail-active-notch" />}
       </button>
 
       <div className="nav-rail-spacer" />

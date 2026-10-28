@@ -83,7 +83,7 @@ export interface EventInstance {
 }
 
 export type MessageTemplateType = 'standard' | 'compact' | 'waypointOnly' | 'detailed';
-export type OverlayTab = 'events' | 'inventory' | 'achievements' | 'crafting' | 'legendary' | 'wvw';
+export type OverlayTab = 'events' | 'inventory' | 'achievements' | 'crafting' | 'legendary';
 export type TabId = OverlayTab;
 
 export type SortMode = 'time' | 'grouped' | 'bossesFirst' | 'metasFirst';

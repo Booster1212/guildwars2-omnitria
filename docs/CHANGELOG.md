@@ -7,9 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.2.0] - 2026-10-28
+## [0.2.1] - 2026-10-28
 
 ### Added & Improved
+
+#### Achievement Intelligence & Decision Support (`Achievements`)
+* **First-Class Achievement Intelligence Engine (`src/domain/achievementIntelligence.ts`):**
+  * Implemented transparent arithmetic scoring engine replacing arbitrary AI guesses with explainable justifications.
+  * Formatted recommendations with clear human-readable rationales in German and English (e.g. *"Empfohlen, da zu 85% abgeschlossen und noch 15 Erfolgspunkte erreichbar sind"* / *"Recommended because you are at 85% completion with 15 AP remaining"*).
+* **Live Total Account AP Calculation & Cap Breakdown:**
+  * Implemented exact account AP formula conforming to official Guild Wars 2 rules: $\text{Total AP} = \min(15.000, \text{daily\_ap} + \text{monthly\_ap}) + \sum(\text{permanent\_achievements})$.
+  * Header dashboard card displays real-time total account AP, 1-click progression refresh button, daily/monthly cap status (`15.000 / 15.000 AP (Cap)`), completed achievements count, and total remaining obtainable points.
+  * Synchronized bottom dock with live account AP confirmation (`⭐ [Total AP] AP Gesamt (Konto)`).
+* **Central "Best Next Achievement" Hero Card (`src/components/AchievementsView.tsx`):**
+  * Prominently highlights the highest-priority upcoming achievement (#1) with category tags, tier progress bar, objective preview chips, remaining obtainable points badge, explainable rationale box, and 1-click clipboard waypoint actions.
+  * Resolved flex-shrink layout collision that previously caused the hero card to collapse when rendered above long queues.
+* **Rich Achievement Icons (`render.guildwars2.com` & Themed Vector Glyphs):**
+  * Integrated full resolution official image URLs with automatic fallback to high-contrast themed vector glyphs (Skull for World Bosses/Metas, Swords for Slayers, Sparkles for Collections, Zap for Fractals, Calendar for Dailies, Layers for Story, Award/Trophy for General).
+  * Rendered across the 52px Hero Showcase and 38px card thumbnails with rounded borders and dark gradient backings.
+* **Enhanced Visual Separation & Exploration Hierarchy:**
+  * **Status Badges:** Distinct visual badges for Completed (`✓ Completed` / `✓ Erledigt`), In Progress (`⏳ In Progress` / `⏳ In Arbeit`), and Unstarted (`○ Unstarted` / `○ Noch offen`).
+  * **Podium Rank Badges:** Special gold radiance for #1 (`👑 #1`), silver for #2 (`🥈 #2`), and bronze for #3 (`🥉 #3`).
+  * **Card Styling Variations:** Specific background and border tints for completed (`.card-completed`), in-progress (`.card-in-progress`), and rank-1 (`.card-rank-1`) achievements.
+  * **Quick Filter Toolbar:** Instant 1-click status filtering with live counters (`All`, `In Progress`, `Unstarted`, `Completed`).
+  * **Category Section Banners:** Elegant dividers (`.category-section-banner`) grouping achievements with category icons, completion ratios, and obtainable AP totals.
+* **GW2 Tag Sanitization & Typography Polishing:**
+  * Automatically filters internal API markup tags (such as `<c=@flavor>...</c>`) from descriptions and objectives for clean readability.
+  * Centered header trophy badge with radial dark background and subtle gold glow.
+* **Five Tailored Recommendation Strategies:**
+  * **Best Next:** Balanced multi-factor ranking combining obtainable points, proximity to completion, and remaining objective counts.
+  * **Best Efficiency:** Prioritizes achievements offering the most obtainable AP per remaining objective.
+  * **Quick Wins:** Surfaces achievements with the fewest remaining objectives or highest completion percentage.
+  * **Highest Reward:** Ranks eligible achievements strictly by maximum remaining obtainable AP.
+  * **Continue Progress:** Filters exclusively for partially completed achievements to help players resume in-flight goals.
+* **Capped & Repeatable Achievement Accuracy:**
+  * Accurately parses tiers and calculates earned AP vs. obtainable AP across multi-tier achievements.
+  * Correctly enforces official account point caps on repeatable achievements (such as *Agent of Entropy* [ID: 439] capped at 250 AP), preventing capped achievements from falsely appearing as available AP rewards.
+* **Unauthenticated Guest Mode Browsing (`src/data/gw2/achievements/`):**
+  * Enables full browsing of public achievement metadata, categories, groups, and requirements without requiring an API key.
+  * Connecting an API key with `account` and `progression` scopes automatically synchronizes personal progress without re-fetching static definitions.
+* **IndexedDB Metadata Caching & Batch Ingestion:**
+  * Caches static achievement definitions, groups, and categories in IndexedDB with a 14-day TTL and offline fallback.
+
+#### Complete WvW Feature Removal
+* **Full Removal of WvW Codebase & Assets:**
+  * Completely removed all WvW-specific components (`src/components/wvw/`), data services (`src/data/gw2/wvw/`), navigation entries (`Gw2NavRail.tsx`), and types (`src/types.ts`).
+  * Removed WvW tactical recommendations, target prioritization heuristics, objective scoring, and background match polling loops.
+  * Cleaned up legacy CSS rules, localization keys, and obsolete screenshot assets (`wvw-advisor.png`, `wvw-dashboard.png`, `wvw-flips.png`, `wvw-map.png`).
+  * Decoupled Inventory Hub and other views from WvW translation strings.
+
+#### OS Credential Encryption & Key Protection (Windows DPAPI)
+* **Secure Credential Storage via Electron safeStorage (`electron/main.cjs`, `electron/preload.cjs`, `src/data/gw2Api.ts`):**
+  * Integrated native Windows DPAPI encryption (`CryptProtectData` / `safeStorage`) tying API key encryption directly to the logged-in OS user session.
+  * Automatically scrubs plaintext API keys from persistent browser storage upon successful DPAPI encryption.
+  * Added visual OS DPAPI Encryption status badge in Settings modal.
+  * API keys are completely redacted from console logs, crash reports, and error toasts.
 
 #### Daily & Weekly Event Highlights (`Event Timers` & `Mini-HUD`)
 * **Live Wizard's Vault Daily & Weekly Objective Matching (`src/domain/dailyWeeklyEvents.ts`, `src/data/gw2Api.ts`):**

@@ -13,9 +13,9 @@ All data within Omnitria is strictly partitioned into distinct source classes an
 | **Official Content** | `API` | Official ArenaNet API (`api.guildwars2.com/v2`) | Item definitions, localized names (`en` / `de`), tooltips, official crafting recipes, achievement categories, and icon render URLs. |
 | **Account & Inventory** | `Account` | Authenticated endpoints (`/v2/account/*`, `/v2/characters`) | Material Storage, Bank tabs, Shared Inventory slots, Character bag inventories, Equipped character gear, crafting discipline ratings, wallet currencies, and live achievement states. |
 | **Market Data** | `API` | `/v2/commerce/prices` | Real-time buy orders (instant sell) and sell listings (instant buy) from the Black Lion Trading Post. |
-| **World vs. World** | `WvW / API` | `/v2/wvw/*` & `/v2/worlds` | Public live match scores, Victory Points (VP), Points Per Tick (PPT), Kill/Death totals, objective ownership, Righteous Indignation (RI) windows, server names, and team assignments. |
+| **Achievement Intelligence** | `API / Account` | `/v2/achievements/*` & `/v2/account/achievements` | Public achievement definitions, tiered point distributions, repeatable flags/pointCaps, and personalized account progress. |
 | **Community Data** | `Community` | Vendored dataset [`crafty_legend`](https://github.com/PieOrCake/crafty_legend) (MIT License) | **Mystic Forge** recipe graphs and item acquisition channels (world exploration, karma vendors, dungeon tokens). |
-| **Calculated Engine** | `Calculated` | Domain engine (`src/domain/`, `src/data/gw2/wvw/`) | Consolidated account inventory search index, deduplicated multi-goal material demand, net Bills of Materials (BOM), 0–500 leveling step routes, rule-based WvW situational insights, and rotation countdowns. |
+| **Calculated Engine** | `Calculated` | Domain engine (`src/domain/`) | Consolidated account inventory search index, deduplicated multi-goal material demand, net Bills of Materials (BOM), 0–500 leveling step routes, achievement intelligence recommendations, and event rotation countdowns. |
 
 ---
 
@@ -27,33 +27,32 @@ Omnitria communicates directly with official ArenaNet API servers (`https://api.
 
 | Feature | API Endpoint | Required Scope | Fallback Behavior if Scope Unchecked / Guest Mode |
 |---|---|---|---|
-| **Base Account Sync** | `/v2/account` | `account` | Guest Mode: Overlay functions without personal account linkage (`world` and `wvw_rank` unavailable). |
-| **Achievements Progress** | `/v2/account/achievements` | `progression` | Displays static achievement catalog with 0% progress. |
+| **Base Account Sync** | `/v2/account` | `account` | Guest Mode: Overlay functions without personal account linkage. |
+| **Achievements Progress** | `/v2/account/achievements` | `progression` | Displays static achievement catalog in Guest Mode with 0% progress and full obtainable rewards. |
 | **Daily Boss Completions** | `/v2/account/worldbosses` | `progression` | Boss completion checkmarks can still be marked manually. |
 | **Map Chest Completions** | `/v2/account/mapchests` | `progression` | Map chest completion states remain unmarked unless toggled manually. |
-| **Wizard's Vault Daily** | `/v2/account/wizardsvault/daily` | `progression` | Daily Wizard's Vault objective progress is omitted from WvW and PvE summaries. |
+| **Wizard's Vault Daily** | `/v2/account/wizardsvault/daily` | `progression` | Daily Wizard's Vault objective progress is omitted from daily dashboard summaries. |
 | **Material Storage** | `/v2/account/materials` | `inventories` | Material Storage quantities are omitted from Account-Wide Item Search and BOM deductions. |
 | **Bank Tabs** | `/v2/account/bank` | `inventories` | Bank tab items are omitted from Account-Wide Item Search and BOM deductions. |
 | **Shared Inventory** | `/v2/account/inventory` | `inventories` | Shared inventory slots are omitted from Account-Wide Item Search and BOM deductions. |
 | **Characters Overview** | `/v2/characters?ids=all` | `characters` | Character cards (level, profession, playtime, active crafting disciplines) are unavailable; discipline ratings can be set manually. |
 | **Character Bag Inventories** | `/v2/characters?ids=all` + fallback `/v2/characters/:id/inventory` | `characters` + `inventories` | Per-character bag stacks are omitted; permission banner explains which scope (`characters` or `inventories`) is missing. |
 | **Character Equipment** | `/v2/characters?ids=all` (`equipment` array) | `characters` (+ `builds` / `inventories`) | Equipped items on characters are omitted from the `Equipped` filter and character cards. |
-| **Currencies & Wallet** | `/v2/account/wallet` | `wallet` | Wallet balances (Gold, Karma, Spirit Shards, Laurels, Badges of Honor, WvW Skirmish Claim Tickets) are hidden. |
+| **Currencies & Wallet** | `/v2/account/wallet` | `wallet` | Wallet balances (Gold, Karma, Spirit Shards, Laurels) are hidden. |
 | **Learned Recipes** | `/v2/account/recipes` | `unlocks` | Recipe Book displays recipes as unlearned; only `AutoLearned` recipes are marked known. |
 | **Legendary Armory** | `/v2/account/legendaryarmory` | `unlocks` | Owned Legendary Armory items are not automatically marked as unlocked. |
-| **WvW Home World & Rank** | `/v2/account` (`world`, `wvw_rank`) | `account` | Player selects active WvW team manually; personal WvW rank progression panel prompts for API key connection. |
 
 ### 2.2 Public Endpoints (No API Key Required)
 
 | Module | API Endpoint | Cache Strategy | Purpose |
 |---|---|---|---|
-| **WvW Matches** | `/v2/wvw/matches` | 30s Polling / Adaptive Backoff | Live match scores, victory points, kills, deaths, maps, and objective states. |
-| **WvW Objectives** | `/v2/wvw/objectives?ids=all` | Persistent (14-day TTL) | Static coordinates, objective types (Camps, Towers, Keeps, Castle, Ruins, Mercenaries), and sectors. |
-| **World Names** | `/v2/worlds?ids=all` | Persistent (14-day TTL) | Resolves numerical world IDs into localized server names in English (`en`) and German (`de`). |
-| **Guild Details** | `/v2/guild/{id}` | In-Memory (Session) | Resolves claiming guild names and tags (`[TAG]`) for WvW objectives. |
+| **Achievement Definitions** | `/v2/achievements` | IndexedDB (14-day TTL) | Full metadata: names, descriptions, requirements, tiers, rewards, flags, and point caps. |
+| **Achievement Categories** | `/v2/achievements/categories` | IndexedDB (14-day TTL) | Category hierarchy, localized titles, and assigned achievement IDs. |
+| **Achievement Groups** | `/v2/achievements/groups` | IndexedDB (14-day TTL) | Top-level groups (e.g. Story Journal, Slayer, General, Heart of Thorns). |
 | **Trading Post Prices** | `/v2/commerce/prices` | 5-Minute In-Memory | Live buy/sell prices for Account Inventory valuation, Legendary BOMs, and Crafting routes. |
 | **Item Metadata** | `/v2/items` | IndexedDB (14-day TTL) | Item icons, localized names (`en` / `de`), rarities, item types, vendor values, and chat links. |
 | **Crafting Recipes** | `/v2/recipes` | IndexedDB (14-day TTL) | Official discipline recipe inputs, outputs, ratings, and flags. |
+| **Worlds & Server Names** | `/v2/worlds?ids=all` | Persistent (14-day TTL) | Resolves numerical world IDs into localized server names in English (`en`) and German (`de`). |
 | **Game Build** | `/v2/build` | On Startup | Detects new Guild Wars 2 game builds to invalidate stale item/recipe caches. |
 
 ---
@@ -81,45 +80,31 @@ When a player tracks multiple Legendary weapons simultaneously, `computeMultiGoa
 
 ---
 
-## 4. World vs. World (WvW) Tactical Overview Architecture
+## 4. Achievement Intelligence & Tracker Architecture
 
-The WvW Tactical Overview (`src/components/wvw/`, `src/data/gw2/wvw/`) combines live public matchup streams with personal account progression and transparent rule-based heuristics.
+The Achievement Intelligence module (`src/domain/achievementIntelligence.ts`, `src/data/gw2/achievements/`) organizes public achievement definitions and personal account progress into transparent, actionable insights.
 
 ```mermaid
 flowchart TD
-    A["ArenaNet WvW API<br/>(/v2/wvw/matches, /v2/wvw/objectives, /v2/worlds)"] --> B["WvW Service Layer<br/>(wvwService.ts)"]
-    B --> C["Language-Isolated In-Memory Caches<br/>(DE / EN)"]
-    C --> D["Tactical Overview & Situational Insights<br/>(WvwAdvisorView.tsx / progression.ts)"]
-    C --> E["Multi-Factor Heuristic Advisor<br/>(advisor.ts / mapAdvisor.ts)"]
-    C --> F["Interactive SVG Radar Map<br/>(WvwMapView.tsx)"]
-    C --> G["Match Dashboard & Session Flips<br/>(WvwDashboard.tsx / WvwFlipsHistory.tsx)"]
-    H["Personal Account & Wallet API<br/>(/v2/account, /v2/account/wallet, stockMap)"] --> D
+    API_Def["Public Achievement Endpoints<br/>(/v2/achievements, /categories, /groups)"] --> Caching["IndexedDB Metadata Store<br/>(14-day TTL / offline fallback)"]
+    API_Acc["Authenticated Account Progress<br/>(/v2/account/achievements)"] --> Enrichment["Enrichment Engine<br/>(achievementIntelligence.ts)"]
+    Caching --> Enrichment
+    Enrichment --> Hero["Best Next Achievement Hero Card"]
+    Enrichment --> Strat["5 Recommendation Strategies<br/>(Best Next, Efficiency, Quick Wins, Highest Reward, Continue)"]
+    Enrichment --> Explorer["Categories & Groups Explorer"]
 ```
 
-### 4.1 Separation of Public Match Data vs. Personal WvW Progression
-- **Public Match Overview (`Public Match Data`):** Displays live team standings (Victory Points, Skirmish Scores, Points Per Tick, Kill/Death ratios, structure counts), linked world alliances, data sync age (`Synced Xs ago`), and map biome summaries:
-  - **Eternal Battlegrounds (`Center`)**
-  - **Desert Borderlands (`RedHome`)**
-  - **Alpine Borderlands (`BlueHome` and `GreenHome`)**
-  - **Edge of the Mists Notice:** Explicitly notes that Edge of the Mists is not exposed in official `/v2/wvw/matches` live objective arrays rather than inventing unsupported state.
-- **Personal WvW Progression (`Account`):** Clearly separated into its own account panel displaying data derived from `/v2/account`, `/v2/account/wallet`, `/v2/account/wizardsvault/daily`, and `AccountData.stock`:
-  - **WvW Rank, Title & Prestige Tier (`computeWvwRankProgression`):** Calculates the official Guild Wars 2 WvW rank title (e.g., *Bronze Scout* through *Diamond Legend*), prestige tier progress bar, and WvW Ability Mastery progress toward the **Rank 1,226** cap (`1,226` total WvW Ability Points required to master all WvW ability lines).
-  - **WvW Currencies & Legendary Stockpile:** Displays owned **Gifts of Battle** (`#19677`), **Memories of Battle** (`#71581`), **Badges of Honor** (Wallet currency `#15`), **WvW Skirmish Claim Tickets** (Wallet currency `#26`), and daily Wizard's Vault WvW objective progress.
+### 4.1 Accurate AP & Cap Calculations
+- **Tiered AP Parsing:** For multi-tier achievements, Omnitria parses the array of tiers and calculates earned AP by summing completed tier values. `obtainableAp` strictly reflects remaining unearned tiers.
+- **Repeatable Achievements & Point Caps:** Certain repeatable achievements enforce an account point ceiling (`pointCap`). For instance, *Agent of Entropy* (`ID: 439`) awards 2 AP per 200 salvages up to a maximum cap of 250 AP. Omnitria computes:
+  $$\text{earnedAp} = \min(\text{repeatedCycles} \times \text{cyclePoints}, \text{pointCap})$$
+  $$\text{obtainableAp} = \max(0, \text{pointCap} - \text{earnedAp})$$
+  Once the cap is reached, `obtainableAp` evaluates to 0 and the achievement is marked as capped, preventing misleading recommendations.
+- **Explainable Recommendation Rationale:**
+  Every recommendation card provides an explicit, transparent justification (e.g., *"Recommended because you are at 85% completion with 15 AP remaining"*). Omnitria uses pure arithmetic scoring rather than non-deterministic AI generation.
 
-### 4.2 Deterministic Rule-Based Situational Insights (`generateWvwSituationalInsights`)
-Omnitria generates transparent, deterministic alerts based strictly on observable match fields:
-1. **Stale Data Warning (`stale-data`):** Triggers when match data is older than 90 seconds, displaying the exact age in seconds.
-2. **Home Borderland Defense Alert (`home-defense` / `home-secure`):** Checks whether enemy teams currently hold Keeps or Towers on the player's Home Borderland (`RedHome`, `BlueHome`, or `GreenHome`) and lists the breached fortifications.
-3. **Vulnerable T0 Window (`vulnerable-t0`):** Identifies enemy Keeps, Towers, or Castles captured 5 to 20 minutes ago (`300s <= secondsSinceFlip <= 1200s`) where Righteous Indignation has expired and structural upgrades are likely still low.
-4. **Stonemist Castle Control (`stonemist-status`):** Reports current ownership and PPT contribution of Stonemist Castle (`38-9`) in Eternal Battlegrounds.
-5. **Match Leader Swing Focus (`leader-swing`):** Identifies the leading opposing team by Victory Points and Skirmish Score so commanders know which team's objectives yield the highest relative point swing.
-
-### 4.3 Multi-Factor Objective Scoring Heuristic & Complete Objective Browser
-Every non-friendly objective is evaluated across multi-dimensional criteria to yield an estimated priority score (0–100):
-
-$$\text{Priority} = \left( \text{BaseValue} \times W_{\text{strategic}} + \text{TierFactor} \times W_{\text{tier}} + \text{LeaderBonus} \times W_{\text{curb}} - \text{DistPenalty} \times W_{\text{dist}} \right) \times \text{RI\_Multiplier}$$
-
-- **Complete Filterable Objective Browser (`filterWvwObjectives`):** Allows players to inspect all objectives across the match filtered by **Map** (`All`, `EBG`, `Red BL`, `Blue BL`, `Green BL`), **Type** (`All`, `Castle`, `Keep`, `Tower`, `Camp`, `Ruins`, `Mercenary`), **Owner** (`All Teams`, `Enemy Only`, `My Team`, `Red`, `Blue`, `Green`), **Status** (`All States`, `Vulnerable T0`, `Active RI`, `Guild Claimed`, `Pinned`), and **Text Search** (objective name, guild name/tag, or ID).
+### 4.2 Guest Mode Support
+Users without an API key can browse the entire public achievement catalog. The system evaluates all achievements as unstarted (`0% progress`), showing the maximum available rewards and requirements. Once an API key is connected, the UI seamlessly updates with personal progress.
 
 ---
 
@@ -156,9 +141,9 @@ Discovery recipes receive their empirical bonus XP multiplier, and owned materia
 
 Omnitria implements a 4-tier storage hierarchy to keep the UI responsive with many characters and inventory slots while respecting ArenaNet API rate limits:
 
-1. **Tier 1 — Referentially Stable In-Memory Snapshots (`useSyncExternalStore`):** Account inventory indexes, WvW snapshots, and progression stores expose immutable references. Search keystrokes filter the in-memory `AccountInventoryItem[]` index instantaneously with zero network requests.
-2. **Tier 2 — Browser Storage (`localStorage` & `IndexedDB`):** Settings, cached account snapshots (`gw2_overlay_account_data_v1`), and compressed 14-day item/recipe catalogs (`items:en:v1`, `items:de:v1`, `recipes:v1`) persist across restarts and validate against `/v2/build`.
-3. **Tier 3 — Atomic Electron Disk Mirror:** Personal checklists and tracked goals are mirrored to an atomic JSON file in the Electron `userData` directory via IPC (`store-read` / `store-write`).
+1. **Tier 1 — Referentially Stable In-Memory Snapshots (`useSyncExternalStore`):** Account inventory indexes, achievement snapshots, and progression stores expose immutable references. Search keystrokes filter the in-memory index instantaneously with zero network requests.
+2. **Tier 2 — Browser Storage (`localStorage` & `IndexedDB`):** Settings, cached account snapshots (`gw2_overlay_account_data_v1`), achievement metadata caches, and compressed 14-day item/recipe catalogs (`items:en:v1`, `items:de:v1`, `recipes:v1`) persist across restarts and validate against `/v2/build`.
+3. **Tier 3 — Atomic Electron Disk Mirror & Secure Storage:** Personal checklists and tracked goals are mirrored to an atomic JSON file in the Electron `userData` directory via IPC (`store-read` / `store-write`). ArenaNet API keys are encrypted at rest using OS-level DPAPI via `safeStorage`.
 4. **Tier 4 — Rate-Limited Official API Client:** Batch-fetches items/prices in chunks of 200 IDs, caches Trading Post prices for 5 minutes, and applies adaptive backoff on HTTP 429 or network errors.
 
 ---

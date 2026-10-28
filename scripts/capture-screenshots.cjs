@@ -64,14 +64,14 @@ ipcMain.on('store-write', (_event, name, json) => {
   fs.writeFileSync(path.join(storeDir, `${name}.json`), json, 'utf8');
 });
 
-ipcMain.handle('app-get-version', () => '0.1.8');
+ipcMain.handle('app-get-version', () => '0.2.0');
 ipcMain.handle('app-check-update', async () => ({
   ok: true,
-  currentVersion: '0.1.8',
-  latestVersion: '0.1.8',
-  latestTag: 'v0.1.8',
+  currentVersion: '0.2.0',
+  latestVersion: '0.2.0',
+  latestTag: 'v0.2.0',
   hasUpdate: false,
-  releaseName: 'Omnitria v0.1.8',
+  releaseName: 'Omnitria v0.2.0',
   publishedAt: new Date().toISOString(),
   htmlUrl: 'https://github.com/Booster1212/guildwars2-omnitria/releases',
 }));
@@ -82,6 +82,10 @@ ipcMain.on('window-reset-position', () => {});
 ipcMain.on('copy-to-clipboard', () => {});
 ipcMain.on('gw2-send-chat', () => {});
 ipcMain.on('gw2-teleport-waypoint', () => {});
+ipcMain.handle('secure-credentials-available', () => true);
+ipcMain.handle('secure-credentials-get-key', () => null);
+ipcMain.handle('secure-credentials-save-key', () => true);
+ipcMain.handle('secure-credentials-clear-key', () => true);
 
 async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -583,7 +587,7 @@ app.whenReady().then(async () => {
     log('[*] Capturing 5: character-inventory.png...');
     await win.webContents.executeJavaScript(`
       (() => {
-        const subTabs = Array.from(document.querySelectorAll('.inv-hub-tab-btn, .wvw-subnav-btn'));
+        const subTabs = Array.from(document.querySelectorAll('.inv-hub-tab-btn'));
         const charTab = subTabs.find(b => b.textContent.includes('Characters'));
         if (charTab) charTab.click();
       })()
@@ -608,35 +612,35 @@ app.whenReady().then(async () => {
     await snap('pve-progression.png', 1180, 780);
 
     // ------------------------------------------------------------------------
-    // 7. Achievements Hero Panel (Watchlist & Daily Milestones)
+    // 7. Achievements Hero Panel (Best Next Achievement & Recommendations)
     // ------------------------------------------------------------------------
     log('[*] Capturing 7: achievements-hero-panel.png...');
     await win.webContents.executeJavaScript(`
       (() => {
         const achTab = Array.from(document.querySelectorAll('.nav-rail-item')).find(b => b.textContent.includes('Achievements'));
         if (achTab) achTab.click();
-        const allTab = Array.from(document.querySelectorAll('.achieve-tab-btn')).find(b => b.textContent.includes('All'));
-        if (allTab) allTab.click();
+        const bestNextBtn = Array.from(document.querySelectorAll('.achieve-subnav-btn')).find(b => b.textContent.includes('Best Next'));
+        if (bestNextBtn) bestNextBtn.click();
       })()
     `);
-    await sleep(2000);
-    await waitForVisibleImages(6000);
+    await sleep(2500);
+    await waitForVisibleImages(8000);
     await snap('achievements-hero-panel.png', 1180, 780);
 
     // ------------------------------------------------------------------------
-    // 8. Achievements Detail (World Bosses category with expanded checklist)
+    // 8. Achievements Detail (Category Explorer & Expandable Drawer)
     // ------------------------------------------------------------------------
     log('[*] Capturing 8: achievements-detail.png...');
     await win.webContents.executeJavaScript(`
       (() => {
-        const wbTab = Array.from(document.querySelectorAll('.achieve-tab-btn')).find(b => b.textContent.includes('World'));
-        if (wbTab) wbTab.click();
-        const firstObjBtn = document.querySelector('.btn-toggle-objectives');
-        if (firstObjBtn) firstObjBtn.click();
+        const catTab = Array.from(document.querySelectorAll('.achieve-subnav-btn')).find(b => b.textContent.includes('Categories'));
+        if (catTab) catTab.click();
+        const firstExpand = document.querySelector('.btn-expand-objs');
+        if (firstExpand) firstExpand.click();
       })()
     `);
-    await sleep(2000);
-    await waitForVisibleImages(6000);
+    await sleep(2500);
+    await waitForVisibleImages(8000);
     await snap('achievements-detail.png', 1180, 780);
 
     // ------------------------------------------------------------------------
@@ -739,65 +743,9 @@ app.whenReady().then(async () => {
     await snap('crafting-discovery.png', 1180, 780);
 
     // ------------------------------------------------------------------------
-    // 14. WvW Tactical Overview (Central WvW Information Center)
+    // 14. Settings Modal
     // ------------------------------------------------------------------------
-    log('[*] Capturing 14: wvw-advisor.png...');
-    await win.webContents.executeJavaScript(`
-      (() => {
-        const wvwTab = Array.from(document.querySelectorAll('.nav-rail-item')).find(b => b.textContent.includes('WvW'));
-        if (wvwTab) wvwTab.click();
-      })()
-    `);
-    await sleep(4000);
-    await waitForVisibleImages(8000);
-    await snap('wvw-advisor.png', 1180, 780);
-
-    // ------------------------------------------------------------------------
-    // 15. WvW Tactical Map
-    // ------------------------------------------------------------------------
-    log('[*] Capturing 15: wvw-map.png...');
-    await win.webContents.executeJavaScript(`
-      (() => {
-        const subTabs = Array.from(document.querySelectorAll('.wvw-tab-btn'));
-        const mapTab = subTabs.find(b => b.textContent.includes('Tactical Map') || b.textContent.includes('Map'));
-        if (mapTab) mapTab.click();
-      })()
-    `);
-    await sleep(2000);
-    await snap('wvw-map.png', 1180, 780);
-
-    // ------------------------------------------------------------------------
-    // 16. WvW Match Dashboard
-    // ------------------------------------------------------------------------
-    log('[*] Capturing 16: wvw-dashboard.png...');
-    await win.webContents.executeJavaScript(`
-      (() => {
-        const subTabs = Array.from(document.querySelectorAll('.wvw-tab-btn'));
-        const dashTab = subTabs.find(b => b.textContent.includes('Dashboard'));
-        if (dashTab) dashTab.click();
-      })()
-    `);
-    await sleep(2000);
-    await snap('wvw-dashboard.png', 1180, 780);
-
-    // ------------------------------------------------------------------------
-    // 17. WvW Observed Flips
-    // ------------------------------------------------------------------------
-    log('[*] Capturing 17: wvw-flips.png...');
-    await win.webContents.executeJavaScript(`
-      (() => {
-        const subTabs = Array.from(document.querySelectorAll('.wvw-tab-btn'));
-        const flipsTab = subTabs.find(b => b.textContent.includes('Flips'));
-        if (flipsTab) flipsTab.click();
-      })()
-    `);
-    await sleep(1500);
-    await snap('wvw-flips.png', 1180, 780);
-
-    // ------------------------------------------------------------------------
-    // 18. Settings Modal
-    // ------------------------------------------------------------------------
-    log('[*] Capturing 18: settings-modal.png...');
+    log('[*] Capturing 14: settings-modal.png...');
     await win.webContents.executeJavaScript(`
       (() => {
         const settingsBtn = document.querySelector('button[title*="Settings"]');
@@ -808,9 +756,9 @@ app.whenReady().then(async () => {
     await snap('settings-modal.png', 1180, 780);
 
     // ------------------------------------------------------------------------
-    // 19. Settings Auto-Updater Section
+    // 15. Settings Auto-Updater Section
     // ------------------------------------------------------------------------
-    log('[*] Capturing 19: settings-updater.png...');
+    log('[*] Capturing 15: settings-updater.png...');
     await win.webContents.executeJavaScript(`
       (() => {
         const updatePanel = document.querySelector('.update-card-panel');
@@ -820,7 +768,7 @@ app.whenReady().then(async () => {
     await sleep(1000);
     await snap('settings-updater.png', 1180, 780);
 
-    log('[✓] All 19 screenshots captured successfully with English UI, full API data & loaded icons!');
+    log('[✓] All 15 screenshots captured successfully with English UI, full API data & loaded icons!');
   } catch (err) {
     log(`[-] Error capturing screenshots: ${err.stack || err.message}`);
   } finally {

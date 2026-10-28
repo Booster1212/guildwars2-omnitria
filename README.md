@@ -4,7 +4,7 @@
 
 # ✨ Omnitria • Guild Wars 2 In-Game Overlay & Companion
 
-[![Latest Release](https://img.shields.io/badge/Release-v0.2.0-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.2.0)
+[![Latest Release](https://img.shields.io/badge/Release-v0.2.1-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.2.1)
 [![GitHub Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=CI%20Status&color=22c55e&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/actions)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?logo=windows&style=for-the-badge)](#-system-requirements)
@@ -18,18 +18,22 @@
 <br/>
 
 **Omnitria** is a desktop companion and in-game HUD overlay for **Guild Wars 2**.  
-Hovering above your in-game chat box as a compact mini-HUD or expanding into a full Hero Board, Omnitria brings event timers, account-wide item search, character inventory awareness, multi-goal PvE progression planning, 0–500 crafting optimization, Legendary weapon trees, and a WvW tactical overview into a single cohesive window.
+Hovering above your in-game chat box as a compact mini-HUD or expanding into a full Hero Board, Omnitria brings event timers, account-wide item search, character inventory awareness, multi-goal PvE progression planning, 0–500 crafting optimization, Legendary weapon trees, and Achievement Intelligence into a single cohesive window.
 
-[📥 Download v0.2.0 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.2.0) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
+[📥 Download v0.2.1 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.2.1) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
 
 </div>
 
 > [!TIP]
-> ### 🚀 What's New in Omnitria v0.2.0
+> ### 🚀 What's New in Omnitria v0.2.1
+> * **🏆 Achievement Intelligence & Decision Support (`Achievements`):** Feature-packed achievement section featuring the central **Best Next Achievement Hero Card**, 5 tailored recommendation strategies (*Best Efficiency*, *Quick Wins*, *Highest Reward*, *Continue Progress*, *Achievement Categories*), repeatable pointCap handling (e.g. *Agent of Entropy* 250 AP limit), and unauthenticated Guest Mode browsing.
+> * **⭐ Live Account Total AP & Cap Breakdown:** Real-time calculation of player's actual total account AP conforming to official GW2 rules: `min(15000, daily_ap + monthly_ap) + sum(permanent_achievements)`. Displayed prominently in the header card and bottom dock with cap indicator (`15.000 / 15.000 AP (Cap)`), completed count, and obtainable AP sum.
+> * **🎨 Rich Achievement Icons & Themed Glyphs:** High-resolution official image assets from `render.guildwars2.com` with automatic fallback to high-contrast category/group vector glyphs (Skull for World Bosses/Metas, Swords for Slayers, Sparkles for Collections, Zap for Fractals, Calendar for Dailies, Layers for Story).
+> * **🏷️ Visual Separation, Status Badges & Category Banners:** Distinct visual badges for Completed (`✓ Completed`), In Progress (`⏳ In Progress`), and Unstarted (`○ Unstarted`), podium badges for recommendations (`👑 #1`, `🥈 #2`, `🥉 #3`), quick status filter pills with live counts, and category banner dividers.
+> * **🛡️ Complete WvW Deprecation:** Fully removed all WvW-specific modules, tactical recommendations, objective scoring, and background tasks to eliminate gameplay-advantage ambiguity under ArenaNet policies.
+> * **🔒 OS Credential Encryption (Windows DPAPI):** API keys are encrypted at rest using OS-level DPAPI via Electron's `safeStorage`, with plaintext scrubbed from persistent storage.
 > * **✨ Daily & Weekly Event Highlights (`Event Timers` & `Mini-HUD`):** Live Wizard's Vault Daily & Weekly objective matching (`/v2/account/wizardsvault/daily` and `/v2/account/wizardsvault/weekly`) directly on event cards with Astral Acclaim (`+AA`) badges, completion status, and deterministic daily Mystic Coin spotlighting (*Ley-Line Anomaly*).
 > * **🧭 Interactive Level & Progression Planner Overhaul (`Crafting & Disciplines`):** Features a clear Progression Overview & Recommended Next Action card, 4 personalized planning modes (*Fast Leveling*, *Balanced Progression*, *Completionist*, *Goal-Oriented*), stage-grouped crafting steps with inline **Complete / Defer / Skip / Undo** actions, and a dedicated **Character Progression (Lv 1–80)** tracker with live API verification and expansion ownership checks.
-> * **⚡ Performance, WCAG 2.2 AA Accessibility & Asset Caching:** Enabled a 50 MB persistent Chromium HTTP icon cache, per-item `useItem(id)` subscriptions, semantic typography tokens (`--text-2xs` to `--text-xl`), WCAG 2.2 AA high-contrast text tokens, and full keyboard focus/checkbox operability.
-> * **🔍 Account-Wide Item Search & Character Overview (`Inventory & PvE Hub`):** Locate items across Material Storage, Bank, Shared Inventory, Character Bags, and Equipped Gear without double-counting, and inspect character levels, professions, crafting ratings, and bag utilization.
 
 ---
 
@@ -39,11 +43,10 @@ Hovering above your in-game chat box as a compact mini-HUD or expanding into a f
 * 🔍 **Account-Wide Item Search:** Search by full or partial item name (in English or German), item ID, chat link, or character name across Material Storage, Bank tabs, Shared Inventory slots, Character Bags, and Equipped Gear.
 * 👥 **Character & Inventory Awareness:** View all characters with level, profession, race, playtime, bag slot usage, active crafting disciplines, bag stacks, and equipped items — plus per-character location badges inside Legendary and Crafting Bills of Materials.
 * 🧭 **PvE Progression Hub:** Unified overview of tracked Legendary projects, next craftable steps, deduplicated multi-goal material bottlenecks, active crafting disciplines, pinned achievements, and wallet currencies.
-* ⚔️ **WvW Tactical Overview:** Public match standings, map biome breakdowns, personal WvW rank/title/ability mastery progression, rule-based situational insights, heuristic target scoring, interactive SVG radar map, and a complete filterable objective browser.
+* 🏆 **Achievement Intelligence & Decision Support:** Central *Best Next Achievement* hero card, 5 explainable recommendation strategies (*Best Efficiency*, *Quick Wins*, *Highest Reward*, *Continue Progress*, *Categories*), repeatable reward cap tracking, and guest browsing.
 * 🔨 **0–500 Crafting Level Planner:** Lowest-cost leveling routes across all 8 disciplines with embedded discovery combinations and automatic account stock deductions.
 * 🗡️ **Interactive Legendary Armory:** Hierarchical Mystic Forge component trees, live Black Lion Trading Post pricing, and Craft-vs.-Buy toggles across Gen 1, Gen 2, and Gen 3 weapons.
-* 🏆 **Hero Panel & Achievements:** Pin achievements to a custom watchlist, track sub-objectives, and link boss achievements directly to live event timers.
-* 🛡️ **Read-Only & Local:** Communicates directly with official ArenaNet REST API endpoints (`https://api.guildwars2.com/v2/`). All settings, caches, and API keys stay local on your machine.
+* 🛡️ **Read-Only & Local:** Communicates directly with official ArenaNet REST API endpoints (`https://api.guildwars2.com/v2/`). All settings, caches, and API keys stay local on your machine with OS-level credential encryption.
 * 🌐 **Bilingual UI:** Instant 1-click switch between **English (`EN`)** and **German (`DE`)** across all views.
 
 ---
@@ -87,44 +90,34 @@ Eliminate inventory guesswork across your entire Guild Wars 2 account and coordi
 
 ---
 
-### ⚔️ 3. WvW Tactical Overview & Objective Assistant (`WvW Tactics`)
+### 🏆 3. Achievement Intelligence & Decision Support (`Achievements`)
 
-A structured World vs. World information center combining live public match data, personal WvW progression, rule-based situational insights, and interactive map/objective browsers.
+A first-class Achievement Tracker section that helps players make informed decisions about which achievements offer the best combination of obtainable points, remaining effort, and current progress.
 
-| WvW Tactical Overview | Interactive Tactical Map | Match Dashboard & Map Scores |
-| :---: | :---: | :---: |
-| [![WvW Tactical Overview](docs/screenshots/wvw-advisor.png)](docs/screenshots/wvw-advisor.png) | [![WvW Tactical Map](docs/screenshots/wvw-map.png)](docs/screenshots/wvw-map.png) | [![WvW Match Dashboard](docs/screenshots/wvw-dashboard.png)](docs/screenshots/wvw-dashboard.png) |
-| *Public match standings, map biomes, personal WvW progression, situational insights, and recommendations.* | *Interactive vector map for Eternal Battlegrounds and Alpine/Desert Borderlands.* | *Detailed team scores, Victory Points, PPT, K/D ratios, and per-map breakdowns.* |
-
-* **Central WvW Command Overview (Public Match Data):**
-  * Displays live EU/NA match standings (Victory Points, Points Per Tick, Kill/Death ratios, structure counts), linked world alliances, data sync age (`Synced Xs ago`), and quick shortcuts to the Tactical Map, Match Dashboard, and Observed Flips log.
-  * **Map Biome Summary:** Covers **Eternal Battlegrounds (`Center`)**, **Desert Borderlands (`RedHome`)**, and **Alpine Borderlands (`BlueHome` / `GreenHome`)** with one-click map filtering, plus a transparent notice explaining that **Edge of the Mists** is not exposed in official `/v2/wvw/matches` live objective arrays.
-* **Personal WvW Progression (Account Data):**
-  * Clearly separated from public match data; displays your personal **WvW Rank**, official **WvW Title** & **Prestige Tier** progress (*Bronze* through *Diamond*), **WvW Ability Mastery** progress toward the Rank 1,226 cap (`1,226` ability points), daily Wizard's Vault WvW objectives, and account stockpiles of **Gifts of Battle**, **Memories of Battle**, **Badges of Honor**, and **WvW Skirmish Claim Tickets**.
-* **Deterministic Situational Insights & Multi-Factor Advisor:**
-  * Rule-based alerts highlight stale data (>90s), enemy fortifications on your Home Borderland, enemy structures in the 5–20 minute post-flip T0 vulnerability window, Stonemist Castle control, and match leader momentum.
-  * Strategy presets (`Balanced`, `Aggressive`, `Territorial`, `Roamer`) and customizable scoring weights rank enemy objectives transparently (`isEstimated: true`).
-* **Complete Filterable Objective Browser:**
-  * Browse and filter all match objectives by **Map**, **Objective Type** (`Castle`, `Keep`, `Tower`, `Camp`, `Ruins`, `Mercenary`), **Owner** (`All Teams`, `Enemy Only`, `My Team`, `Red`, `Blue`, `Green`), **Status** (`All`, `Vulnerable T0`, `Active RI`, `Guild Claimed`, `Pinned`), and **Search Query**.
-
----
-
-### 🏆 4. Hero Panel & Achievements Tracker (`Achievements`)
-
-Track Guild Wars 2 achievements, daily checklists, and mastery rewards synchronized with your ArenaNet account.
-
-| Hero Panel & Watchlist | World Boss & Meta Achievements |
+| Hero Panel & Best Next Card | Category Explorer & Detail Checklist |
 | :---: | :---: |
 | [![Hero Panel Overview](docs/screenshots/achievements-hero-panel.png)](docs/screenshots/achievements-hero-panel.png) | [![Achievements Detail Checklist](docs/screenshots/achievements-detail.png)](docs/screenshots/achievements-detail.png) |
-| *Hero Panel layout with custom pinned Watchlist and tier progress.* | *Live event status integration, sub-objective checkboxes, and reward badges.* |
+| *Best Next Achievement Hero Card with explainable rationale and recommendation queue.* | *Category & group explorer with search, tier rewards, and expandable sub-objectives.* |
 
-* **Custom Watchlist:** Pin priority achievements to a persistent watchlist (also surfaced in the PvE Progression Hub).
-* **Live Event Linkage:** Boss achievements link directly to the active event rotation schedule with countdowns and waypoint copy buttons.
-* **Reward Badges:** Displays Mastery Point regions, Achievement Points (AP), and title rewards.
+* **Central "Best Next Achievement" Hero Card:**
+  * Prominently showcases the top recommended achievement with transparent mathematical scoring.
+  * Features human-readable, explainable justifications (e.g., *"Recommended because you are at 85% completion with 15 AP remaining"*).
+* **Five Distinct Recommendation Strategies:**
+  * **Best Next:** Balanced multi-factor scoring of obtainable AP, progress proximity, and objective count.
+  * **Best Efficiency:** Prioritizes achievements offering the highest obtainable AP per required objective.
+  * **Quick Wins:** Highlights achievements close to completion with relatively few remaining steps.
+  * **Highest Reward:** Ranks eligible achievements strictly by remaining obtainable AP, factoring in point caps.
+  * **Continue Progress:** Filters exclusively for partially completed achievements to resume current goals.
+* **Capped & Repeatable Accuracy:**
+  * Correctly models repeatable achievements with official point caps (e.g., *Agent of Entropy* [ID: 439] capped at 250 AP).
+  * Prevents capped achievements from falsely appearing as available rewards.
+* **Guest Browsing Without API Key:**
+  * Browse the full public achievement catalog, categories, and tiers without connecting an API key.
+  * Connecting an API key seamlessly activates personalized account progress synchronization.
 
 ---
 
-### 🔨 5. Crafting Level Planner & Discovery Assistant (`Crafting`)
+### 🔨 4. Crafting Level Planner & Discovery Assistant (`Crafting`)
 
 Plan lowest-cost leveling routes from 0 to 400/500 across all 8 crafting disciplines (*Armorsmith, Weaponsmith, Artificer, Jeweler, Leatherworker, Tailor, Chef, Huntsman*).
 
@@ -139,7 +132,7 @@ Plan lowest-cost leveling routes from 0 to 400/500 across all 8 crafting discipl
 
 ---
 
-### 🗡️ 6. Legendary Armory & Mystic Forge Trees (`Legendary`)
+### 🗡️ 5. Legendary Armory & Mystic Forge Trees (`Legendary`)
 
 Explore interactive Mystic Forge component trees and real-time Bills of Materials for Legendary weapons across Gen 1, Gen 2, and Gen 3.
 
@@ -154,14 +147,14 @@ Explore interactive Mystic Forge component trees and real-time Bills of Material
 
 ---
 
-### ⚙️ 7. In-App Settings, Account Sync & Auto-Updater (`Settings`)
+### ⚙️ 6. In-App Settings, Account Sync & Auto-Updater (`Settings`)
 
 Configure language, opacity, chat callout templates, API key synchronization, and in-app release updates.
 
 | Account Sync & Settings Modal | In-App Auto-Updater & Version Management |
 | :---: | :---: |
 | [![Settings Modal](docs/screenshots/settings-modal.png)](docs/screenshots/settings-modal.png) | [![Auto-Updater Section](docs/screenshots/settings-updater.png)](docs/screenshots/settings-updater.png) |
-| *Bilingual toggle (`EN` / `DE`), API key setup, and cache explanations.* | *GitHub release verification, background updater, and progress backup.* |
+| *Bilingual toggle (`EN` / `DE`), API key setup, OS DPAPI badge, and cache explanations.* | *GitHub release verification, background updater, and progress backup.* |
 
 ---
 
@@ -173,19 +166,19 @@ Omnitria communicates directly with official **ArenaNet API servers** (`https://
 > ### 🛡️ Read-Only Architecture & Policy Transparency
 > - **External Desktop Companion:** Operates strictly as an external window without memory reading, DLL injection, or keystroke simulation. Read our full technical documentation in **[docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md)**.
 > - **Read-Only by Design:** ArenaNet API keys are strictly read-only. They cannot modify items, spend currencies, or access login credentials.
-> - **Local Storage Only:** Your API key is saved locally in your application profile (`localStorage`) and is never sent to third-party servers.
+> - **OS Credential Encryption:** API keys are protected at rest via Windows DPAPI (`safeStorage`), ensuring cryptographic protection tied to your logged-in Windows user account.
 > - **Graceful Partial Permissions:** If an API key is missing a scope (such as `inventories` or `characters`), Omnitria clearly explains which permission is missing and why it is needed while continuing to load all other permitted features.
 
 ### Recommended ArenaNet Scopes & Permissions Matrix
 
 | ArenaNet Scope | Priority | What It Unlocks in Omnitria | If Unchecked |
 | :--- | :---: | :--- | :--- |
-| ☑️ **`account`** | 🔴 **Required** | Base account verification, account name, home world (`world` ID for WvW team auto-detection), and `wvw_rank`. | Guest Mode (personal account sync disabled). |
+| ☑️ **`account`** | 🔴 **Required** | Base account verification and account name. | Guest Mode (personal account sync disabled). |
 | ☑️ **`inventories`** | 🟢 **Essential** | Material Storage (`/v2/account/materials`), Bank (`/v2/account/bank`), Shared Inventory (`/v2/account/inventory`), and Character Bag contents. | Account-Wide Item Search and BOM stock deductions cannot read stored items. |
 | ☑️ **`characters`** | 🟢 **Essential** | Character overview (`/v2/characters?ids=all`), active crafting discipline ratings, bag slot counts, and character inventories. | Character cards and character bag item search are unavailable. |
-| ☑️ **`progression`** | 🟢 **Essential** | Achievement progress (`/v2/account/achievements`), daily world bosses, map chests, and Wizard's Vault daily objectives. | Achievements and daily trackers default to manual mode. |
+| ☑️ **`progression`** | 🟢 **Essential** | Achievement progress (`/v2/account/achievements`), daily world bosses, map chests, and Wizard's Vault daily objectives. Personalizes Achievement Intelligence recommendations. | Achievements and daily trackers default to guest mode. |
 | ☑️ **`unlocks`** | 🟢 **Essential** | Learned crafting recipes (`/v2/account/recipes`) and Legendary Armory unlocks (`/v2/account/legendaryarmory`). | Recipes appear unlearned and armory weapons are not auto-marked. |
-| ☑️ **`wallet`** | 🟡 **Recommended** | Account currency balances (`/v2/account/wallet`: Gold, Karma, Spirit Shards, Laurels, Badges of Honor, WvW Skirmish Tickets). | Wallet currency cards show `—`. |
+| ☑️ **`wallet`** | 🟡 **Recommended** | Account currency balances (`/v2/account/wallet`: Gold, Karma, Spirit Shards, Laurels). | Wallet currency cards show `—`. |
 | ☑️ **`builds`** | 🟡 **Optional** | Enhances character equipment metadata returned by `/v2/characters?ids=all`. | Basic character summaries still load via `characters`. |
 
 ### How to Connect Your API Key
@@ -217,9 +210,9 @@ Omnitria communicates directly with official **ArenaNet API servers** (`https://
 * **Node.js:** v20+ *(only needed when building or running from source)*
 
 ### Option A: Standalone Windows Release
-1. Download `Omnitria-v0.1.9-windows-x64.zip` from **[GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.9)**.
+1. Download `Omnitria-v0.2.1-windows-x64.zip` from **[GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.2.1)**.
 2. Extract the archive to a folder of your choice.
-3. Launch `Omnitria.exe` (or `Omnitria-Silent.vbs` / `Omnitria.bat`).
+3. Launch `Omnitria.exe`.
 
 ### Option B: Running from Source
 ```bash
@@ -251,11 +244,14 @@ npx electron scripts/capture-screenshots.cjs
 npm run package:win
 ```
 
-For full technical documentation on data sources, inventory deduplication, WvW heuristics, and caching, see **[docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)**.
+For full technical documentation on data sources, inventory deduplication, and achievement ranking, see **[docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)**.
 
 ---
 
 ## 📜 Legal & ArenaNet Notice
 
 Guild Wars 2, ArenaNet, and all associated logos and designs are trademarks or registered trademarks of NCsoft Corporation.  
-Omnitria is an independent, fan-made open-source companion and is neither reviewed, certified, nor endorsed by ArenaNet or NCsoft. Use of any third-party tool is at the player's own risk. For a detailed technical breakdown of our read-only API usage and clipboard-only workflow, see **[docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md)**.
+
+**Omnitria is designed to minimize risk under ArenaNet's published third-party-program guidelines. It has not been reviewed, approved, or endorsed by ArenaNet. Use at your own risk.**
+
+For a detailed technical breakdown of our read-only API usage, zero-automation architecture, and clipboard-only workflow, see **[docs/TOS_COMPLIANCE.md](docs/TOS_COMPLIANCE.md)**.

@@ -52,18 +52,6 @@ export const GlyphLegendary: React.FC = () => (
   </svg>
 );
 
-export const GlyphWvW: React.FC = () => (
-  <svg {...base}>
-    <path d="M4 21V7l3-3h10l3 3v14" />
-    <path d="M4 11h16" />
-    <path d="M9 4v3" />
-    <path d="M15 4v3" />
-    <path d="M10 21v-5a2 2 0 0 1 4 0v5" />
-    <path d="M8 15h.01" />
-    <path d="M16 15h.01" />
-  </svg>
-);
-
 export const GlyphInventory: React.FC = () => (
   <svg {...base}>
     <rect x="3" y="5" width="18" height="14" rx="2" />

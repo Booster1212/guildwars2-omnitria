@@ -35,4 +35,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-progress', handler);
     return () => ipcRenderer.removeListener('update-progress', handler);
   },
+  // Secure OS-level credential management
+  safeCredentials: {
+    isAvailable: () => ipcRenderer.invoke('secure-credentials-available'),
+    saveApiKey: (apiKey) => ipcRenderer.invoke('secure-credentials-save-key', apiKey),
+    getApiKey: () => ipcRenderer.invoke('secure-credentials-get-key'),
+    clearApiKey: () => ipcRenderer.invoke('secure-credentials-clear-key'),
+  },
 });

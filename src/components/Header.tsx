@@ -69,8 +69,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         return t('crafting.title');
       case 'legendary':
         return t('legendary.title');
-      case 'wvw':
-        return t('nav.wvw');
       case 'events':
       default:
         return t('nav.events');

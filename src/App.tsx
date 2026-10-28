@@ -26,7 +26,6 @@ const InventoryHubView = lazy(() => import('./components/inventory/InventoryHubV
 const AchievementsView = lazy(() => import('./components/AchievementsView').then((m) => ({ default: m.AchievementsView })));
 const CraftingView = lazy(() => import('./components/crafting/CraftingView').then((m) => ({ default: m.CraftingView })));
 const LegendaryView = lazy(() => import('./components/legendary/LegendaryView').then((m) => ({ default: m.LegendaryView })));
-const WvwView = lazy(() => import('./components/wvw/WvwView').then((m) => ({ default: m.WvwView })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
 
 const DEFAULT_SETTINGS: OverlaySettings = {
@@ -651,16 +650,6 @@ export const App: React.FC = () => {
             ) : currentTab === 'legendary' ? (
               <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
                 <LegendaryView userAchievements={userAchievements} />
-              </Suspense>
-            ) : currentTab === 'wvw' ? (
-              <Suspense fallback={<div className="empty-state font-serif">{lang === 'de' ? 'Laden...' : 'Loading...'}</div>}>
-                <WvwView
-                  settings={settings}
-                  accountInfo={accountInfo}
-                  dailyProgression={dailyProgression}
-                  onOpenSettings={handleOpenSettings}
-                  onToast={handleToast}
-                />
               </Suspense>
             ) : (
               /* Authentic Achievements / Heldin - Erfolge View */

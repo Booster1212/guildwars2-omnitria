@@ -73,6 +73,78 @@ const STORAGE_KEY_ACCOUNT = 'gw2_overlay_account_cache';
 const STORAGE_KEY_ACHIEVEMENTS = 'gw2_overlay_achievements_cache';
 const STORAGE_KEY_DAILY = 'gw2_overlay_daily_cache';
 
+export interface SafeCredentialsBridge {
+  isAvailable: () => Promise<boolean>;
+  saveApiKey: (key: string) => Promise<{ success: boolean; encrypted?: boolean; error?: string }>;
+  getApiKey: () => Promise<{ success: boolean; apiKey?: string | null; error?: string }>;
+  clearApiKey: () => Promise<{ success: boolean; error?: string }>;
+}
+
+export function getSafeCredentials(): SafeCredentialsBridge | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return (window as unknown as { electronAPI?: { safeCredentials?: SafeCredentialsBridge } }).electronAPI?.safeCredentials;
+}
+
+export async function storeApiKeySecurely(apiKey: string): Promise<boolean> {
+  const safe = getSafeCredentials();
+  if (safe) {
+    try {
+      const avail = await safe.isAvailable();
+      if (avail) {
+        const res = await safe.saveApiKey(apiKey);
+        if (res.success) {
+          try { localStorage.removeItem(STORAGE_KEY_API_KEY); } catch (_) {}
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('[Credentials] SafeStorage save fallback:', e);
+    }
+  }
+  try {
+    if (apiKey) {
+      localStorage.setItem(STORAGE_KEY_API_KEY, apiKey);
+    } else {
+      localStorage.removeItem(STORAGE_KEY_API_KEY);
+    }
+  } catch (_) {}
+  return false;
+}
+
+export async function retrieveApiKeySecurely(): Promise<string> {
+  const safe = getSafeCredentials();
+  if (safe) {
+    try {
+      const avail = await safe.isAvailable();
+      if (avail) {
+        const res = await safe.getApiKey();
+        if (res.success && res.apiKey) {
+          return res.apiKey;
+        }
+      }
+    } catch (e) {
+      console.warn('[Credentials] SafeStorage retrieval failed:', e);
+    }
+  }
+  try {
+    return localStorage.getItem(STORAGE_KEY_API_KEY) || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+export async function clearApiKeySecurely(): Promise<void> {
+  const safe = getSafeCredentials();
+  if (safe) {
+    try {
+      await safe.clearApiKey();
+    } catch (_) {}
+  }
+  try {
+    localStorage.removeItem(STORAGE_KEY_API_KEY);
+  } catch (_) {}
+}
+
 /**
  * Check if two timestamps belong to the same UTC day (GW2 reset is 00:00 UTC)
  */
@@ -295,7 +367,7 @@ export function saveCachedApiData(
   dailyProgression?: Gw2DailyProgression | null,
 ) {
   try {
-    localStorage.setItem(STORAGE_KEY_API_KEY, apiKey);
+    void storeApiKeySecurely(apiKey);
     if (account) {
       localStorage.setItem(STORAGE_KEY_ACCOUNT, JSON.stringify(account));
     } else {

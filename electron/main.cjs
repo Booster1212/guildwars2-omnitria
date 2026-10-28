@@ -9,6 +9,7 @@ const {
   Menu,
   nativeImage,
   Notification,
+  safeStorage,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -562,6 +563,65 @@ function storePath(name) {
   if (typeof name !== 'string' || !/^[a-z0-9_-]{1,40}$/i.test(name)) return null;
   return path.join(storeDir, `${name}.json`);
 }
+
+// Secure OS-level Credential Storage via Electron safeStorage (Windows DPAPI / macOS Keychain / Linux Secret Service)
+const secureCredsPath = path.join(storeDir, 'secure-credentials.bin');
+
+ipcMain.handle('secure-credentials-available', () => {
+  return Boolean(safeStorage && safeStorage.isEncryptionAvailable());
+});
+
+ipcMain.handle('secure-credentials-save-key', async (_event, apiKey) => {
+  if (typeof apiKey !== 'string') return { success: false, error: 'Invalid key format' };
+  const clean = apiKey.trim();
+  if (!clean) {
+    try {
+      if (fs.existsSync(secureCredsPath)) await fs.promises.unlink(secureCredsPath);
+      return { success: true, cleared: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  if (!safeStorage || !safeStorage.isEncryptionAvailable()) {
+    return { success: false, error: 'OS secure storage not available' };
+  }
+
+  try {
+    await fs.promises.mkdir(storeDir, { recursive: true });
+    const encryptedBuf = safeStorage.encryptString(clean);
+    await fs.promises.writeFile(secureCredsPath, encryptedBuf);
+    return { success: true, encrypted: true };
+  } catch (err) {
+    log('Failed to encrypt credentials with safeStorage:', err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('secure-credentials-get-key', async () => {
+  if (!safeStorage || !safeStorage.isEncryptionAvailable()) {
+    return { success: false, error: 'OS secure storage not available' };
+  }
+  try {
+    const exists = await fs.promises.stat(secureCredsPath).catch(() => null);
+    if (!exists) return { success: true, apiKey: null };
+    const buf = await fs.promises.readFile(secureCredsPath);
+    const decrypted = safeStorage.decryptString(buf);
+    return { success: true, apiKey: decrypted };
+  } catch (err) {
+    log('Failed to decrypt credentials with safeStorage:', err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('secure-credentials-clear-key', async () => {
+  try {
+    if (fs.existsSync(secureCredsPath)) await fs.promises.unlink(secureCredsPath);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
 ipcMain.handle('store-read', async (_event, name) => {
   const p = storePath(name);
   if (!p) return null;

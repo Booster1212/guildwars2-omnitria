@@ -555,7 +555,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
           </div>
           <button type="button" className="gw2-btn-sm shrink-0" onClick={onOpenSettings}>
             <KeyRound size={12} className="mr-1 inline" />
-            <span>{t('wvw.configureKeyBtn')}</span>
+            <span>{t('common.configureKeyBtn')}</span>
           </button>
         </div>
       )}
@@ -576,7 +576,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
           </div>
           <button type="button" className="gw2-btn-sm shrink-0" onClick={onOpenSettings}>
             <KeyRound size={12} className="mr-1 inline" />
-            <span>{t('wvw.configureKeyBtn')}</span>
+            <span>{t('common.configureKeyBtn')}</span>
           </button>
         </div>
       )}
@@ -711,7 +711,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                         setTypeFilter('all');
                       }}
                     >
-                      {t('wvw.resetFilters')}
+                      {t('common.resetFilters')}
                     </button>
                   )}
                 </div>
@@ -778,7 +778,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                                       e.stopPropagation();
                                       handleCopyChatLink(item.itemId, item.chatLink);
                                     }}
-                                    title={t('wvw.copyChatLink')}
+                                    title={t('common.copyChatLink')}
                                   >
                                     {isCopied ? (
                                       <Check size={11} className="good" />
@@ -1120,7 +1120,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                   </strong>
                 </div>
                 <div className="pve-currency-pill">
-                  <span className="dim text-xs">{t('wvw.badgesOfHonor')}</span>
+                  <span className="dim text-xs">{t('common.badgesOfHonor')}</span>
                   <strong className="font-mono text-amber-300">
                     {walletBadgesOfHonor !== null ? fmtInt(walletBadgesOfHonor) : '–'}
                   </strong>
@@ -1444,7 +1444,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                   <div className="pve-daily-summary-strip">
                     {dailyProgression.wizardsVault && (
                       <div className="pve-daily-pill">
-                        <span className="dim text-xs">{t('wvw.wizardsVaultDaily')}</span>
+                        <span className="dim text-xs">{t('common.wizardsVaultDaily')}</span>
                         <strong className="font-mono gold">
                           {dailyProgression.wizardsVault.meta_progress_current} /{' '}
                           {dailyProgression.wizardsVault.meta_progress_complete}
@@ -1488,7 +1488,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                             </span>
                             <span className="font-mono text-xs">
                               {done ? (
-                                <span className="good">✓ {t('wvw.done')}</span>
+                                <span className="good">✓ {t('common.done')}</span>
                               ) : (
                                 `${fmtInt(current)} / ${fmtInt(max)}`
                               )}
