@@ -12,9 +12,12 @@ import {
   List,
   LayoutList,
   Plus,
+  Sparkles,
+  Award,
 } from 'lucide-react';
 import { EventInstance } from '../types';
 import { Gw2DailyProgression } from '../data/gw2Api';
+import { evaluateEventDailyWeekly } from '../domain/dailyWeeklyEvents';
 import {
   formatShortCountdown,
   formatCountdown,
@@ -250,13 +253,14 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
             const isImminent = !inst.isActive && inst.startsInSeconds <= 15 * 60;
             const completionsCount = progress.eventCompletions[inst.event.id] ?? 0;
             const doneToday = checkIsDoneToday(inst.event.id);
+            const dwMatch = evaluateEventDailyWeekly(inst.event, dailyProgression, lang);
 
             // 1. Ultra-Compact Mode Row
             if (density === 'compact') {
               return (
                 <div
                   key={`${inst.event.id}_${inst.startTime.getTime()}`}
-                  className={`mini-compact-row ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''}`}
+                  className={`mini-compact-row ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''} ${dwMatch.isDaily ? 'daily-highlight' : dwMatch.isWeekly ? 'weekly-highlight' : ''}`}
                 >
                   {/* Left: Index, Flame/Clock, Title & Zone */}
                   <div className="mini-cr-left">
@@ -266,6 +270,16 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
                     ) : isImminent ? (
                       <Clock size={11} className="mini-cr-clock" />
                     ) : null}
+                    {dwMatch.isDaily && (
+                      <span className="mini-dw-wrap" title={dwMatch.dailyTooltip}>
+                        <Sparkles size={11} className="mini-dw-sparkle" />
+                      </span>
+                    )}
+                    {!dwMatch.isDaily && dwMatch.isWeekly && (
+                      <span className="mini-dw-wrap" title={dwMatch.weeklyTooltip}>
+                        <Award size={11} className="mini-dw-award" />
+                      </span>
+                    )}
                     <span className="mini-cr-name font-serif" title={`${eventDisplayName} • ${displayZone} • ${displayWaypoint}`}>
                       {eventDisplayName}
                     </span>
@@ -335,13 +349,25 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
             return (
               <div
                 key={`${inst.event.id}_${inst.startTime.getTime()}`}
-                className={`mini-event-box ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''}`}
+                className={`mini-event-box ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''} ${dwMatch.isDaily ? 'daily-highlight' : dwMatch.isWeekly ? 'weekly-highlight' : ''}`}
               >
                 {/* Event Header Row: Index, Title, Badges, Timer */}
                 <div className="mini-event-header">
                   <div className="mini-event-title-wrap">
                     <span className="mini-index font-mono">#{index + 1}</span>
                     {inst.isActive && <Flame size={13} className="mini-flame active" />}
+                    {dwMatch.isDaily && (
+                      <span className="gw2-dw-badge daily-badge mini-dw" title={dwMatch.dailyTooltip}>
+                        <Sparkles size={9} />
+                        <span>{t('events.dailyBadge')}</span>
+                      </span>
+                    )}
+                    {dwMatch.isWeekly && (
+                      <span className="gw2-dw-badge weekly-badge mini-dw" title={dwMatch.weeklyTooltip}>
+                        <Award size={9} />
+                        <span>{t('events.weeklyBadge')}</span>
+                      </span>
+                    )}
                     <span className="mini-name font-serif" title={eventDisplayName}>
                       {eventDisplayName}
                     </span>

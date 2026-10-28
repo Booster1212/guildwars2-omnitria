@@ -51,6 +51,7 @@ export interface Gw2DailyProgression {
   worldBosses: string[]; // Boss IDs killed today, e.g. "tequatl_the_sunless"
   mapChests: string[];   // Meta chest IDs opened today, e.g. "auric_basin_heros_choice_chest"
   wizardsVault: Gw2WizardsVaultDaily | null;
+  wizardsVaultWeekly?: Gw2WizardsVaultDaily | null;
   lastSynced: number;
 }
 
@@ -198,6 +199,26 @@ export async function fetchAccountWizardsVaultDaily(apiKey: string): Promise<{
 }
 
 /**
+ * Fetch Wizard's Vault weekly objectives and completion status
+ */
+export async function fetchAccountWizardsVaultWeekly(apiKey: string): Promise<{
+  success: boolean;
+  wizardsVaultWeekly?: Gw2WizardsVaultDaily;
+  error?: string;
+}> {
+  const cleanKey = apiKey.trim();
+  if (!cleanKey) return { success: false, error: 'Kein API-Schlüssel.' };
+
+  const url = buildUrl('account/wizardsvault/weekly', {}, cleanKey);
+  const res = await apiGet<Gw2WizardsVaultDaily>(url);
+
+  if (!res.ok || !res.data) {
+    return { success: false, error: res.error || 'Fehler beim Laden der wöchentlichen Ziele des Gewölbes.' };
+  }
+  return { success: true, wizardsVaultWeekly: res.data };
+}
+
+/**
  * Fetch all account progression data concurrently (account, achievements, world bosses, map chests, wizards vault)
  */
 export async function fetchAllAccountProgression(apiKey: string): Promise<{
@@ -207,12 +228,13 @@ export async function fetchAllAccountProgression(apiKey: string): Promise<{
   errors: string[];
 }> {
   const errors: string[] = [];
-  const [accRes, achRes, wbRes, mcRes, wvRes] = await Promise.allSettled([
+  const [accRes, achRes, wbRes, mcRes, wvRes, wvWeeklyRes] = await Promise.allSettled([
     validateApiKey(apiKey),
     fetchAccountAchievements(apiKey),
     fetchAccountWorldBosses(apiKey),
     fetchAccountMapChests(apiKey),
     fetchAccountWizardsVaultDaily(apiKey),
+    fetchAccountWizardsVaultWeekly(apiKey),
   ]);
 
   let account: Gw2AccountInfo | null = null;
@@ -220,6 +242,7 @@ export async function fetchAllAccountProgression(apiKey: string): Promise<{
   let worldBosses: string[] = [];
   let mapChests: string[] = [];
   let wizardsVault: Gw2WizardsVaultDaily | null = null;
+  let wizardsVaultWeekly: Gw2WizardsVaultDaily | null = null;
 
   if (accRes.status === 'fulfilled' && accRes.value.success && accRes.value.account) {
     account = accRes.value.account;
@@ -245,10 +268,15 @@ export async function fetchAllAccountProgression(apiKey: string): Promise<{
     wizardsVault = wvRes.value.wizardsVault;
   }
 
+  if (wvWeeklyRes.status === 'fulfilled' && wvWeeklyRes.value.success && wvWeeklyRes.value.wizardsVaultWeekly) {
+    wizardsVaultWeekly = wvWeeklyRes.value.wizardsVaultWeekly;
+  }
+
   const dailyProgression: Gw2DailyProgression = {
     worldBosses,
     mapChests,
     wizardsVault,
+    wizardsVaultWeekly,
     lastSynced: Date.now(),
   };
 
@@ -326,11 +354,12 @@ export function loadCachedApiData(): {
       if (parsed.lastSynced && isSameUtcDay(parsed.lastSynced, Date.now())) {
         dailyProgression = parsed;
       } else {
-        // Retain wizardsVault reference if needed, but worldbosses/mapchests have reset today
+        // Retain weekly vault reference if present, but daily worldbosses/mapchests/daily vault have reset today
         dailyProgression = {
           worldBosses: [],
           mapChests: [],
           wizardsVault: null,
+          wizardsVaultWeekly: parsed.wizardsVaultWeekly ?? null,
           lastSynced: parsed.lastSynced,
         };
       }

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-10-28
+
+### Added & Improved
+
+#### Daily & Weekly Event Highlights (`Event Timers` & `Mini-HUD`)
+* **Live Wizard's Vault Daily & Weekly Objective Matching (`src/domain/dailyWeeklyEvents.ts`, `src/data/gw2Api.ts`):**
+  * Extended official GW2 API progression sync with `/v2/account/wizardsvault/weekly` support alongside `/v2/account/wizardsvault/daily`.
+  * Automatically matches active Wizard's Vault Daily and Weekly objectives against corresponding World Events, meta-event maps, and boss encounters via bilingual keyword matchers (`EVENT_TITLE_KEYWORDS`, `REGION_EVENT_MATCHERS`).
+  * Displays exact Astral Acclaim rewards (e.g. `DAILY +10 AA`, `WEEKLY +50 AA`) and full objective completion progress in tooltips.
+* **Deterministic Daily & Weekly Rotation Highlights:**
+  * Added deterministic UTC daily spotlight tracking for high-priority recurring encounters (such as the daily guaranteed Mystic Coin from the *Ley-Line Anomaly* and rotating Core World Bosses) and featured weekly endgame meta-events.
+* **Visual Status Badges on Event Cards (`src/components/EventCard.tsx`, `src/index.css`):**
+  * Prominent gold `DAILY` (`TÄGLICH`) and cyan-blue `WEEKLY` (`WÖCHENTLICH`) header badges and glow borders on active/upcoming event cards.
+  * Dynamically switches to a green checkmark (`.is-done`) once completed today, keeping daily progress clear and immediately visible.
+* **In-Game Mini-HUD Daily/Weekly Indicators (`src/components/MiniWidget.tsx`):**
+  * Displays clean status badges in Standard view and compact, non-disruptive visual indicators (`Sparkles` / `Award`) in Ultra-Compact view without overflowing or breaking text alignment.
+* **Guarded Progression Handling & Stability:**
+  * Added crash-proof `Array.isArray` and null-safe guards in `progressStore.ts` and `dailyWeeklyEvents.ts`, ensuring smooth operation regardless of network or API response state.
+
+---
+
 ## [0.1.9] - 2026-10-28
 
 ### Added & Improved

@@ -9,6 +9,12 @@ import {
   clearFailedIconUrls,
 } from '../src/data/gw2/items.ts';
 import { TRANSLATIONS } from '../src/i18n/index.ts';
+import {
+  evaluateEventDailyWeekly,
+  getDailyRotationEventIds,
+  getWeeklyRotationEventIds,
+} from '../src/domain/dailyWeeklyEvents.ts';
+import { EVENTS } from '../src/data/events.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -131,4 +137,69 @@ test('4.1 Localization Parity: maintains 100% key parity between German and Engl
   const deKeys = Object.keys(TRANSLATIONS.de).sort();
   const enKeys = Object.keys(TRANSLATIONS.en).sort();
   assert.deepEqual(enKeys, deKeys);
+});
+
+test('5.1 Daily/Weekly Event Highlighting: matches live Wizards Vault Daily & Weekly objectives', () => {
+  const tequatl = EVENTS.find((e) => e.id === 'tequatl');
+  assert.ok(tequatl, 'Expected Tequatl in EVENTS');
+
+  const mockDailyProgression = {
+    worldBosses: [],
+    mapChests: [],
+    wizardsVault: {
+      meta_progress_current: 1,
+      meta_progress_complete: 4,
+      meta_reward_claimed: false,
+      objectives: [
+        {
+          id: 101,
+          title: 'Defeat Tequatl the Sunless',
+          track: 'PvE',
+          acclaim: 10,
+          progress_current: 0,
+          progress_complete: 1,
+          claimed: false,
+        },
+      ],
+    },
+    wizardsVaultWeekly: {
+      meta_progress_current: 2,
+      meta_progress_complete: 6,
+      meta_reward_claimed: false,
+      objectives: [
+        {
+          id: 202,
+          title: 'Complete 10 Events in the Heart of Maguuma',
+          track: 'PvE',
+          acclaim: 50,
+          progress_current: 4,
+          progress_complete: 10,
+          claimed: false,
+        },
+      ],
+    },
+    lastSynced: Date.now(),
+  };
+
+  const teqMatch = evaluateEventDailyWeekly(tequatl, mockDailyProgression, 'de');
+  assert.equal(teqMatch.isDaily, true);
+  assert.equal(teqMatch.dailySource, 'wizards_vault');
+  assert.ok(teqMatch.dailyLabel.includes('+10 AA'));
+
+  const chakGerent = EVENTS.find((e) => e.id === 'chak-gerent');
+  assert.ok(chakGerent, 'Expected Chak Gerent in EVENTS');
+  const chakMatch = evaluateEventDailyWeekly(chakGerent, mockDailyProgression, 'de');
+  assert.equal(chakMatch.isWeekly, true);
+  assert.equal(chakMatch.weeklySource, 'wizards_vault');
+  assert.ok(chakMatch.weeklyLabel.includes('+50 AA'));
+});
+
+test('5.2 Daily/Weekly Event Highlighting: provides deterministic UTC daily and weekly rotation spotlights', () => {
+  const fixedDate = new Date('2026-10-28T12:00:00Z');
+  const dailyIds = getDailyRotationEventIds(fixedDate);
+  const weeklyIds = getWeeklyRotationEventIds(fixedDate);
+
+  assert.ok(dailyIds.has('ley-line-anomaly'), 'Ley-Line Anomaly is always a daily Mystic Coin spotlight');
+  assert.ok(dailyIds.size >= 4, 'Expected at least 4 daily spotlight events');
+  assert.ok(weeklyIds.size >= 4, 'Expected at least 4 weekly spotlight events');
 });

@@ -46,6 +46,7 @@ import { useProgress, progressActions } from '../data/progressStore';
 import { useItems } from '../data/gw2/items';
 import { ItemIcon } from './common/ui';
 import { useTranslation } from '../i18n';
+import { evaluateEventDailyWeekly } from '../domain/dailyWeeklyEvents';
 
 function getLootMeta(loot: string): { type: string; icon: LucideIcon } {
   const lower = loot.toLowerCase();
@@ -275,6 +276,10 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
     dailyProgression?.worldBosses,
     dailyProgression?.mapChests,
   );
+  const dwMatch = useMemo(
+    () => evaluateEventDailyWeekly(event, dailyProgression, lang),
+    [event, dailyProgression, lang, isCompletedToday],
+  );
 
   const handleLogCompletion = (delta = 1) => {
     const nextVal = progressActions.recordEventCompletion(event.id, delta);
@@ -339,23 +344,56 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
     <div
       className={`gw2-event-card ${isActive ? 'active-event' : ''} ${
         isImminent ? 'imminent-event' : ''
+      } ${dwMatch.isDaily ? 'daily-highlight-event' : ''} ${
+        dwMatch.isWeekly ? 'weekly-highlight-event' : ''
       }`}
     >
       <div className="gw2-card-body">
         {/* Left Laurel Wreath Medal Icon with Dynamic Boss Glyph */}
-        <div className={`gw2-card-medal ${isActive ? 'active-medal' : ''}`} title={event.iconType}>
+        <div
+          className={`gw2-card-medal ${isActive ? 'active-medal' : ''} ${
+            dwMatch.isDaily ? 'daily-medal' : dwMatch.isWeekly ? 'weekly-medal' : ''
+          }`}
+          title={event.iconType}
+        >
           <EventGlyph size={18} className={`medal-svg ${isActive ? 'active' : ''}`} />
           {isActive && <span className="active-pulse-dot" />}
         </div>
 
         {/* Center / Main Content */}
         <div className="gw2-card-content">
-          {/* Top Row: Category Tag, Boss Name, Timer Badge */}
+          {/* Top Row: Category Tag, Boss Name, Daily/Weekly Badges, Timer Badge */}
           <div className="gw2-card-header-row">
             <div className="gw2-title-cluster">
               <span className={`gw2-cat-tag ${getCategoryClass()}`}>
                 {displayCategory}
               </span>
+              {dwMatch.isDaily && (
+                <span
+                  className={`gw2-dw-badge daily-badge ${dwMatch.dailyCompleted || isCompletedToday ? 'is-done' : ''}`}
+                  title={dwMatch.dailyTooltip}
+                >
+                  {dwMatch.dailyCompleted || isCompletedToday ? (
+                    <CheckCircle2 size={10} className="dw-badge-icon" />
+                  ) : (
+                    <Sparkles size={10} className="dw-badge-icon" />
+                  )}
+                  <span>{dwMatch.dailyLabel}</span>
+                </span>
+              )}
+              {dwMatch.isWeekly && (
+                <span
+                  className={`gw2-dw-badge weekly-badge ${dwMatch.weeklyCompleted ? 'is-done' : ''}`}
+                  title={dwMatch.weeklyTooltip}
+                >
+                  {dwMatch.weeklyCompleted ? (
+                    <CheckCircle2 size={10} className="dw-badge-icon" />
+                  ) : (
+                    <Award size={10} className="dw-badge-icon" />
+                  )}
+                  <span>{dwMatch.weeklyLabel}</span>
+                </span>
+              )}
               <span className="gw2-boss-name" title={displayName}>
                 {displayName}
               </span>

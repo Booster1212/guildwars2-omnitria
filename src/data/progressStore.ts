@@ -1063,19 +1063,19 @@ export const progressActions = {
 
   isEventCompletedToday(
     eventId: string,
-    worldBosses: string[] = [],
-    mapChests: string[] = [],
+    worldBosses?: string[] | null,
+    mapChests?: string[] | null,
   ): boolean {
     const todayStr = new Date().toISOString().slice(0, 10);
-    if (state.dailyCompletedDates[eventId] === todayStr) {
+    if (state.dailyCompletedDates?.[eventId] === todayStr) {
       return true;
     }
     const wbKey = EVENT_TO_WORLD_BOSS_API_MAP[eventId];
-    if (wbKey && worldBosses.includes(wbKey)) {
+    if (wbKey && Array.isArray(worldBosses) && worldBosses.includes(wbKey)) {
       return true;
     }
     const chestKey = EVENT_TO_MAP_CHEST_API_MAP[eventId];
-    if (chestKey && mapChests.includes(chestKey)) {
+    if (chestKey && Array.isArray(mapChests) && mapChests.includes(chestKey)) {
       return true;
     }
     return false;

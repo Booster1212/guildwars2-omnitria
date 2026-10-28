@@ -4,7 +4,7 @@
 
 # ✨ Omnitria • Guild Wars 2 In-Game Overlay & Companion
 
-[![Latest Release](https://img.shields.io/badge/Release-v0.1.9-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.9)
+[![Latest Release](https://img.shields.io/badge/Release-v0.2.0-d4a359?style=for-the-badge&logo=github)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.2.0)
 [![GitHub Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=CI%20Status&color=22c55e&style=for-the-badge)](https://github.com/Booster1212/guildwars2-omnitria/actions)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?logo=windows&style=for-the-badge)](#-system-requirements)
@@ -20,16 +20,16 @@
 **Omnitria** is a desktop companion and in-game HUD overlay for **Guild Wars 2**.  
 Hovering above your in-game chat box as a compact mini-HUD or expanding into a full Hero Board, Omnitria brings event timers, account-wide item search, character inventory awareness, multi-goal PvE progression planning, 0–500 crafting optimization, Legendary weapon trees, and a WvW tactical overview into a single cohesive window.
 
-[📥 Download v0.1.9 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.1.9) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
+[📥 Download v0.2.0 (Windows)](https://github.com/Booster1212/guildwars2-omnitria/releases/tag/v0.2.0) • [🛡️ ArenaNet ToS Compliance](docs/TOS_COMPLIANCE.md) • [📖 Architecture & Data Sources](docs/DATA_SOURCES.md) • [📋 Changelog](docs/CHANGELOG.md) • [🎮 Quick Start](#-quick-start--installation) • [💬 Controls](#-controls--shortcuts)
 
 </div>
 
 > [!TIP]
-> ### 🚀 What's New in Omnitria v0.1.9
+> ### 🚀 What's New in Omnitria v0.2.0
+> * **✨ Daily & Weekly Event Highlights (`Event Timers` & `Mini-HUD`):** Live Wizard's Vault Daily & Weekly objective matching (`/v2/account/wizardsvault/daily` and `/v2/account/wizardsvault/weekly`) directly on event cards with Astral Acclaim (`+AA`) badges, completion status, and deterministic daily Mystic Coin spotlighting (*Ley-Line Anomaly*).
 > * **🧭 Interactive Level & Progression Planner Overhaul (`Crafting & Disciplines`):** Features a clear Progression Overview & Recommended Next Action card, 4 personalized planning modes (*Fast Leveling*, *Balanced Progression*, *Completionist*, *Goal-Oriented*), stage-grouped crafting steps with inline **Complete / Defer / Skip / Undo** actions, and a dedicated **Character Progression (Lv 1–80)** tracker with live API verification and expansion ownership checks.
 > * **⚡ Performance, WCAG 2.2 AA Accessibility & Asset Caching:** Enabled a 50 MB persistent Chromium HTTP icon cache, per-item `useItem(id)` subscriptions, semantic typography tokens (`--text-2xs` to `--text-xl`), WCAG 2.2 AA high-contrast text tokens, and full keyboard focus/checkbox operability.
 > * **🔍 Account-Wide Item Search & Character Overview (`Inventory & PvE Hub`):** Locate items across Material Storage, Bank, Shared Inventory, Character Bags, and Equipped Gear without double-counting, and inspect character levels, professions, crafting ratings, and bag utilization.
-> * **⚔️ Restructured WvW Tactical Overview (`WvW Tactics`):** Combines live match standings, map biome summaries (*Eternal Battlegrounds*, *Desert Borderlands*, *Alpine Borderlands*), personal WvW rank/title/ability mastery progression, deterministic situational insights, and a complete filterable objective browser.
 
 ---
 
