@@ -90,8 +90,9 @@ jobs:
           }
 
           if ($releaseExists) {
-            Write-Host "::warning::Release fuer Tag '$tagName' existiert bereits auf GitHub."
-            Write-Host "Der Veröffentlichungsschritt wird uebersprungen, um bestehende Releases nicht ungefragt zu ueberschreiben."
+            Write-Host "::notice::Release fuer Tag '$tagName' existiert bereits auf GitHub. Aktualisiere Release-Assets..."
+            gh release upload "$tagName" $assets --clobber
+            Write-Host "Release-Assets fuer '$tagName' wurden erfolgreich aktualisiert."
             exit 0
           }
 
