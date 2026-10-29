@@ -60,11 +60,11 @@ flowchart TD
         API["Official ArenaNet REST API<br/>(https://api.guildwars2.com/v2/)"]
     end
 
-    Main <-->|Sanitized IPC| Preload
-    Preload <-->|Secure Context Bridge| Renderer
-    Renderer -->|HTTPS Requests (Read-Only)| API
-    Main -->|Copy Text / Waypoint| Clipboard
-    Clipboard -.->|Manual In-Game Paste by User (Ctrl+V)| GW2
+    Main <-->|"Sanitized IPC"| Preload
+    Preload <-->|"Secure Context Bridge"| Renderer
+    Renderer -->|"HTTPS Requests (Read-Only)"| API
+    Main -->|"Copy Text / Waypoint"| Clipboard
+    Clipboard -.->|"Manual In-Game Paste by User (Ctrl+V)"| GW2
 ```
 
 ### Technical Security Characteristics
