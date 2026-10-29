@@ -1,12 +1,21 @@
+<div align="center">
+
+<img src="docs/screenshots/icon.png" alt="Omnitria Logo" width="160" />
+
 # Omnitria HUD
 
 [![Release](https://img.shields.io/badge/Release-v0.2.1-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
 Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. It calculates local event timers, indexes account-wide inventories, optimizes crafting paths, and recommends achievements using official read-only APIs.
 
+<br/>
+
 ![Omnitria In-Game Overlay](docs/screenshots/Introduction.png)
+
+</div>
 
 ## Features
 
