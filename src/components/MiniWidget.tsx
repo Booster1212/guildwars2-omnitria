@@ -103,21 +103,20 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
     }
   };
 
-  // Category counts
-  const activeCount = useMemo(() => {
-    return instances.filter((i) => i.isActive || i.startsInSeconds <= 5 * 60).length;
-  }, [instances]);
-
-  const metaCount = useMemo(() => {
-    return instances.filter((i) => isMetaEvent(i.event) && (i.isActive || i.startsInSeconds <= 60 * 60)).length;
-  }, [instances]);
-
-  const coreCount = useMemo(() => {
-    return instances.filter((i) => isBossEvent(i.event) && (i.isActive || i.startsInSeconds <= 60 * 60)).length;
-  }, [instances]);
-
-  const soonCount = useMemo(() => {
-    return instances.filter((i) => !i.isActive && i.startsInSeconds <= 30 * 60).length;
+  // Optimized single-pass category counts
+  const { activeCount, metaCount, coreCount, soonCount } = useMemo(() => {
+    let active = 0;
+    let meta = 0;
+    let core = 0;
+    let soon = 0;
+    for (let i = 0; i < instances.length; i++) {
+      const item = instances[i];
+      if (item.isActive || item.startsInSeconds <= 5 * 60) active++;
+      if (isMetaEvent(item.event) && (item.isActive || item.startsInSeconds <= 60 * 60)) meta++;
+      if (isBossEvent(item.event) && (item.isActive || item.startsInSeconds <= 60 * 60)) core++;
+      if (!item.isActive && item.startsInSeconds <= 30 * 60) soon++;
+    }
+    return { activeCount: active, metaCount: meta, coreCount: core, soonCount: soon };
   }, [instances]);
 
   // Filter instances by active tab
@@ -144,7 +143,19 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
   }, [instances, activeTab]);
 
   // Display up to 10 events (scrollable container)
-  const displayItems = filteredInstances.slice(0, 10);
+  const displayItems = useMemo(() => filteredInstances.slice(0, 10), [filteredInstances]);
+
+  // Pre-evaluate daily/weekly metadata once per unique event instead of per second tick
+  const dwMatchMap = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof evaluateEventDailyWeekly>>();
+    for (let i = 0; i < displayItems.length; i++) {
+      const ev = displayItems[i].event;
+      if (!map.has(ev.id)) {
+        map.set(ev.id, evaluateEventDailyWeekly(ev, dailyProgression, lang));
+      }
+    }
+    return map;
+  }, [displayItems, dailyProgression, lang]);
 
   const checkIsDoneToday = (eventId: string) => {
     return progressStore.isEventCompletedToday(
@@ -253,7 +264,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
             const isImminent = !inst.isActive && inst.startsInSeconds <= 15 * 60;
             const completionsCount = progress.eventCompletions[inst.event.id] ?? 0;
             const doneToday = checkIsDoneToday(inst.event.id);
-            const dwMatch = evaluateEventDailyWeekly(inst.event, dailyProgression, lang);
+            const dwMatch = dwMatchMap.get(inst.event.id) || { isDaily: false, isWeekly: false };
 
             // 1. Ultra-Compact Mode Row
             if (density === 'compact') {

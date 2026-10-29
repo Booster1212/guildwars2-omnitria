@@ -283,10 +283,17 @@ export const App: React.FC = () => {
     void ensureItems(preloadIds);
   }, []);
 
-  // Compute live event schedule from database
+  // Compute live event schedule: 4 hours ahead in widget mode (lighter memory footprint and instant countdown ticks); 8 hours in full board
   const allInstances = useMemo(() => {
-    return getEventSchedule(currentTime, 16);
-  }, [currentTime]);
+    return getEventSchedule(currentTime, settings.widgetMode ? 4 : 8);
+  }, [currentTime, settings.widgetMode]);
+
+  const [visibleLimit, setVisibleLimit] = useState<number>(50);
+
+  // Reset pagination limit when search, category or sort changes
+  useEffect(() => {
+    setVisibleLimit(50);
+  }, [searchTerm, activeCategory, sortMode]);
 
   // Filter & Sort instances
   const processedInstances = useMemo(() => {
@@ -339,13 +346,20 @@ export const App: React.FC = () => {
     });
   }, [allInstances, activeCategory, searchTerm, sortMode]);
 
+  const visibleInstances = useMemo(() => {
+    return processedInstances.slice(0, visibleLimit);
+  }, [processedInstances, visibleLimit]);
+
   // Split into bosses and metas for 'grouped' mode
   const { bossList, metaList } = useMemo(() => {
     if (sortMode !== 'grouped') return { bossList: [], metaList: [] };
     const bosses = processedInstances.filter((inst) => isBossEvent(inst.event));
     const metas = processedInstances.filter((inst) => isMetaEvent(inst.event));
-    return { bossList: bosses, metaList: metas };
-  }, [processedInstances, sortMode]);
+    return {
+      bossList: bosses.slice(0, visibleLimit),
+      metaList: metas.slice(0, visibleLimit),
+    };
+  }, [processedInstances, sortMode, visibleLimit]);
 
   // Action 1: Chat-Aufruf kopieren (Copies waypoint + remaining time into clipboard for manual pasting)
   const handleSendMessage = useCallback(async (inst: EventInstance) => {
@@ -616,18 +630,33 @@ export const App: React.FC = () => {
                       ))}
                     </>
                   ) : (
-                    processedInstances.map((inst) => (
-                      <EventCard
-                        key={`${inst.event.id}_${inst.startTime.getTime()}`}
-                        instance={inst}
-                        onSendMessage={handleSendMessage}
-                        onTeleport={handleTeleport}
-                        isJustCopied={copiedId === `${inst.event.id}_${inst.startTime.getTime()}`}
-                        userAchievements={userAchievements}
-                        dailyProgression={dailyProgression}
-                        onLogCompletion={handleLogEventCompletion}
-                      />
-                    ))
+                    <>
+                      {visibleInstances.map((inst) => (
+                        <EventCard
+                          key={`${inst.event.id}_${inst.startTime.getTime()}`}
+                          instance={inst}
+                          onSendMessage={handleSendMessage}
+                          onTeleport={handleTeleport}
+                          isJustCopied={copiedId === `${inst.event.id}_${inst.startTime.getTime()}`}
+                          userAchievements={userAchievements}
+                          dailyProgression={dailyProgression}
+                          onLogCompletion={handleLogEventCompletion}
+                        />
+                      ))}
+                      {processedInstances.length > visibleLimit && (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 20px 0' }}>
+                          <button
+                            className="gw2-gw-btn"
+                            onClick={() => setVisibleLimit((prev) => prev + 50)}
+                            style={{ minWidth: '240px' }}
+                          >
+                            {lang === 'de'
+                              ? `+${Math.min(50, processedInstances.length - visibleLimit)} weitere Events anzeigen (von ${processedInstances.length})`
+                              : `+${Math.min(50, processedInstances.length - visibleLimit)} more events (of ${processedInstances.length})`}
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </>

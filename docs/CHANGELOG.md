@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.2] - 2026-10-29
+
+### Fixed & Improved
+
+#### Full Event Waypoint Audit & Live GW2 API Verification (`src/data/events.ts`, `src/components/AchievementsView.tsx`)
+* **Comprehensive Waypoint Audit (58 Events):**
+  * Automated full-table verification of every event waypoint against the official Guild Wars 2 REST API (`/v2/continents/1/floors/*`), resolving chat-link Base64 codes, POI coordinates, and official in-game map locations.
+* **Resolved Critical Waypoint Teleport Bugs:**
+  * **Tequatl the Sunless:** Fixed typo `[&BNwCAAA=]` (which erroneously routed players to *Izz-Al-Din-Sarayi* in Domain of Vabbi) to official Splintered Coast Waypoint `[&BNABAAA=]`.
+  * **The Silverwastes (The Vinewrath & The Breach):** Fixed erroneous code `[&BHoCAAA=]` (which teleported players to Earthshake Waypoint in Frostgorge Sound) to Camp Resolve Waypoint `[&BH8HAAA=]`.
+  * **Inner Nayos: Fall of Zakiros (Eparch):** Corrected `[&BEYOAAA=]` (Skywatch Archipelago Observation Camp) to Astral Ward Camp Waypoint `[&BGYOAAA=]`.
+  * **Cathedral of Silence (Grenth):** Replaced obsolete code `[&BCgCAAA=]` with Penitent Waypoint `[&BBkDAAA=]`.
+  * **The Gang War of Echovald:** Replaced invalid code `[&BO8MAAA=]` with Junkyard Waypoint `[&BIsMAAA=]`.
+  * **Gyala Delve (Jade Miner Crisis):** Replaced invalid code `[&BOUOAAA=]` with Luxon Terminus Waypoint `[&BJkNAAA=]`.
+  * **Inner Nayos (Heitor's Gate):** Replaced invalid code `[&BNcNAAA=]` with Forward Bivouac Waypoint `[&BHYOAAA=]`.
+  * **Lowland Shore: Kodan Gathering:** Corrected typo `[&BO4PAAA=]` to Harvest Den Waypoint `[&BK4OAAA=]`.
+  * **Janthir Syntri (Titans Greer & Decima):** Updated to Stricken Plains Waypoint `[&BCoPAAA=]`.
+  * **Janthir Convergences:** Updated to Forager's Hunt Waypoint `[&BLcOAAA=]`.
+  * **Drizzlewood Coast (South & North Metas):** Fixed Base Camp Waypoint to `[&BGQMAAA=]` and Forward Camp Waypoint to `[&BHIMAAA=]`.
+  * **Ley-Line Anomaly:** Corrected displayed name to official in-game designation *Wegmarke Provern-Ufer* / *Provern Shore Waypoint* (`[&BOQAAAA=]`).
+  * **AchievementsView (Serpent's Ire):** Fixed typo `[&BO8KAAA=]` (Desert Highlands) to official Vehjin Palace Waypoint `[&BO0KAAA=]` in Domain of Vabbi.
+
+#### Event Overview & Mini-HUD Performance Optimization (`src/App.tsx`, `src/components/MiniWidget.tsx`)
+* **Targeted Schedule Horizon:** Reduced pre-calculated schedule horizon from 16 hours (452 instances) to 4 hours in Mini-HUD mode (123 instances) and 8 hours in Full Board mode, reducing allocation churn and memory footprint by over 60%.
+* **Optimized Mini-HUD Category Counters:** Consolidated 4 separate array filtering loops into a single-pass O(N) tally over upcoming instances.
+* **Cached Daily/Weekly Evaluation:** Memoized Wizard's Vault daily/weekly event spotlight evaluation in `MiniWidget` per unique event ID, eliminating repetitive regex and timestamp operations on every 1-second countdown tick.
+* **Progressive Event Board Rendering:** Added progressive rendering window (first 50 events) with on-demand expansion for the full Hero Board, decreasing DOM tree node count from ~9,000 to ~1,000 elements for sub-1ms render cycles during gameplay.
+
+---
+
 ## [0.2.1] - 2026-10-28
 
 ### Added & Improved
