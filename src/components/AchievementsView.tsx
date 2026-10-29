@@ -176,19 +176,19 @@ const CORE_WORLD_BOSSES = [
   { id: 'svanir-shaman', apiId: 'svanir_shaman_chief', name: 'Svanir-Schamane', nameEn: 'Svanir Shaman Chief', waypoint: '[&BMIDAAA=]', zone: 'Wanderer-Hügel', zoneEn: 'Wayfarer Foothills' },
   { id: 'megadestroyer', apiId: 'megadestroyer', name: 'Megazerstörer', nameEn: 'Megadestroyer', waypoint: '[&BM0CAAA=]', zone: 'Mahlstromgipfel', zoneEn: 'Mount Maelstrom' },
   { id: 'inquest-golem', apiId: 'inquest_golem_mark_ii', name: 'Inquestur-Golem Typ II', nameEn: 'Inquest Golem Mark II', waypoint: '[&BNQCAAA=]', zone: 'Mahlstromgipfel', zoneEn: 'Mount Maelstrom' },
-  { id: 'karka-queen', apiId: 'karka_queen', name: 'Karka-Königin', nameEn: 'Karka Queen', waypoint: '[&BNUGAAA=]', zone: 'Südlicht-Bucht', zoneEn: 'Southsun Cove' },
+  { id: 'karka-queen', apiId: 'karka_queen', name: 'Karka-Königin', nameEn: 'Karka Queen', waypoint: '[&BNcGAAA=]', zone: 'Südlicht-Bucht', zoneEn: 'Southsun Cove' },
   { id: 'taidha-covington', apiId: 'admiral_taidha_covington', name: 'Admiralin Taidha Covington', nameEn: 'Admiral Taidha Covington', waypoint: '[&BKgBAAA=]', zone: 'Blutstrom-Küste', zoneEn: 'Bloodtide Coast' },
-  { id: 'modniir-ulgoth', apiId: 'modniir_ulgoth', name: 'Ulgoth der Modniir', nameEn: 'Modniir Ulgoth', waypoint: '[&BLAAAAA=]', zone: 'Harathi-Hinterland', zoneEn: 'Harathi Hinterlands' },
+  { id: 'modniir-ulgoth', apiId: 'modniir_ulgoth', name: 'Ulgoth der Modniir', nameEn: 'Modniir Ulgoth', waypoint: '[&BLEAAAA=]', zone: 'Harathi-Hinterland', zoneEn: 'Harathi Hinterlands' },
 ];
 
 const MAP_HERO_CHESTS = [
-  { id: 'tarir-octovine', apiId: 'auric_basin_heros_choice_chest', name: 'Tarir (Güldener Kessel)', nameEn: 'Tarir (Auric Basin)', waypoint: '[&BAIIAAA=]', zone: 'Güldener Kessel', zoneEn: 'Auric Basin' },
+  { id: 'tarir-octovine', apiId: 'auric_basin_heros_choice_chest', name: 'Tarir (Güldener Kessel)', nameEn: 'Tarir (Auric Basin)', waypoint: '[&BMYHAAA=]', zone: 'Güldener Kessel', zoneEn: 'Auric Basin' },
   { id: 'chak-gerent', apiId: 'tangled_depths_heros_choice_chest', name: 'Chak-Gerent (Verschlungene Tiefen)', nameEn: 'Chak Gerent (Tangled Depths)', waypoint: '[&BPUHAAA=]', zone: 'Verschlungene Tiefen', zoneEn: 'Tangled Depths' },
   { id: 'verdant-brink-night', apiId: 'verdant_brink_heros_choice_chest', name: 'Grasgrüne Klippen (Nacht-Meta)', nameEn: 'Verdant Brink (Night Bosses)', waypoint: '[&BAgIAAA=]', zone: 'Grasgrüne Klippen', zoneEn: 'Verdant Brink' },
   { id: 'dragons-stand', apiId: 'dragons_stand_heros_choice_chest', name: 'Widerstand des Drachen', nameEn: "Dragon's Stand (Mouth of Mordremoth)", waypoint: '[&BBAIAAA=]', zone: 'Widerstand des Drachen', zoneEn: "Dragon's Stand" },
   { id: 'choya-pinata', apiId: 'crystal_oasis_heros_choice_chest', name: 'Choya-Piñata (Kristalloase)', nameEn: 'Choya Piñata (Crystal Oasis)', waypoint: '[&BLsKAAA=]', zone: 'Kristalloase', zoneEn: 'Crystal Oasis' },
   { id: 'maws-of-torment', apiId: 'the_desolation_heros_choice_chest', name: 'Schlund der Qualen (Ödland)', nameEn: 'Maws of Torment (The Desolation)', waypoint: '[&BKMKAAA=]', zone: 'Das Ödland', zoneEn: 'The Desolation' },
-  { id: 'serpents-ire', apiId: 'domain_of_vabbi_heros_choice_chest', name: 'Zorn der Schlange (Vabbi)', nameEn: "Serpent's Ire (Domain of Vabbi)", waypoint: '[&BO0KAAA=]', zone: 'Domäne Vabbi', zoneEn: 'Domain of Vabbi' },
+  { id: 'serpents-ire', apiId: 'domain_of_vabbi_heros_choice_chest', name: 'Zorn der Schlange (Vabbi)', nameEn: "Serpent's Ire (Domain of Vabbi)", waypoint: '[&BHQKAAA=]', zone: 'Domäne Vabbi', zoneEn: 'Domain of Vabbi' },
 ];
 
 export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({

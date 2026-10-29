@@ -13,11 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Full Event Waypoint Audit & Live GW2 API Verification (`src/data/events.ts`, `src/components/AchievementsView.tsx`)
 * **Comprehensive Waypoint Audit (58 Events):**
-  * Automated full-table verification of every event waypoint against the official Guild Wars 2 REST API (`/v2/continents/1/floors/*`), resolving chat-link Base64 codes, POI coordinates, and official in-game map locations.
+  * Automated full-table verification of every event waypoint against the official Guild Wars 2 REST API (`/v2/continents/1/floors/*`) and official GW2 Wiki event timers.
+  * Resolved all invalid chat-link Base64 codes, POI coordinates, and corrected 41 English & German official in-game waypoint designations.
 * **Resolved Critical Waypoint Teleport Bugs:**
   * **Tequatl the Sunless:** Fixed typo `[&BNwCAAA=]` (which erroneously routed players to *Izz-Al-Din-Sarayi* in Domain of Vabbi) to official Splintered Coast Waypoint `[&BNABAAA=]`.
   * **The Silverwastes (The Vinewrath & The Breach):** Fixed erroneous code `[&BHoCAAA=]` (which teleported players to Earthshake Waypoint in Frostgorge Sound) to Camp Resolve Waypoint `[&BH8HAAA=]`.
-  * **Inner Nayos: Fall of Zakiros (Eparch):** Corrected `[&BEYOAAA=]` (Skywatch Archipelago Observation Camp) to Astral Ward Camp Waypoint `[&BGYOAAA=]`.
+  * **Modniir Ulgoth:** Replaced distant Seraph southern camp `[&BLAAAAA=]` with the direct boss fight Cloven Hoof Waypoint `[&BLEAAAA=]` (*Wegmarke Spalthuf*).
+  * **Karka Queen:** Replaced distant southern entry port Pearl Islet `[&BNUGAAA=]` with the canonical Camp Karka Waypoint `[&BNcGAAA=]` (*Wegmarke Karka-Lager*).
+  * **Cathedral of Glorious Anticipation (Balthazar):** Corrected typo `[&BPcCAAA=]` (Lone Post) to Glorious Victory Waypoint `[&BPoCAAA=]` (*Wegmarke Glorreicher Sieg*).
+  * **Cathedral of Verdance (Melandru):** Corrected typo `[&BB8DAAA=]` (Anchorage) to Verdance Waypoint `[&BBsDAAA=]` (*Wegmarke Kathedrale des frischen Grüns*).
+  * **The Gates of Arah:** Corrected typo `[&BCIDAAA=]` (Altar of Murdered Dreams) to Arah Waypoint `[&BCADAAA=]` (*Wegmarke Arah*).
+  * **Attack on Tarir (Octovine):** Corrected typo `[&BNYHAAA=]` (Wanderer's Waypoint outside city) to Forgotten City Waypoint `[&BMYHAAA=]` (*Wegmarke Vergessene Stadt*) inside Tarir.
+  * **Verdant Brink (Night Bosses):** Replaced Faren's Flyer `[&BO8HAAA=]` with the central Pact Encampment Waypoint `[&BAgIAAA=]` (*Wegmarke Pakt-Lager*).
+  * **Serpent's Ire (Vabbi):** Fixed misrouted Vehjin Palace code `[&BO0KAAA=]` to the nearest Market Ruins Waypoint `[&BHQKAAA=]` (*Wegmarke Marktruinen*).
+  * **Death-Branded Shatterer (Jahai Bluffs):** Fixed typo `[&BJMLAAA=]` (Venta Pass) to the direct boss staging Soul's Vendetta Waypoint `[&BIMLAAA=]` (*Wegmarke "Rache der Seele"*).
+  * **Inner Nayos: Fall of Zakiros (Eparch):** Corrected `[&BEYOAAA=]` (Skywatch Archipelago) to Astral Ward Camp Waypoint `[&BGYOAAA=]`.
   * **Cathedral of Silence (Grenth):** Replaced obsolete code `[&BCgCAAA=]` with Penitent Waypoint `[&BBkDAAA=]`.
   * **The Gang War of Echovald:** Replaced invalid code `[&BO8MAAA=]` with Junkyard Waypoint `[&BIsMAAA=]`.
   * **Gyala Delve (Jade Miner Crisis):** Replaced invalid code `[&BOUOAAA=]` with Luxon Terminus Waypoint `[&BJkNAAA=]`.
@@ -26,8 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * **Janthir Syntri (Titans Greer & Decima):** Updated to Stricken Plains Waypoint `[&BCoPAAA=]`.
   * **Janthir Convergences:** Updated to Forager's Hunt Waypoint `[&BLcOAAA=]`.
   * **Drizzlewood Coast (South & North Metas):** Fixed Base Camp Waypoint to `[&BGQMAAA=]` and Forward Camp Waypoint to `[&BHIMAAA=]`.
-  * **Ley-Line Anomaly:** Corrected displayed name to official in-game designation *Wegmarke Provern-Ufer* / *Provern Shore Waypoint* (`[&BOQAAAA=]`).
-  * **AchievementsView (Serpent's Ire):** Fixed typo `[&BO8KAAA=]` (Desert Highlands) to official Vehjin Palace Waypoint `[&BO0KAAA=]` in Domain of Vabbi.
+* **In-Game Localization & Name Alignment:**
+  * Aligned 41 German and English waypoint names to their exact official in-game strings (e.g. *Wegmarke Schatten der Weissagung* instead of *Augapfel-Felsen*, *Wegmarke Krennaks Gehöft*, *Wegmarke Mantels Ankunft*, *Wegmarke Ende der Geschichte*, *Wegmarke Chalon-Docks*, *Wegmarke Trockenkuppenzugang*).
 
 #### Event Overview & Mini-HUD Performance Optimization (`src/App.tsx`, `src/components/MiniWidget.tsx`)
 * **Targeted Schedule Horizon:** Reduced pre-calculated schedule horizon from 16 hours (452 instances) to 4 hours in Mini-HUD mode (123 instances) and 8 hours in Full Board mode, reducing allocation churn and memory footprint by over 60%.
