@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Implemented transparent arithmetic scoring engine replacing arbitrary AI guesses with explainable justifications.
   * Formatted recommendations with clear human-readable rationales in German and English (e.g. *"Empfohlen, da zu 85% abgeschlossen und noch 15 Erfolgspunkte erreichbar sind"* / *"Recommended because you are at 85% completion with 15 AP remaining"*).
 * **Live Total Account AP Calculation & Cap Breakdown:**
-  * Implemented exact account AP formula conforming to official Guild Wars 2 rules: $\text{Total AP} = \min(15.000, \text{daily\_ap} + \text{monthly\_ap}) + \sum(\text{permanent\_achievements})$.
+  * Implemented exact account AP formula conforming to official Guild Wars 2 rules: `Total AP = min(15000, daily_ap + monthly_ap) + sum(permanent_achievements_ap)`.
   * Header dashboard card displays real-time total account AP, 1-click progression refresh button, daily/monthly cap status (`15.000 / 15.000 AP (Cap)`), completed achievements count, and total remaining obtainable points.
   * Synchronized bottom dock with live account AP confirmation (`⭐ [Total AP] AP Gesamt (Konto)`).
 * **Central "Best Next Achievement" Hero Card (`src/components/AchievementsView.tsx`):**
