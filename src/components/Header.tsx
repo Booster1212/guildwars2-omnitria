@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               onUpdateSettings({ language: next });
             }}
           >
-            <Globe size={11} className="lang-globe-icon" aria-hidden="true" />
+            <Globe size={13} className="lang-globe-icon" aria-hidden="true" />
             <span className="lang-code font-bold">{lang === 'de' ? 'DE' : 'EN'}</span>
           </button>
 
@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               aria-label={lang === 'en' ? 'Reset position above GW2 chat' : 'Standardposition über dem GW2-Chat wiederherstellen'}
               onClick={handleResetPosition}
             >
-              <Compass size={13} aria-hidden="true" />
+              <Compass size={14} aria-hidden="true" />
             </button>
           )}
 
@@ -152,7 +152,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             aria-pressed={settings.widgetMode}
             onClick={handleToggleMini}
           >
-            {settings.widgetMode ? <Maximize2 size={13} aria-hidden="true" /> : <Minimize2 size={13} aria-hidden="true" />}
+            {settings.widgetMode ? <Maximize2 size={14} aria-hidden="true" /> : <Minimize2 size={14} aria-hidden="true" />}
           </button>
 
           {/* Sound Toggle */}
@@ -164,7 +164,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             aria-pressed={settings.soundEnabled}
             onClick={handleToggleSound}
           >
-            {settings.soundEnabled ? <Volume2 size={13} aria-hidden="true" /> : <VolumeX size={13} aria-hidden="true" />}
+            {settings.soundEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
           </button>
 
           {/* Settings Button */}
@@ -175,7 +175,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             aria-label={t('nav.settings')}
             onClick={onOpenSettings}
           >
-            <Settings size={13} aria-hidden="true" />
+            <Settings size={14} aria-hidden="true" />
           </button>
 
           {/* Electron Minimize */}
@@ -187,7 +187,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               aria-label={lang === 'en' ? 'Minimize' : 'Minimieren'}
               onClick={handleMinimizeWindow}
             >
-              <Minus size={13} aria-hidden="true" />
+              <Minus size={14} aria-hidden="true" />
             </button>
           )}
 

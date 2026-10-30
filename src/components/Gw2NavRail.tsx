@@ -107,6 +107,8 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
 
       <div className="nav-rail-spacer" />
 
+      <div className="nav-rail-divider" aria-hidden="true" />
+
       {/* Einstellungen unten */}
       <button
         type="button"

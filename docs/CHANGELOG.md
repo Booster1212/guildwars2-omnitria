@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.4] - 2026-10-30
+
+### Added & Improved
+
+#### Comprehensive UI/UX Redesign & Visual Refinement (`src/index.css`, `src/components/*`)
+* **Left Navigation Rail Redesign (`src/components/Gw2NavRail.tsx`, `src/index.css`):**
+  * Expanded navigation width from restrictive 68px to optimal 98px layout width (`--nav-width: 98px`), eliminating cramped navigation items and awkward label wrapping.
+  * Increased navigation labels from ~10px to 12.5px (`font-size: 12.5px`, semi-bold) with consistent 22px vector pictograms (`Glyphs.tsx`).
+  * Distinct active state indicator: illuminated 3px vertical gold edge highlight (`#f1c40f` glow) with rich ambient gold gradient backdrop and high-contrast text.
+  * Clear visual separation with consistent 6px vertical spacing between navigation buttons.
+  * Added ornamental bronze divider (`.nav-rail-divider`) separating the main navigation tabs from the bottom-anchored Settings & Updates item.
+  * Seamless responsive behavior across desktop resolutions (tested at 1180x780 and 1520x685).
+* **Typography System & Content Hierarchy (`src/index.css`, `src/components/Header.tsx`, `src/components/EventCard.tsx`):**
+  * Centralized typographic scale avoiding micro-text: Main headers at 19px–22px, section titles at 16px–17px, body and navigation at 12.5px–14px, metadata and descriptions at 12px–13px.
+  * Upgraded header bar with 19px serif bold title, refined status badges, and proportional 13px–14px control icons.
+  * Improved font weight hierarchy, contrast, and line heights throughout all views for readability during intense gameplay.
+* **Standardized Interactive Controls & Buttons (`src/index.css`, `src/components/BossFilterBar.tsx`):**
+  * Elevated button heights from cramped 24–28px to standardized 32px height (`--btn-h-md: 32px`) across search inputs, action buttons, category filters, and expanders.
+  * Implemented clear primary, secondary, and tertiary button visual styles with refined hover, active, and focus states.
+  * Polished search inputs with 32px height, generous 10px–12px horizontal padding, and subtle gold focus glow rings.
+* **Event Cards & Spatial Separation (`src/index.css`, `src/components/EventCard.tsx`):**
+  * Increased vertical gap between event cards from 6px to 10px with enhanced card padding (12px 14px).
+  * Prominent event titles (16px bold serif) cleanly differentiated from location, zone, and waypoint metadata (12px).
+  * Ambient visual cues for event urgency: active events feature subtle emerald green glow borders and backdrops, imminent events display warm amber accents.
+  * Standardized medal boss glyphs (20px) and action buttons (32px height, 13px icons) for rapid waypoint copying and tactics expansion.
+
+#### Authentic In-Game Achievement Catalog & Hero Panel Overhaul (`src/components/AchievementsView.tsx`, `src/data/gw2/achievements/*`)
+* **Complete Tyria Achievement Index (8,357 Achievements):**
+  * Integrated the full catalog of all 8,357 official Guild Wars 2 achievements spanning all 19 Groups and 360 Categories.
+  * Resolved authentic ArenaNet Render icons across all categories and achievements with automatic category-icon fallbacks.
+  * Description & instruction fallback normalization: eliminated empty cards for ~5,000 achievements whose objectives were stored in API requirement strings.
+* **Authentic In-Game Hero Panel Two-Pane Architecture:**
+  * Replicated the in-game Guild Wars 2 Hero panel layout (Heldin / Erfolge `[H]`) with collapsible group tree accordion, live search, and category exploration.
+  * Clicking any group row automatically expands and selects its first category.
+  * Top milestone reward chest track displaying upcoming 500-AP milestone chests and ornate chests (every 2,500 AP) matching in-game progression.
+* **Renamed & Refined Recommendations:**
+  * Renamed „KI-Empfehlungen“ to **„Empfohlene Erfolge“** (*„Recommended Achievements“*) with header *„Erfolge & Empfehlungen“*.
+
+### Fixed
+
+#### Status Filter Dropdown & Finished Achievement Recognition (`src/domain/achievementIntelligence.ts`, `src/components/AchievementsView.tsx`)
+* **Filter Dropdown Correction:**
+  * Removed character world-exploration title (*„Bereits gesehen. Bereits erledigt.“* / *„Been There, Done That“*) from the status filter dropdown.
+  * Replaced with clean filter option **„Alle Erfolge“** (*„All Achievements“* / `intel.statusAll`), followed by *„In Arbeit“*, *„Noch offen“*, and *„Abgeschlossen“*.
+* **Detection of Completed Achievements:**
+  * Handled ArenaNet API (`/v2/account/achievements`) omission of `current` and `bits` on completed achievements (`done: true`), which previously led to `0/177 (0%)` rendering.
+  * When `done: true` (or `current >= maxProgress`), achievements are strictly recognized with `isDone: true`, `progressStatus: 'completed'`, `currentProgress: maxProgress`, and `progressFraction: 1.0 (100%)`.
+  * Completed cards display badge `✓ Erledigt` (`✓ Completed`), a full golden progress bar, earned AP callout, zero remaining steps, and footer `✓ Erfolg abgeschlossen` instead of open objectives.
+  * Fixed sidebar counters to accurately show player's completed achievements tally per category and group (`completed/total`).
+  * Hardened map lookups in `getEnrichedAchievements` supporting both number and string ID key resolutions.
+  * Added instant fallback to cached API progression on mount to avoid guest-mode flashing during store initialization.
+* **Scrollability & Layout Containment:**
+  * Resolved flex-basis overflow across `.gw2-main-body-layout`, `.achieve-intelligence-root`, `.gw2-hero-sidebar`, `.gw2-hero-sidebar-tree`, and `.achieve-scroll-view` with `min-height: 0` and custom GW2 bronze/gold scrollbars.
+
+---
+
 ## [0.2.3] - 2026-10-29
 
 ### Fixed & Improved

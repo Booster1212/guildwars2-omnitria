@@ -356,7 +356,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
           }`}
           title={event.iconType}
         >
-          <EventGlyph size={18} className={`medal-svg ${isActive ? 'active' : ''}`} />
+          <EventGlyph size={20} className={`medal-svg ${isActive ? 'active' : ''}`} />
           {isActive && <span className="active-pulse-dot" />}
         </div>
 
@@ -374,9 +374,9 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
                   title={dwMatch.dailyTooltip}
                 >
                   {dwMatch.dailyCompleted || isCompletedToday ? (
-                    <CheckCircle2 size={10} className="dw-badge-icon" />
+                    <CheckCircle2 size={12} className="dw-badge-icon" />
                   ) : (
-                    <Sparkles size={10} className="dw-badge-icon" />
+                    <Sparkles size={12} className="dw-badge-icon" />
                   )}
                   <span>{dwMatch.dailyLabel}</span>
                 </span>
@@ -387,9 +387,9 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
                   title={dwMatch.weeklyTooltip}
                 >
                   {dwMatch.weeklyCompleted ? (
-                    <CheckCircle2 size={10} className="dw-badge-icon" />
+                    <CheckCircle2 size={12} className="dw-badge-icon" />
                   ) : (
-                    <Award size={10} className="dw-badge-icon" />
+                    <Award size={12} className="dw-badge-icon" />
                   )}
                   <span>{dwMatch.weeklyLabel}</span>
                 </span>
@@ -411,7 +411,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
             >
               {isActive ? (
                 <>
-                  <Flame size={11} className="flame-icon" />
+                  <Flame size={12} className="flame-icon" />
                   <span>{t('events.activeBadge')} ({formatCountdown(endsInSeconds)})</span>
                 </>
               ) : (
@@ -425,7 +425,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
           {/* Sub-row: Location, Waypoint Name, Local Time, Completion Badges */}
           <div className="gw2-card-sub-row">
             <div className="gw2-sub-location">
-              <MapPin size={10} className="pin-icon" />
+              <MapPin size={12} className="pin-icon" />
               <span>
                 {displayZone} • {displayWaypoint} ({formatLocalTime(instance.startTime, lang)})
               </span>
@@ -442,7 +442,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
                     : `Auf dem Account insgesamt: ${completionsCount}-mal abgeschlossen`
                 }
               >
-                <Trophy size={10} className={`completion-icon ${completionsCount > 0 ? 'gold' : 'dim'}`} />
+                <Trophy size={12} className={`completion-icon ${completionsCount > 0 ? 'gold' : 'dim'}`} />
                 <span className="completion-count font-mono">{completionsCount}x</span>
               </div>
 
@@ -456,7 +456,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
                       : 'Heute bereits besiegt (tägliche Bonus-Truhe erhalten)'
                   }
                 >
-                  <CheckCircle2 size={10} className="done-icon" />
+                  <CheckCircle2 size={12} className="done-icon" />
                   <span>{t('events.completedToday')}</span>
                 </span>
               )}
@@ -468,9 +468,9 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
                   onClick={() => setShowAchievements(!showAchievements)}
                   title={t('events.achievements')}
                 >
-                  <Award size={10} className="trophy-icon" />
+                  <Award size={12} className="trophy-icon" />
                   <span>{achievements.length} {t('events.achievements')}</span>
-                  {showAchievements ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                  {showAchievements ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                 </button>
               )}
             </div>
@@ -489,9 +489,9 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
               }
             >
               {isJustCopied ? (
-                <Check size={11} color="#4ade80" />
+                <Check size={13} color="#4ade80" />
               ) : (
-                <MessageSquare size={11} />
+                <MessageSquare size={13} />
               )}
               <span>{isJustCopied ? t('events.copied') : t('events.sendChat')}</span>
             </button>
@@ -506,7 +506,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
                   : 'Wegmarken-Code kopieren (im Spiel-Chat einfügen zum Anklicken & Reisen)'
               }
             >
-              <Compass size={11} />
+              <Compass size={13} />
               <span>{t('events.copyWaypoint')}</span>
             </button>
 
@@ -516,7 +516,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
               onClick={() => handleLogCompletion(1)}
               title={t('events.logCompletionTooltip')}
             >
-              <Check size={11} className={isCompletedToday ? 'text-green' : ''} />
+              <Check size={13} className={isCompletedToday ? 'text-green' : ''} />
               <span>{t('events.logCompletion')}</span>
             </button>
 
@@ -530,9 +530,9 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
               }
               onClick={() => setExpanded(!expanded)}
             >
-              <Info size={11} className="info-btn-glyph" />
+              <Info size={13} className="info-btn-glyph" />
               <span>{expanded ? (lang === 'en' ? 'Less' : 'Weniger') : 'Info'}</span>
-              {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             </button>
           </div>
         </div>

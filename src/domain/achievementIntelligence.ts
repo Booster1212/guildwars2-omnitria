@@ -165,7 +165,7 @@ export function calculateObtainableAp(
       totalRewardAp,
       earnedAp: earnedSoFar,
       obtainableAp,
-      isCapped: obtainableAp === 0,
+      isCapped: totalRewardAp > 0 ? obtainableAp === 0 : Boolean(progress.done),
       currentTierIndex,
     };
   }
@@ -182,7 +182,10 @@ export function calculateObtainableAp(
     }
   }
 
-  const rawTotalEarned = repeated * totalRewardAp + inCycleEarned;
+  let rawTotalEarned = repeated * totalRewardAp + inCycleEarned;
+  if (progress.done && rawTotalEarned === 0 && totalRewardAp > 0) {
+    rawTotalEarned = totalRewardAp;
+  }
 
   if (pointCap !== undefined) {
     const earnedAp = Math.min(pointCap, rawTotalEarned);
@@ -216,27 +219,45 @@ export function enrichAchievement(
   allUserAchievements?: Map<number, AccountAchievementProgress>,
 ): EnrichedAchievement {
   const isRepeatable = def.flags.includes('Repeatable');
-  const isDone = Boolean(progress?.done);
-  const isUnlocked = progress?.unlocked !== false; // default true if omitted
-
   const maxProgress = progress?.max || def.requiredCount || (def.tiers.length > 0 ? def.tiers[def.tiers.length - 1].count : 1);
-  const currentProgress = progress ? Math.min(progress.current || 0, maxProgress) : 0;
-  const progressFraction = maxProgress > 0 ? Math.min(1.0, currentProgress / maxProgress) : (isDone ? 1.0 : 0.0);
+
+  // Check completion: explicit progress.done OR current reaching maxProgress
+  let isDone = Boolean(progress?.done);
+  if (!isDone && progress && progress.current !== undefined && maxProgress > 0 && progress.current >= maxProgress) {
+    isDone = true;
+  }
+
+  const isUnlocked = progress?.unlocked !== false; // default true if omitted
 
   const { totalRewardAp, earnedAp, obtainableAp, isCapped } = calculateObtainableAp(def, progress);
 
+  let effectiveIsDone = isDone || (isRepeatable && isCapped);
+  let effectiveEarnedAp = earnedAp;
+  let effectiveObtainableAp = obtainableAp;
+  let currentProgress = progress ? Math.min(progress.current ?? 0, maxProgress) : 0;
   let progressStatus: 'completed' | 'in_progress' | 'unstarted' = 'unstarted';
-  if (isDone || (isRepeatable && isCapped)) {
+
+  if (effectiveIsDone) {
+    effectiveIsDone = true;
+    isDone = true;
     progressStatus = 'completed';
+    currentProgress = maxProgress;
+    if (!isRepeatable || isCapped) {
+      effectiveObtainableAp = 0;
+      effectiveEarnedAp = totalRewardAp;
+    }
   } else if (currentProgress > 0 || (progress && isUnlocked && !isDone)) {
     progressStatus = 'in_progress';
   }
+
+  const progressFraction = effectiveIsDone ? 1.0 : (maxProgress > 0 ? Math.min(1.0, currentProgress / maxProgress) : 0.0);
 
   const completedBits = new Set<number>(progress?.bits || []);
   const remainingObjectives: string[] = [];
   const remainingObjectivesEn: string[] = [];
 
-  if (def.bits && def.bits.length > 0) {
+  // For completed achievements, all objectives are fulfilled - zero remaining
+  if (!effectiveIsDone && def.bits && def.bits.length > 0) {
     def.bits.forEach((bit, idx) => {
       if (!completedBits.has(idx)) {
         const textDe = bit.text || bit.textEn || `Teilziel ${idx + 1}`;
@@ -247,9 +268,11 @@ export function enrichAchievement(
     });
   }
 
-  const remainingCount = def.bits && def.bits.length > 0
-    ? remainingObjectives.length
-    : Math.max(0, maxProgress - currentProgress);
+  const remainingCount = effectiveIsDone
+    ? 0
+    : (def.bits && def.bits.length > 0
+        ? remainingObjectives.length
+        : Math.max(0, maxProgress - currentProgress));
 
   // Check prerequisites
   const unmetPrerequisiteIds: number[] = [];
@@ -266,7 +289,7 @@ export function enrichAchievement(
   return {
     definition: def,
     userProgress: progress,
-    isDone: isDone || isCapped,
+    isDone: effectiveIsDone,
     isUnlocked,
     progressStatus,
     currentProgress,
@@ -274,8 +297,8 @@ export function enrichAchievement(
     progressFraction,
     remainingCount,
     totalRewardAp,
-    earnedAp,
-    obtainableAp,
+    earnedAp: effectiveEarnedAp,
+    obtainableAp: effectiveObtainableAp,
     isRepeatable,
     isCapped,
     repeatCount: progress?.repeated || 0,
@@ -466,9 +489,10 @@ export interface AchievementFilterOptions {
   statusFilter?: 'all' | 'in_progress' | 'unstarted' | 'completed';
   minAp?: number;
   maxAp?: number;
-  sortBy?: 'score' | 'ap-desc' | 'ap-asc' | 'progress-desc' | 'name-asc';
+  sortBy?: 'game-order' | 'score' | 'ap-desc' | 'ap-asc' | 'progress-desc' | 'name-asc' | string;
   strategy?: RecommendationStrategy;
   lang?: 'de' | 'en';
+  orderLookup?: Map<number, number>;
 }
 
 /**
@@ -485,25 +509,27 @@ export function filterAndSortAchievements(
     statusFilter = 'all',
     minAp,
     maxAp,
-    sortBy = 'ap-desc',
+    sortBy = 'game-order',
     lang = 'en',
+    orderLookup,
   } = options;
 
   const q = query.trim().toLowerCase();
 
   return achievements
     .filter((ach) => {
-      // Query search on name, description, category, and objectives
+      // Query search on name, description, requirement, category, and objectives
       if (q) {
         const d = ach.definition;
         const nameMatch = d.name.toLowerCase().includes(q) || d.nameEn.toLowerCase().includes(q);
         const descMatch = d.description.toLowerCase().includes(q) || d.descriptionEn.toLowerCase().includes(q);
+        const reqMatch = d.requirement.toLowerCase().includes(q) || d.requirementEn.toLowerCase().includes(q);
         const catMatch = d.categoryName.toLowerCase().includes(q) || d.categoryNameEn.toLowerCase().includes(q);
         const groupMatch = d.groupName.toLowerCase().includes(q) || d.groupNameEn.toLowerCase().includes(q);
         const objMatch = ach.remainingObjectives.some((o) => o.toLowerCase().includes(q)) ||
           ach.remainingObjectivesEn.some((o) => o.toLowerCase().includes(q));
 
-        if (!nameMatch && !descMatch && !catMatch && !groupMatch && !objMatch) {
+        if (!nameMatch && !descMatch && !reqMatch && !catMatch && !groupMatch && !objMatch) {
           return false;
         }
       }
@@ -530,9 +556,22 @@ export function filterAndSortAchievements(
       return true;
     })
     .sort((a, b) => {
+      if (sortBy === 'game-order' || sortBy === 'default') {
+        if (orderLookup) {
+          const orderA = orderLookup.get(a.definition.id) ?? 999999;
+          const orderB = orderLookup.get(b.definition.id) ?? 999999;
+          if (orderA !== orderB) return orderA - orderB;
+        }
+        return 0;
+      }
+      if (sortBy === 'progress-desc') {
+        if (b.progressFraction !== a.progressFraction) {
+          return b.progressFraction - a.progressFraction;
+        }
+        return b.obtainableAp - a.obtainableAp;
+      }
       if (sortBy === 'ap-desc') return b.obtainableAp - a.obtainableAp;
       if (sortBy === 'ap-asc') return a.obtainableAp - b.obtainableAp;
-      if (sortBy === 'progress-desc') return b.progressFraction - a.progressFraction;
       if (sortBy === 'name-asc') {
         const nameA = lang === 'en' ? a.definition.nameEn : a.definition.name;
         const nameB = lang === 'en' ? b.definition.nameEn : b.definition.name;
@@ -580,3 +619,62 @@ export function calculateAccountTotalAp(
     obtainableApRemaining,
   };
 }
+
+export interface ApMilestone {
+  ap: number;
+  pointsRemaining: number;
+  isSpecial: boolean; // every 2,500 or 5,000 AP milestone has ornate chest in GW2
+}
+
+/**
+ * Calculates upcoming AP milestone reward chests (every 500 AP in Guild Wars 2).
+ */
+export function calculateApMilestones(totalAp: number, count: number = 5): ApMilestone[] {
+  const nextMultiple = Math.floor(totalAp / 500) * 500 + 500;
+  const milestones: ApMilestone[] = [];
+  for (let i = 0; i < count; i++) {
+    const ap = nextMultiple + i * 500;
+    milestones.push({
+      ap,
+      pointsRemaining: Math.max(0, ap - totalAp),
+      isSpecial: ap % 2500 === 0,
+    });
+  }
+  return milestones;
+}
+
+/**
+ * Extracts nearly completed achievements (Fast abgeschlossen),
+ * sorted by progress fraction descending (e.g. 176/177 = 99.4%, 163/167 = 97.6%, 52/54 = 96.3%).
+ */
+export function getNearlyCompletedAchievements(
+  enrichedAchievements: EnrichedAchievement[],
+  limit: number = 5,
+): EnrichedAchievement[] {
+  return enrichedAchievements
+    .filter((a) => !a.isDone && a.currentProgress > 0 && a.maxProgress > 0)
+    .sort((a, b) => {
+      if (b.progressFraction !== a.progressFraction) {
+        return b.progressFraction - a.progressFraction;
+      }
+      return a.remainingCount - b.remainingCount;
+    })
+    .slice(0, limit);
+}
+
+/**
+ * Extracts recently completed achievements (Kürzlich abgeschlossen),
+ * returning completed achievements with highest reward or latest progression.
+ */
+export function getRecentlyCompletedAchievements(
+  enrichedAchievements: EnrichedAchievement[],
+  limit: number = 5,
+): EnrichedAchievement[] {
+  return enrichedAchievements
+    .filter((a) => a.isDone)
+    .sort((a, b) => {
+      return b.earnedAp - a.earnedAp;
+    })
+    .slice(0, limit);
+}
+

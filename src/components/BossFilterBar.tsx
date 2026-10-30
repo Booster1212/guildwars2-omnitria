@@ -48,21 +48,21 @@ export const BossFilterBar: React.FC<BossFilterBarProps> = React.memo(({
   return (
     <div className="filter-section">
       {/* Time Ribbon */}
-      <div className="time-ribbon" style={{ margin: '-8px -10px 6px -10px' }}>
+      <div className="time-ribbon" style={{ margin: '-10px -14px 8px -14px' }}>
         <div className="time-item">
-          <Globe size={11} />
+          <Globe size={13} />
           <span className="time-val gold">{utcString}</span>
         </div>
         <div className="time-item">
-          <Clock size={11} />
+          <Clock size={13} />
           <span className="time-val">{localString}</span>
         </div>
       </div>
 
       {/* Search Bar + Sort Mode Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div className="search-box" style={{ flex: 1 }}>
-          <Search className="search-icon" size={12} />
+          <Search className="search-icon" size={14} />
           <input
             type="text"
             className="search-input"

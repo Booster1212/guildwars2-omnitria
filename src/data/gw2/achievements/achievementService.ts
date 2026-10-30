@@ -130,14 +130,19 @@ export async function ensureAchievementDefinitions(
         const catMeta = categoriesList.find((c) => c.id === itemDe.category);
         const groupMeta = catMeta ? groupsList.find((g) => g.id === catMeta.groupId) : undefined;
 
+        const descDe = itemDe.description || itemDe.requirement || '';
+        const descEn = itemEn.description || itemEn.requirement || descDe;
+        const reqDe = itemDe.requirement || itemDe.description || '';
+        const reqEn = itemEn.requirement || itemEn.description || reqDe;
+
         const def: AchievementDefinition = {
           id: itemDe.id,
           name: itemDe.name || `Erfolg #${itemDe.id}`,
           nameEn: itemEn.name || itemDe.name || `Achievement #${itemDe.id}`,
-          description: itemDe.description || '',
-          descriptionEn: itemEn.description || itemDe.description || '',
-          requirement: itemDe.requirement || '',
-          requirementEn: itemEn.requirement || itemDe.requirement || '',
+          description: descDe,
+          descriptionEn: descEn,
+          requirement: reqDe,
+          requirementEn: reqEn,
           lockedText: itemDe.locked_text,
           lockedTextEn: itemEn.locked_text,
           icon: itemDe.icon,
@@ -174,13 +179,22 @@ export async function ensureAchievementDefinitions(
  * Returns enriched achievements for display, integrating account progress or providing guest metadata.
  */
 export function getEnrichedAchievements(
-  userAchievements?: Map<number, AccountAchievementProgress> | null,
+  userAchievements?: Map<number, AccountAchievementProgress> | Record<string | number, AccountAchievementProgress> | null,
 ): EnrichedAchievement[] {
   const defs = getAllDefinitions();
-  const allUserMap = userAchievements || new Map<number, AccountAchievementProgress>();
+  const allUserMap = userAchievements instanceof Map
+    ? userAchievements
+    : new Map<number, AccountAchievementProgress>();
 
   return defs.map((def) => {
-    const progress = userAchievements ? userAchievements.get(def.id) : undefined;
+    let progress: AccountAchievementProgress | undefined;
+    if (userAchievements) {
+      if (userAchievements instanceof Map) {
+        progress = userAchievements.get(def.id) ?? userAchievements.get(Number(def.id)) ?? (userAchievements as any).get(String(def.id));
+      } else if (typeof userAchievements === 'object') {
+        progress = (userAchievements as any)[def.id] ?? (userAchievements as any)[String(def.id)];
+      }
+    }
     return enrichAchievement(def, progress, allUserMap);
   });
 }

@@ -522,6 +522,9 @@ app.whenReady().then(async () => {
     await sleep(1500);
     await waitForVisibleImages(6000);
     await snap('hero-board.png', 1180, 780);
+    await snap('hero-board-1520x685.png', 1520, 685);
+    win.setSize(1180, 780);
+    await sleep(500);
 
     // ------------------------------------------------------------------------
     // 2. Events Active & Expanded Boss Tactics, Defiance Bar & Loot
@@ -541,6 +544,9 @@ app.whenReady().then(async () => {
     await sleep(2500);
     await waitForVisibleImages(8000);
     await snap('events-active.png', 1180, 780);
+    await snap('events-active-1520x685.png', 1520, 685);
+    win.setSize(1180, 780);
+    await sleep(500);
 
     // ------------------------------------------------------------------------
     // 3. Compact Mini-HUD (Over-Chat Mode)
@@ -580,6 +586,9 @@ app.whenReady().then(async () => {
     await sleep(3000);
     await waitForVisibleImages(12000);
     await snap('account-item-search.png', 1180, 780);
+    await snap('inventory-1520x685.png', 1520, 685);
+    win.setSize(1180, 780);
+    await sleep(500);
 
     // ------------------------------------------------------------------------
     // 5. Character & Inventory Overview (NEW)
@@ -626,6 +635,9 @@ app.whenReady().then(async () => {
     await sleep(2500);
     await waitForVisibleImages(8000);
     await snap('achievements-hero-panel.png', 1180, 780);
+    await snap('achievements-1520x685.png', 1520, 685);
+    win.setSize(1180, 780);
+    await sleep(500);
 
     // ------------------------------------------------------------------------
     // 8. Achievements Detail (Category Explorer & Expandable Drawer)

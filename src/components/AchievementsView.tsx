@@ -3,17 +3,16 @@ import {
   Award,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   CheckCircle2,
   Circle,
   Search,
   Trophy,
   Compass,
-  MessageSquare,
   Star,
   X,
   Flame,
   Sparkles,
-  Clock,
   Shield,
   Key,
   RefreshCw,
@@ -25,28 +24,27 @@ import {
   Target,
   Layers,
   Calendar,
-  AlertTriangle,
-  Lock,
-  Unlock,
   ExternalLink,
   Skull,
   Swords,
   Crown,
+  Filter,
 } from 'lucide-react';
 import type { EventInstance } from '../types';
 import type { Gw2AccountInfo, Gw2AccountAchievement, Gw2DailyProgression } from '../data/gw2Api';
+import { loadCachedApiData } from '../data/gw2Api';
 import { ProgressBar } from './common/ui';
-import { formatCountdown, getEventZone } from '../data/events';
 import { useTranslation } from '../i18n';
 import {
   EnrichedAchievement,
-  RecommendationStrategy,
   AchievementRecommendation,
   generateRecommendations,
   filterAndSortAchievements,
   AchievementFilterOptions,
   calculateAccountTotalAp,
-  AccountApBreakdown,
+  calculateApMilestones,
+  getNearlyCompletedAchievements,
+  getRecentlyCompletedAchievements,
 } from '../domain/achievementIntelligence';
 import {
   initAchievementService,
@@ -72,14 +70,18 @@ interface AchievementsViewProps {
 const STORAGE_KEY_WATCHLIST = 'gw2_watchlist_achievements';
 
 type ActiveTab =
+  | 'summary'
+  | 'category'
+  | 'intelligence'
+  | 'watchlist'
+  | 'daily';
+
+type IntelligenceSubtab =
   | 'bestNext'
   | 'efficiency'
   | 'quickWins'
   | 'highestReward'
-  | 'continueProgress'
-  | 'categories'
-  | 'watchlist'
-  | 'daily';
+  | 'continueProgress';
 
 interface AchievementIconProps {
   icon?: string;
@@ -204,14 +206,16 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
   isRefreshing,
 }) => {
   const { t, lang } = useTranslation();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('bestNext');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('summary');
+  const [intelligenceSubtab, setIntelligenceSubtab] = useState<IntelligenceSubtab>('bestNext');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'unstarted' | 'completed'>('all');
-  const [sortBy, setSortBy] = useState<'score' | 'ap-desc' | 'ap-asc' | 'progress-desc' | 'name-asc'>('score');
+  const [sortBy, setSortBy] = useState<string>('game-order');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [copiedWaypointId, setCopiedWaypointId] = useState<number | null>(null);
+  const [displayLimit, setDisplayLimit] = useState<number>(40);
 
   // Watchlist persisted in localStorage
   const [watchlist, setWatchlist] = useState<number[]>(() => {
@@ -235,6 +239,11 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
     });
   };
 
+  // Reset pagination limit on search or filter change
+  useEffect(() => {
+    setDisplayLimit(40);
+  }, [searchQuery, selectedGroup, selectedCategoryId, statusFilter, sortBy]);
+
   // Reactive subscription to dynamic achievement definitions & categories
   const [, setCatalogVersion] = useState(0);
   useEffect(() => {
@@ -247,20 +256,69 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
     };
   }, []);
 
+  // Fallback to cached API achievements if prop is empty but apiKey/accountInfo exists
+  const effectiveUserAchievements = useMemo(() => {
+    if (userAchievements && userAchievements.size > 0) {
+      return userAchievements;
+    }
+    const cached = loadCachedApiData().achievements;
+    if (cached && cached.size > 0) {
+      return cached;
+    }
+    return userAchievements;
+  }, [userAchievements]);
+
+  // If userAchievements is not yet loaded on mount, request a background progression refresh
+  useEffect(() => {
+    if ((!userAchievements || userAchievements.size === 0) && onRefreshProgression) {
+      onRefreshProgression();
+    }
+  }, [userAchievements, onRefreshProgression]);
+
   // When user achievements update, ensure definitions for started achievements are loaded
   useEffect(() => {
-    if (userAchievements && userAchievements.size > 0) {
-      const ids = Array.from(userAchievements.keys()).slice(0, 300);
+    if (effectiveUserAchievements && effectiveUserAchievements.size > 0) {
+      const ids = Array.from(effectiveUserAchievements.keys()).slice(0, 300);
       void ensureAchievementDefinitions(ids, lang);
     }
-  }, [userAchievements, lang]);
+  }, [effectiveUserAchievements, lang]);
 
-  const hasSyncedApiKey = Boolean(accountInfo && userAchievements && userAchievements.size > 0);
+  const hasSyncedApiKey = Boolean(accountInfo && effectiveUserAchievements && effectiveUserAchievements.size > 0);
 
-  // 1. Enriched achievements
+  // 1. Enriched achievements (all 8,357)
   const allEnriched = useMemo(() => {
-    return getEnrichedAchievements(userAchievements);
-  }, [userAchievements]);
+    return getEnrichedAchievements(effectiveUserAchievements);
+  }, [effectiveUserAchievements]);
+
+  // Categories and groups metadata
+  const { categories, groups } = useMemo(() => getCategoriesAndGroups(), []);
+
+  // Fast in-game order lookup: maps achievementId -> (category.order * 10000 + index in category)
+  const inGameOrderMap = useMemo(() => {
+    const map = new Map<number, number>();
+    categories.forEach((cat) => {
+      if (cat.achievements) {
+        cat.achievements.forEach((id, idx) => {
+          map.set(id, (cat.order || 50) * 10000 + idx);
+        });
+      }
+    });
+    return map;
+  }, [categories]);
+
+  // Sidebar expanded groups (default: Adventure Guide & General expanded)
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(
+    () => new Set(['EFADEE67-588F-412F-A1BD-6C9AFF782988', '56A82BB9-6B07-4AB0-89EE-E4A6D68F5C47']),
+  );
+
+  const toggleGroup = (grpId: string) => {
+    setExpandedGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(grpId)) next.delete(grpId);
+      else next.add(grpId);
+      return next;
+    });
+  };
 
   // 2. Computed recommendations by strategy
   const bestNextRecs = useMemo(() => {
@@ -283,21 +341,19 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
     return generateRecommendations(allEnriched, 'continueProgress', lang, 30);
   }, [allEnriched, lang]);
 
-  // Categories and groups metadata
-  const { categories, groups } = useMemo(() => getCategoriesAndGroups(), []);
-
-  // Filtered achievements for category browser
+  // Filtered achievements for category browser (sorted in-game by default!)
   const categoryBrowserAchievements = useMemo(() => {
     const filterOpts: AchievementFilterOptions = {
       query: searchQuery,
-      groupId: selectedGroup,
+      groupId: selectedCategoryId ? undefined : (selectedGroup !== 'all' ? selectedGroup : undefined),
       categoryId: selectedCategoryId || undefined,
       statusFilter,
-      sortBy: sortBy === 'score' ? 'ap-desc' : sortBy,
+      sortBy,
       lang,
+      orderLookup: inGameOrderMap,
     };
     return filterAndSortAchievements(allEnriched, filterOpts);
-  }, [allEnriched, searchQuery, selectedGroup, selectedCategoryId, statusFilter, sortBy, lang]);
+  }, [allEnriched, searchQuery, selectedGroup, selectedCategoryId, statusFilter, sortBy, lang, inGameOrderMap]);
 
   // Watchlist items
   const watchlistAchievements = useMemo(() => {
@@ -318,6 +374,21 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
     return calculateAccountTotalAp(accountInfo, allEnriched);
   }, [accountInfo, allEnriched]);
 
+  // AP Milestone reward chests
+  const apMilestones = useMemo(() => {
+    return calculateApMilestones(apBreakdown.totalAp, 5);
+  }, [apBreakdown.totalAp]);
+
+  // Fast abgeschlossen (Nearly Completed)
+  const nearlyCompleted = useMemo(() => {
+    return getNearlyCompletedAchievements(allEnriched, 6);
+  }, [allEnriched]);
+
+  // Kürzlich abgeschlossen (Recently Completed)
+  const recentlyCompleted = useMemo(() => {
+    return getRecentlyCompletedAchievements(allEnriched, 6);
+  }, [allEnriched]);
+
   // Quick category status counts
   const categoryStatusCounts = useMemo(() => {
     let all = 0;
@@ -335,25 +406,49 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
     return { all, inProg, unstarted, completed };
   }, [allEnriched, selectedGroup, selectedCategoryId]);
 
-  // Group achievements by category for structured separation in Category Explorer
-  const groupedByCategory = useMemo(() => {
-    const groupsMap = new Map<number, { name: string; nameEn: string; items: EnrichedAchievement[] }>();
-    for (const ach of categoryBrowserAchievements) {
-      const catId = ach.definition.categoryId;
-      if (!groupsMap.has(catId)) {
-        groupsMap.set(catId, {
-          name: ach.definition.categoryName,
-          nameEn: ach.definition.categoryNameEn,
-          items: [],
-        });
+  // Category completion statistics map
+  const categoryStatsMap = useMemo(() => {
+    const map = new Map<number, { total: number; completed: number; obtainableAp: number }>();
+    for (const a of allEnriched) {
+      const catId = a.definition.categoryId;
+      let stat = map.get(catId);
+      if (!stat) {
+        stat = { total: 0, completed: 0, obtainableAp: 0 };
+        map.set(catId, stat);
       }
-      groupsMap.get(catId)!.items.push(ach);
+      stat.total++;
+      if (a.isDone) stat.completed++;
+      stat.obtainableAp += a.obtainableAp;
     }
-    return Array.from(groupsMap.entries()).map(([catId, data]) => ({
-      catId,
-      ...data,
-    }));
-  }, [categoryBrowserAchievements]);
+    return map;
+  }, [allEnriched]);
+
+  // Group completion statistics map
+  const groupStatsMap = useMemo(() => {
+    const map = new Map<string, { total: number; completed: number }>();
+    for (const a of allEnriched) {
+      const grpId = a.definition.groupId;
+      let stat = map.get(grpId);
+      if (!stat) {
+        stat = { total: 0, completed: 0 };
+        map.set(grpId, stat);
+      }
+      stat.total++;
+      if (a.isDone) stat.completed++;
+    }
+    return map;
+  }, [allEnriched]);
+
+  // Active category metadata (falls back to selected group or first category)
+  const activeCategory = useMemo(() => {
+    if (selectedCategoryId) {
+      return categories.find((c) => c.id === selectedCategoryId) || null;
+    }
+    if (selectedGroup !== 'all') {
+      return categories.find((c) => c.groupId === selectedGroup) || categories[0] || null;
+    }
+    return categories[0] || null;
+  }, [categories, selectedCategoryId, selectedGroup]);
 
   // Featured Best Next (the #1 ranked recommendation)
   const featuredBestNext = bestNextRecs.length > 0 ? bestNextRecs[0] : null;
@@ -372,6 +467,8 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
       setTimeout(() => setCopiedWaypointId(null), 2500);
     } catch (_) {}
   };
+
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
     <div className="gw2-achieve-container achieve-intelligence-root">
@@ -417,7 +514,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
                   {totalCompletedCount} {lang === 'en' ? 'Done' : 'Erledigt'}
                 </span>
                 <span className="sep">•</span>
-                <span className="text-amber-300 font-semibold" title={lang === 'en' ? 'Obtainable from loaded achievements' : 'Aus geladenen Erfolgen noch erreichbar'}>
+                <span className="text-amber-300 font-semibold" title={lang === 'en' ? 'Obtainable from loaded achievements' : 'Aus allen Erfolgen noch erreichbar'}>
                   +{totalObtainableAp.toLocaleString()} AP
                 </span>
               </div>
@@ -430,7 +527,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
               title={t('intel.guestBannerDesc')}
             >
               <Info size={13} className="text-amber-400 inline mr-1" />
-              <span>{lang === 'en' ? 'Guest Mode (Public Metadata)' : 'Gastmodus (Öffentliche Daten)'}</span>
+              <span>{lang === 'en' ? 'Guest Mode (8,357 Indexed)' : 'Gastmodus (8.357 Erfolge)'}</span>
               <Key size={11} className="ml-1.5 opacity-80" />
             </button>
           )}
@@ -464,606 +561,842 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
         </div>
       )}
 
-      {/* 2. Primary Sub-Navigation Bar */}
-      <div className="achieve-subnav-bar">
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'bestNext' ? 'active' : ''}`}
-          onClick={() => setActiveTab('bestNext')}
-        >
-          <Sparkles size={13} className="gold" />
-          <span>{t('intel.tabBestNext')}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'efficiency' ? 'active' : ''}`}
-          onClick={() => setActiveTab('efficiency')}
-        >
-          <Zap size={13} className="text-amber-300" />
-          <span>{t('intel.tabEfficiency')}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'quickWins' ? 'active' : ''}`}
-          onClick={() => setActiveTab('quickWins')}
-        >
-          <Target size={13} className="text-emerald-400" />
-          <span>{t('intel.tabQuickWins')}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'highestReward' ? 'active' : ''}`}
-          onClick={() => setActiveTab('highestReward')}
-        >
-          <Trophy size={13} className="gold" />
-          <span>{t('intel.tabHighestReward')}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'continueProgress' ? 'active' : ''}`}
-          onClick={() => setActiveTab('continueProgress')}
-        >
-          <TrendingUp size={13} className="text-sky-400" />
-          <span>{t('intel.tabContinueProgress')}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'categories' ? 'active' : ''}`}
-          onClick={() => setActiveTab('categories')}
-        >
-          <Layers size={13} />
-          <span>{t('intel.tabCategories')}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'watchlist' ? 'active' : ''}`}
-          onClick={() => setActiveTab('watchlist')}
-        >
-          <Star size={13} className={watchlist.length > 0 ? 'gold' : ''} fill={watchlist.length > 0 ? '#d2b268' : 'none'} />
-          <span>{t('intel.tabWatchlist')} ({watchlist.length})</span>
-        </button>
-
-        <button
-          type="button"
-          className={`achieve-subnav-btn ${activeTab === 'daily' ? 'active' : ''}`}
-          onClick={() => setActiveTab('daily')}
-        >
-          <Calendar size={13} className="text-sky-300" />
-          <span>{t('intel.tabDaily')}</span>
-        </button>
-      </div>
-
-      {/* 3. Main Views Container */}
-      <div className="achieve-scroll-view">
+      {/* 2. AUTHENTIC HERO PANEL TWO-PANE LAYOUT */}
+      <div className="gw2-hero-layout">
         {/* ============================================================
-            VIEW 1: BEST NEXT ACHIEVEMENT (FEATURED HERO + RANKED QUEUE)
+            LEFT SIDEBAR: SEARCH, QUICK FILTER & GROUP/CATEGORY TREE
             ============================================================ */}
-        {activeTab === 'bestNext' && (
-          <div className="achieve-view-stack">
-            {/* Central Hero Showcase: Top-Ranked Best Next Achievement */}
-            {featuredBestNext && (
-              <div className="achieve-hero-card">
-                <div className="hero-top-badge font-serif">
-                  <Sparkles size={13} className="gold" />
-                  <span>{t('intel.heroBadge')}</span>
+        <aside className="gw2-hero-sidebar">
+          {/* Top Filter & Search */}
+          <div className="gw2-hero-sidebar-search">
+            <div style={{ marginBottom: 6 }}>
+              <select
+                className="gw2-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                aria-label={t('intel.filterStatus')}
+                style={{ width: '100%', fontSize: 11, padding: '3px 6px' }}
+              >
+                <option value="all">{t('intel.statusAll')}</option>
+                <option value="in_progress">{t('intel.statusInProgress')}</option>
+                <option value="unstarted">{t('intel.statusUnstarted')}</option>
+                <option value="completed">{t('intel.statusCompleted')}</option>
+              </select>
+            </div>
+
+            <div className="explorer-search-wrap" style={{ width: '100%' }}>
+              <Search size={12} className="explorer-search-icon dim" />
+              <input
+                type="text"
+                className="gw2-input explorer-search-input"
+                placeholder={lang === 'en' ? 'Search...' : 'Suchen ...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ fontSize: 11, padding: '4px 22px 4px 24px' }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="explorer-search-clear"
+                  onClick={() => setSearchQuery('')}
+                  title="Clear"
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Scrollable Categories Navigation Tree */}
+          <div className="gw2-hero-sidebar-tree">
+            <div className="tree-section-header font-serif">
+              {t('intel.categories')}
+            </div>
+
+            {/* Special Nav: Zusammenfassung (Summary) */}
+            <div
+              className={`tree-nav-item font-serif ${activeTab === 'summary' && !selectedCategoryId && !isSearching ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('summary');
+                setSelectedCategoryId(0);
+                setSearchQuery('');
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Layers size={13} className="gold" />
+                <span>{t('intel.tabSummary')}</span>
+              </div>
+            </div>
+
+            {/* Special Nav: Beobachtungsliste (Watchlist) */}
+            <div
+              className={`tree-nav-item font-serif ${activeTab === 'watchlist' && !selectedCategoryId && !isSearching ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('watchlist');
+                setSelectedCategoryId(0);
+                setSearchQuery('');
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Star size={13} className={watchlist.length > 0 ? 'gold' : ''} fill={watchlist.length > 0 ? '#d2b268' : 'none'} />
+                <span>{t('intel.tabWatchlist')}</span>
+              </div>
+              <span className="tree-count-pill font-mono">{watchlist.length}</span>
+            </div>
+
+            {/* Special Nav: Empfohlene Erfolge (Recommendations) */}
+            <div
+              className={`tree-nav-item font-serif ${activeTab === 'intelligence' && !selectedCategoryId && !isSearching ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('intelligence');
+                setSelectedCategoryId(0);
+                setSearchQuery('');
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles size={13} className="text-amber-300" />
+                <span>{t('intel.aiRecommendations')}</span>
+              </div>
+              <span className="tree-count-pill font-mono text-amber-300" title={t('intel.tabBestNext')}>★</span>
+            </div>
+
+            {/* Special Nav: Täglich & Gewölbe (Daily & Vault) */}
+            <div
+              className={`tree-nav-item font-serif ${activeTab === 'daily' && !selectedCategoryId && !isSearching ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('daily');
+                setSelectedCategoryId(0);
+                setSearchQuery('');
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Calendar size={13} className="text-emerald-400" />
+                <span>{t('intel.tabDaily')}</span>
+              </div>
+            </div>
+
+            {/* In-Game Groups Accordion (19 Official Groups) */}
+            <div style={{ marginTop: 6 }}>
+              {groups.map((group) => {
+                const isExpanded = expandedGroupIds.has(group.id);
+                const grpStat = groupStatsMap.get(group.id);
+                const groupCats = categories.filter((c) => c.groupId === group.id);
+
+                return (
+                  <div key={group.id} className="tree-group-container">
+                    <div
+                      className={`tree-group-row ${selectedGroup === group.id && selectedCategoryId === 0 ? 'active' : ''}`}
+                      onClick={() => {
+                        toggleGroup(group.id);
+                        setSelectedGroup(group.id);
+                        if (groupCats.length > 0 && (!selectedCategoryId || !groupCats.some((c) => c.id === selectedCategoryId))) {
+                          setSelectedCategoryId(groupCats[0].id);
+                          setActiveTab('category');
+                          setSearchQuery('');
+                        }
+                      }}
+                    >
+                      <div className="tree-group-header-inner">
+                        <ChevronRight
+                          size={12}
+                          className={`tree-group-arrow ${isExpanded ? 'expanded' : ''}`}
+                        />
+                        <span className="tree-group-name">
+                          {lang === 'en' ? group.nameEn : group.name}
+                        </span>
+                      </div>
+                      {grpStat && (
+                        <span className="tree-count-pill font-mono">
+                          {grpStat.completed}/{grpStat.total}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Expanded Categories of this Group */}
+                    {isExpanded && (
+                      <div className="tree-cats-list">
+                        {groupCats.map((cat) => {
+                          const catStat = categoryStatsMap.get(cat.id);
+                          const isCatActive = activeTab === 'category' && selectedCategoryId === cat.id;
+                          const allDone = catStat && catStat.total > 0 && catStat.completed === catStat.total;
+
+                          return (
+                            <div
+                              key={cat.id}
+                              className={`tree-cat-row ${isCatActive ? 'active' : ''}`}
+                              onClick={() => {
+                                setSelectedCategoryId(cat.id);
+                                setSelectedGroup(group.id);
+                                setActiveTab('category');
+                                setSearchQuery('');
+                              }}
+                            >
+                              <div className="flex items-center min-w-0 flex-1">
+                                {cat.icon ? (
+                                  <img
+                                    src={cat.icon}
+                                    alt=""
+                                    className="tree-cat-icon"
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                ) : (
+                                  <Layers size={13} className="tree-cat-icon dim" />
+                                )}
+                                <span className="truncate">
+                                  {lang === 'en' ? cat.nameEn : cat.name}
+                                </span>
+                              </div>
+                              {catStat && (
+                                <span className={`tree-count-pill ${allDone ? 'all-done' : ''} font-mono`}>
+                                  {catStat.completed}/{catStat.total}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sidebar Footer: Catalog Summary */}
+          <div className="hero-sidebar-total-strip font-mono">
+            <span>{groups.length} Gruppen • {categories.length} Kat.</span>
+            <span className="gold font-bold">{allEnriched.length.toLocaleString()} Erfolge</span>
+          </div>
+        </aside>
+
+        {/* ============================================================
+            RIGHT MAIN CONTENT AREA
+            ============================================================ */}
+        <main className="gw2-hero-main-content">
+          {/* A. SEARCH MODE (Active whenever text is typed in search) */}
+          {isSearching ? (
+            <div className="hero-content-pane">
+              <div className="hero-main-header">
+                <div className="hero-main-header-title">
+                  <Search size={18} className="gold" />
+                  <div className="hero-category-header-block">
+                    <h3 className="hero-category-header-name">
+                      {lang === 'en' ? `Search: "${searchQuery}"` : `Suche: "${searchQuery}"`}
+                    </h3>
+                    <span className="dim text-xs font-mono">
+                      {categoryBrowserAchievements.length} {lang === 'en' ? 'results found' : 'Treffer gefunden'}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="hero-card-inner">
-                  <div className="hero-icon-block">
-                    <AchievementIcon
-                      icon={featuredBestNext.achievement.definition.icon}
-                      groupId={featuredBestNext.achievement.definition.groupId}
-                      categoryName={featuredBestNext.achievement.definition.categoryName}
-                      size={52}
-                      className="hero-ach-icon"
-                    />
+                <div className="flex items-center gap-2">
+                  <select
+                    className="gw2-select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    aria-label={t('intel.sortBy')}
+                    style={{ padding: '3px 8px', fontSize: 11 }}
+                  >
+                    <option value="game-order">{t('intel.sortGameOrder')}</option>
+                    <option value="progress-desc">{t('intel.sortProgressDesc')}</option>
+                    <option value="ap-desc">{t('intel.sortApDesc')}</option>
+                    <option value="ap-asc">{t('intel.sortApAsc')}</option>
+                    <option value="name-asc">{t('intel.sortNameAsc')}</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    className="gw2-btn-sm"
+                    onClick={() => setSearchQuery('')}
+                    style={{ padding: '2px 8px', fontSize: 11 }}
+                  >
+                    <X size={11} className="inline mr-1" />
+                    <span>{lang === 'en' ? 'Close Search' : 'Suche schließen'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="achieve-scroll-view">
+                {categoryBrowserAchievements.length === 0 ? (
+                  <div className="achieve-empty-state">
+                    <Search size={28} className="dim mb-2" />
+                    <p className="dim text-xs">{t('intel.emptyList')}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="achieve-grid-cards">
+                      {categoryBrowserAchievements.slice(0, displayLimit).map((ach) => renderAchievementCard(ach))}
+                    </div>
+                    {categoryBrowserAchievements.length > displayLimit && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+                        <button
+                          type="button"
+                          className="gw2-btn-sm font-serif"
+                          onClick={() => setDisplayLimit((prev) => prev + 40)}
+                        >
+                          <span>{t('intel.showMore')} ({displayLimit} / {categoryBrowserAchievements.length})</span>
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ) : activeTab === 'summary' ? (
+            /* B. SUMMARY VIEW (ZUSAMMENFASSUNG) */
+            <div className="hero-content-pane">
+              <div className="achieve-scroll-view">
+                <div className="achieve-view-stack">
+                  {/* Top Milestone Reward Chests Bar */}
+                  <div className="hero-milestones-container">
+                    <div className="hero-milestones-header font-serif">
+                      <div className="flex items-center gap-1.5">
+                        <Gift size={13} className="gold" />
+                        <span className="font-semibold text-[#f4e3a8]">{t('intel.milestoneTitle')}</span>
+                      </div>
+                      <span className="dim text-xs font-mono">
+                        {t('intel.currentAccountAp')}: <strong className="gold">{apBreakdown.totalAp.toLocaleString()} AP</strong>
+                      </span>
+                    </div>
+                    <div className="hero-milestones-track">
+                      {apMilestones.map((m) => (
+                        <div
+                          key={m.ap}
+                          className="hero-milestone-step"
+                          title={m.isSpecial ? t('intel.milestoneOrnateChest', { ap: m.ap.toLocaleString() }) : t('intel.milestoneChest', { ap: m.ap.toLocaleString() })}
+                        >
+                          <div className={`milestone-chest-icon-box ${m.isSpecial ? 'is-special' : ''}`}>
+                            {m.isSpecial ? (
+                              <Crown size={22} className="text-sky-300" />
+                            ) : (
+                              <Gift size={20} className="text-amber-300" />
+                            )}
+                          </div>
+                          <span className="milestone-ap-label font-mono">{m.ap.toLocaleString()}</span>
+                          <span className="milestone-rem-label font-mono">
+                            {t('intel.milestonePointsRemaining', { points: m.pointsRemaining.toLocaleString() })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="hero-details-block">
-                    <div className="hero-title-row">
-                      <div className="hero-title-group">
-                        <span className="hero-category-tag font-serif">
-                          {lang === 'en'
-                            ? featuredBestNext.achievement.definition.categoryNameEn
-                            : featuredBestNext.achievement.definition.categoryName}
+                  {/* Two-Column Layout: Recently Completed & Nearly Completed */}
+                  <div className="hero-summary-grid">
+                    {/* Left Column: Kürzlich abgeschlossen */}
+                    <div className="hero-summary-column">
+                      <div className="hero-column-header">
+                        <span className="hero-column-title font-serif">
+                          <CheckCircle2 size={14} className="good" />
+                          <span>{t('intel.recentlyCompleted')}</span>
                         </span>
-                        <h3 className="hero-ach-name font-serif">
-                          {lang === 'en'
-                            ? featuredBestNext.achievement.definition.nameEn
-                            : featuredBestNext.achievement.definition.name}
-                        </h3>
+                        <span className="dim text-xs font-mono">({recentlyCompleted.length})</span>
                       </div>
+                      {recentlyCompleted.length === 0 ? (
+                        <div className="achieve-empty-state" style={{ padding: '16px 8px' }}>
+                          <p className="dim text-xs">
+                            {lang === 'en'
+                              ? 'No completed achievements recorded yet.'
+                              : 'Noch keine abgeschlossenen Erfolge erfasst.'}
+                          </p>
+                        </div>
+                      ) : (
+                        recentlyCompleted.map(renderRecentlyCompletedRow)
+                      )}
+                    </div>
 
-                      <div className="hero-reward-pill font-mono">
-                        <Trophy size={14} className="gold" />
-                        <span className="hero-ap-val gold font-bold">
-                          +{featuredBestNext.achievement.obtainableAp} AP
+                    {/* Right Column: Fast abgeschlossen */}
+                    <div className="hero-summary-column">
+                      <div className="hero-column-header">
+                        <span className="hero-column-title font-serif">
+                          <Target size={14} className="text-emerald-400" />
+                          <span>{t('intel.nearlyCompleted')}</span>
                         </span>
+                        <span className="dim text-xs font-mono">({nearlyCompleted.length})</span>
+                      </div>
+                      {nearlyCompleted.length === 0 ? (
+                        <div className="achieve-empty-state" style={{ padding: '16px 8px' }}>
+                          <p className="dim text-xs">
+                            {lang === 'en'
+                              ? 'No partially completed achievements found.'
+                              : 'Keine fast fertigen Erfolge gefunden.'}
+                          </p>
+                        </div>
+                      ) : (
+                        nearlyCompleted.map(renderNearlyCompletedRow)
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Bonuses & Catalog Strip */}
+                  <div className="hero-bonuses-strip">
+                    <div>
+                      <h4 className="font-serif font-bold text-xs text-[#f4e3a8] mb-2">
+                        {t('intel.accountBonuses')}
+                      </h4>
+                      <div className="bonus-metrics-grid font-mono">
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Gold Find' : 'Goldgespür'}:</span>
+                          <span className="bonus-metric-val">+1%</span>
+                        </div>
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Karma Gain' : 'Karmazuwachs'}:</span>
+                          <span className="bonus-metric-val">+1%</span>
+                        </div>
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Magic Find' : 'Magisches Gespür'}:</span>
+                          <span className="bonus-metric-val">+78%</span>
+                        </div>
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Daily/Monthly AP' : 'Täglich/Monatlich'}:</span>
+                          <span className="bonus-metric-val">{apBreakdown.dailyMonthlyCombined.toLocaleString()} / 15.000</span>
+                        </div>
                       </div>
                     </div>
 
-                    <p className="hero-desc">
-                      {stripGw2Tags(lang === 'en'
-                        ? featuredBestNext.achievement.definition.descriptionEn
-                        : featuredBestNext.achievement.definition.description)}
-                    </p>
-
-                    {/* Explainable Rationale Callout */}
-                    <div className="hero-explain-box">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
-                        <Info size={12} />
-                        <span>{t('intel.whyRecommended')}</span>
+                    <div>
+                      <h4 className="font-serif font-bold text-xs text-[#f4e3a8] mb-2">
+                        {lang === 'en' ? 'Catalog Overview:' : 'Katalog-Übersicht:'}
+                      </h4>
+                      <div className="bonus-metrics-grid font-mono">
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Total Indexed' : 'Gesamt indexiert'}:</span>
+                          <span className="bonus-metric-val">{allEnriched.length.toLocaleString()}</span>
+                        </div>
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Categories' : 'Kategorien'}:</span>
+                          <span className="bonus-metric-val">{categories.length}</span>
+                        </div>
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Groups' : 'Gruppen'}:</span>
+                          <span className="bonus-metric-val">{groups.length}</span>
+                        </div>
+                        <div className="bonus-metric-item">
+                          <span className="bonus-metric-label">{lang === 'en' ? 'Potential AP' : 'Erzielbare AP'}:</span>
+                          <span className="bonus-metric-val text-amber-300">+{totalObtainableAp.toLocaleString()}</span>
+                        </div>
                       </div>
-                      <p className="text-xs text-[#f4eedb] mt-0.5">
-                        {lang === 'en' ? featuredBestNext.reasonEn : featuredBestNext.reasonDe}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'category' && activeCategory ? (
+            /* C. CATEGORY VIEW (Authentic In-Game Category & Order) */
+            <div className="hero-content-pane">
+              <div className="hero-main-header">
+                <div className="hero-main-header-title">
+                  <AchievementIcon
+                    icon={activeCategory.icon}
+                    groupId={activeCategory.groupId}
+                    categoryName={activeCategory.name}
+                    size={36}
+                    className="hero-main-header-icon"
+                  />
+                  <div className="hero-category-header-block">
+                    <div className="flex items-center gap-2">
+                      <h3 className="hero-category-header-name">
+                        {lang === 'en' ? activeCategory.nameEn : activeCategory.name}
+                      </h3>
+                      {categoryStatsMap.get(activeCategory.id) && (
+                        <span className="dim text-xs font-mono">
+                          ({categoryStatsMap.get(activeCategory.id)!.completed}/{categoryStatsMap.get(activeCategory.id)!.total} {lang === 'en' ? 'Done' : 'Erledigt'})
+                        </span>
+                      )}
+                    </div>
+                    {activeCategory.description && (
+                      <p className="hero-category-header-desc">
+                        {lang === 'en' ? (activeCategory.descriptionEn || activeCategory.description) : activeCategory.description}
                       </p>
-                    </div>
+                    )}
+                  </div>
+                </div>
 
-                    {/* Progress Bar & Details */}
-                    <div className="hero-progress-section">
-                      <div className="flex justify-between text-xs font-mono mb-1">
-                        <span className="dim">
-                          {t('intel.progressRemaining', { count: featuredBestNext.achievement.remainingCount })}
-                        </span>
-                        <span className="gold font-semibold">
-                          {featuredBestNext.achievement.currentProgress} / {featuredBestNext.achievement.maxProgress} (
-                          {Math.round(featuredBestNext.achievement.progressFraction * 100)}%)
-                        </span>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="gw2-select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    aria-label={t('intel.sortBy')}
+                    style={{ padding: '3px 8px', fontSize: 11 }}
+                  >
+                    <option value="game-order">{t('intel.sortGameOrder')}</option>
+                    <option value="progress-desc">{t('intel.sortProgressDesc')}</option>
+                    <option value="ap-desc">{t('intel.sortApDesc')}</option>
+                    <option value="ap-asc">{t('intel.sortApAsc')}</option>
+                    <option value="name-asc">{t('intel.sortNameAsc')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Category Achievements List */}
+              <div className="achieve-scroll-view">
+                {categoryBrowserAchievements.length === 0 ? (
+                  <div className="achieve-empty-state">
+                    <Search size={28} className="dim mb-2" />
+                    <p className="dim text-xs">{t('intel.emptyList')}</p>
+                    <button
+                      type="button"
+                      className="gw2-btn-sm mt-2 font-serif"
+                      onClick={() => setStatusFilter('all')}
+                    >
+                      {t('common.resetFilters')}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="achieve-grid-cards">
+                      {categoryBrowserAchievements.slice(0, displayLimit).map((ach) => renderAchievementCard(ach))}
+                    </div>
+                    {categoryBrowserAchievements.length > displayLimit && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+                        <button
+                          type="button"
+                          className="gw2-btn-sm font-serif"
+                          onClick={() => setDisplayLimit((prev) => prev + 40)}
+                        >
+                          <span>{t('intel.showMore')} ({displayLimit} / {categoryBrowserAchievements.length})</span>
+                        </button>
                       </div>
-                      <ProgressBar
-                        value={featuredBestNext.achievement.progressFraction}
-                        tone={featuredBestNext.achievement.progressFraction >= 0.75 ? 'gold' : 'green'}
-                      />
-                    </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ) : activeTab === 'intelligence' ? (
+            /* D. INTELLIGENCE VIEW (Sub-nav for AI Strategies) */
+            <div className="hero-content-pane">
+              <div className="hero-intel-subnav">
+                <button
+                  type="button"
+                  className={`hero-intel-subnav-btn ${intelligenceSubtab === 'bestNext' ? 'active' : ''}`}
+                  onClick={() => setIntelligenceSubtab('bestNext')}
+                >
+                  <Sparkles size={12} className="gold" />
+                  <span>{t('intel.tabBestNext')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`hero-intel-subnav-btn ${intelligenceSubtab === 'efficiency' ? 'active' : ''}`}
+                  onClick={() => setIntelligenceSubtab('efficiency')}
+                >
+                  <Zap size={12} className="text-amber-300" />
+                  <span>{t('intel.tabEfficiency')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`hero-intel-subnav-btn ${intelligenceSubtab === 'quickWins' ? 'active' : ''}`}
+                  onClick={() => setIntelligenceSubtab('quickWins')}
+                >
+                  <Target size={12} className="text-emerald-400" />
+                  <span>{t('intel.tabQuickWins')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`hero-intel-subnav-btn ${intelligenceSubtab === 'highestReward' ? 'active' : ''}`}
+                  onClick={() => setIntelligenceSubtab('highestReward')}
+                >
+                  <Trophy size={12} className="gold" />
+                  <span>{t('intel.tabHighestReward')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`hero-intel-subnav-btn ${intelligenceSubtab === 'continueProgress' ? 'active' : ''}`}
+                  onClick={() => setIntelligenceSubtab('continueProgress')}
+                >
+                  <TrendingUp size={12} className="text-sky-400" />
+                  <span>{t('intel.tabContinueProgress')}</span>
+                </button>
+              </div>
 
-                    {/* Remaining objectives checklist preview */}
-                    {featuredBestNext.achievement.remainingObjectives.length > 0 && (
-                      <div className="hero-objectives-preview">
-                        <span className="text-xs dim font-serif font-bold block mb-1">
-                          {t('intel.remainingObjectivesTitle', { count: featuredBestNext.achievement.remainingObjectives.length })}
-                        </span>
-                        <div className="hero-obj-chips">
-                          {(lang === 'en'
-                            ? featuredBestNext.achievement.remainingObjectivesEn
-                            : featuredBestNext.achievement.remainingObjectives
-                          ).slice(0, 4).map((objText, i) => (
-                            <span key={i} className="hero-obj-chip">
-                              <Circle size={9} className="dim shrink-0 inline mr-1" />
-                              <span className="truncate">{stripGw2Tags(objText)}</span>
-                            </span>
-                          ))}
-                          {featuredBestNext.achievement.remainingObjectives.length > 4 && (
-                            <span className="hero-obj-chip dim font-mono">
-                              +{featuredBestNext.achievement.remainingObjectives.length - 4} {lang === 'en' ? 'more' : 'weitere'}
-                            </span>
-                          )}
+              <div className="achieve-scroll-view">
+                {intelligenceSubtab === 'bestNext' && (
+                  <div className="achieve-view-stack">
+                    {featuredBestNext && (
+                      <div className="achieve-hero-card">
+                        <div className="hero-top-badge font-serif">
+                          <Sparkles size={13} className="gold" />
+                          <span>{t('intel.heroBadge')}</span>
+                        </div>
+                        <div className="hero-card-inner">
+                          <div className="hero-icon-block">
+                            <AchievementIcon
+                              icon={featuredBestNext.achievement.definition.icon}
+                              groupId={featuredBestNext.achievement.definition.groupId}
+                              categoryName={featuredBestNext.achievement.definition.categoryName}
+                              size={52}
+                              className="hero-ach-icon"
+                            />
+                          </div>
+                          <div className="hero-details-block">
+                            <div className="hero-title-row">
+                              <div className="hero-title-group">
+                                <span className="hero-category-tag font-serif">
+                                  {lang === 'en'
+                                    ? featuredBestNext.achievement.definition.categoryNameEn
+                                    : featuredBestNext.achievement.definition.categoryName}
+                                </span>
+                                <h3 className="hero-ach-name font-serif">
+                                  {lang === 'en'
+                                    ? featuredBestNext.achievement.definition.nameEn
+                                    : featuredBestNext.achievement.definition.name}
+                                </h3>
+                              </div>
+                              <div className="hero-reward-pill font-mono">
+                                <Trophy size={14} className="gold" />
+                                <span className="hero-ap-val gold font-bold">
+                                  +{featuredBestNext.achievement.obtainableAp} AP
+                                </span>
+                              </div>
+                            </div>
+                            <p className="hero-desc">
+                              {stripGw2Tags(lang === 'en'
+                                ? (featuredBestNext.achievement.definition.requirementEn || featuredBestNext.achievement.definition.descriptionEn)
+                                : (featuredBestNext.achievement.definition.requirement || featuredBestNext.achievement.definition.description))}
+                            </p>
+                            <div className="hero-explain-box">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+                                <Info size={12} />
+                                <span>{t('intel.whyRecommended')}</span>
+                              </div>
+                              <p className="text-xs text-[#f4eedb] mt-0.5">
+                                {lang === 'en' ? featuredBestNext.reasonEn : featuredBestNext.reasonDe}
+                              </p>
+                            </div>
+                            <div className="hero-progress-section">
+                              <div className="flex justify-between text-xs font-mono mb-1">
+                                <span className="dim">
+                                  {t('intel.progressRemaining', { count: featuredBestNext.achievement.remainingCount })}
+                                </span>
+                                <span className="gold font-semibold">
+                                  {featuredBestNext.achievement.currentProgress} / {featuredBestNext.achievement.maxProgress} (
+                                  {Math.round(featuredBestNext.achievement.progressFraction * 100)}%)
+                                </span>
+                              </div>
+                              <ProgressBar
+                                value={featuredBestNext.achievement.progressFraction}
+                                tone={featuredBestNext.achievement.progressFraction >= 0.75 ? 'gold' : 'green'}
+                              />
+                            </div>
+                            <div className="hero-action-buttons">
+                              <button
+                                type="button"
+                                className={`gw2-btn-sm ${watchlist.includes(featuredBestNext.achievement.definition.id) ? 'active' : ''}`}
+                                onClick={() => toggleWatchlist(featuredBestNext.achievement.definition.id)}
+                              >
+                                <Star size={12} className={watchlist.includes(featuredBestNext.achievement.definition.id) ? 'gold' : ''} fill={watchlist.includes(featuredBestNext.achievement.definition.id) ? '#d2b268' : 'none'} />
+                                <span>{t('intel.tabWatchlist')}</span>
+                              </button>
+                              {(featuredBestNext.achievement.definition.waypoint || featuredBestNext.achievement.definition.eventId) && (
+                                <button
+                                  type="button"
+                                  className="gw2-btn-sm"
+                                  onClick={() => handleCopyWaypoint(featuredBestNext.achievement)}
+                                >
+                                  {copiedWaypointId === featuredBestNext.achievement.definition.id ? (
+                                    <Check size={12} className="good" />
+                                  ) : (
+                                    <Compass size={12} />
+                                  )}
+                                  <span>
+                                    {copiedWaypointId === featuredBestNext.achievement.definition.id
+                                      ? t('intel.waypointCopied')
+                                      : t('intel.fastTravel')}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
+                    <div className="achieve-grid-cards">
+                      {bestNextRecs.slice(1).map((rec) => renderAchievementCard(rec.achievement, rec))}
+                    </div>
+                  </div>
+                )}
 
-                    {/* Action buttons */}
-                    <div className="hero-action-buttons">
-                      <button
-                        type="button"
-                        className={`gw2-btn-sm ${watchlist.includes(featuredBestNext.achievement.definition.id) ? 'active' : ''}`}
-                        onClick={() => toggleWatchlist(featuredBestNext.achievement.definition.id)}
-                      >
-                        <Star size={12} className={watchlist.includes(featuredBestNext.achievement.definition.id) ? 'gold' : ''} fill={watchlist.includes(featuredBestNext.achievement.definition.id) ? '#d2b268' : 'none'} />
-                        <span>{t('intel.tabWatchlist')}</span>
-                      </button>
+                {intelligenceSubtab === 'efficiency' && (
+                  <div className="achieve-view-stack">
+                    <div className="strategy-banner font-serif">
+                      <Zap size={14} className="text-amber-300" />
+                      <span>
+                        {lang === 'en'
+                          ? 'Ranked strictly by estimated achievement-point-to-effort ratio (AP per remaining objective).'
+                          : 'Priorisiert nach dem günstigsten Verhältnis aus erreichbaren Erfolgspunkten zu Restaufwand.'}
+                      </span>
+                    </div>
+                    <div className="achieve-grid-cards">
+                      {efficiencyRecs.map((rec) => renderAchievementCard(rec.achievement, rec))}
+                    </div>
+                  </div>
+                )}
 
-                      {(featuredBestNext.achievement.definition.waypoint || featuredBestNext.achievement.definition.eventId) && (
-                        <button
-                          type="button"
-                          className="gw2-btn-sm"
-                          onClick={() => handleCopyWaypoint(featuredBestNext.achievement)}
-                        >
-                          {copiedWaypointId === featuredBestNext.achievement.definition.id ? (
-                            <Check size={12} className="good" />
-                          ) : (
-                            <Compass size={12} />
-                          )}
-                          <span>
-                            {copiedWaypointId === featuredBestNext.achievement.definition.id
-                              ? t('intel.waypointCopied')
-                              : t('intel.fastTravel')}
-                          </span>
-                        </button>
-                      )}
+                {intelligenceSubtab === 'quickWins' && (
+                  <div className="achieve-view-stack">
+                    <div className="strategy-banner font-serif">
+                      <Target size={14} className="text-emerald-400" />
+                      <span>
+                        {lang === 'en'
+                          ? 'Prioritizes achievements closest to completion requiring the fewest remaining objectives.'
+                          : 'Priorisiert Erfolge kurz vor dem Abschluss mit den geringsten verbleibenden Teilzielen.'}
+                      </span>
+                    </div>
+                    <div className="achieve-grid-cards">
+                      {quickWinsRecs.map((rec) => renderAchievementCard(rec.achievement, rec))}
+                    </div>
+                  </div>
+                )}
+
+                {intelligenceSubtab === 'highestReward' && (
+                  <div className="achieve-view-stack">
+                    <div className="strategy-banner font-serif">
+                      <Trophy size={14} className="gold" />
+                      <span>
+                        {lang === 'en'
+                          ? 'Ranked by total remaining obtainable achievement points.'
+                          : 'Geordnet nach maximal erzielbaren Rest-Erfolgspunkten.'}
+                      </span>
+                    </div>
+                    <div className="achieve-grid-cards">
+                      {highestRewardRecs.map((rec) => renderAchievementCard(rec.achievement, rec))}
+                    </div>
+                  </div>
+                )}
+
+                {intelligenceSubtab === 'continueProgress' && (
+                  <div className="achieve-view-stack">
+                    <div className="strategy-banner font-serif">
+                      <TrendingUp size={14} className="text-sky-400" />
+                      <span>
+                        {lang === 'en'
+                          ? 'Highlights your partially completed achievements with active progress.'
+                          : 'Hebt angefangene Erfolge mit aktivem Fortschritt hervor.'}
+                      </span>
+                    </div>
+                    <div className="achieve-grid-cards">
+                      {continueProgressRecs.map((rec) => renderAchievementCard(rec.achievement, rec))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : activeTab === 'watchlist' ? (
+            /* E. WATCHLIST VIEW */
+            <div className="hero-content-pane">
+              <div className="achieve-scroll-view">
+                <div className="achieve-view-stack">
+                  <div className="strategy-banner font-serif">
+                    <Star size={14} className="gold" fill="#d2b268" />
+                    <span>
+                      {lang === 'en'
+                        ? `Pinned Achievements Watchlist (${watchlistAchievements.length})`
+                        : `Beobachtungsliste angepinnter Erfolge (${watchlistAchievements.length})`}
+                    </span>
+                  </div>
+                  {watchlistAchievements.length === 0 ? (
+                    <div className="achieve-empty-state">
+                      <Star size={28} className="gold mb-2" fill="#d2b268" />
+                      <p className="dim text-xs">{t('intel.emptyWatchlist')}</p>
+                    </div>
+                  ) : (
+                    <div className="achieve-grid-cards">
+                      {watchlistAchievements.map((ach) => renderAchievementCard(ach))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* F. DAILY & WIZARD'S VAULT VIEW */
+            <div className="hero-content-pane">
+              <div className="achieve-scroll-view">
+                <div className="gw2-daily-dashboard">
+                  {dailyProgression?.wizardsVault && (
+                    <div className="daily-section-card">
+                      <div className="daily-section-header">
+                        <Flame size={14} className="gold" />
+                        <span className="font-serif font-bold text-sm text-[#f4e3a8]">
+                          {t('common.wizardsVaultDaily')} ({dailyProgression.wizardsVault.meta_progress_current} / {dailyProgression.wizardsVault.meta_progress_complete})
+                        </span>
+                      </div>
+                      <div className="vault-objectives-grid">
+                        {dailyProgression.wizardsVault.objectives.map((obj) => (
+                          <div key={obj.id} className="vault-obj-card">
+                            <div className="flex items-center justify-between text-xs font-serif">
+                              <span className="font-semibold text-[#f3efe6]">{obj.title}</span>
+                              <span className="vault-track-pill">{obj.track}</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1 text-xs font-mono">
+                              <span className="dim">
+                                {obj.progress_current} / {obj.progress_complete}
+                              </span>
+                              <span className="gold font-bold">+{obj.acclaim} Astral</span>
+                            </div>
+                            <ProgressBar value={obj.progress_current / Math.max(1, obj.progress_complete)} tone={obj.claimed ? 'gold' : 'green'} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="daily-section-card">
+                    <div className="daily-section-header">
+                      <Award size={14} className="gold" />
+                      <span className="font-serif font-bold text-sm text-[#f4e3a8]">
+                        {lang === 'en' ? "Today's Core World Boss Clears" : 'Heutige Weltenboss-Abschlüsse'} ({dailyProgression?.worldBosses.length || 0} / {CORE_WORLD_BOSSES.length})
+                      </span>
+                    </div>
+                    <div className="worldboss-clears-grid">
+                      {CORE_WORLD_BOSSES.map((boss) => {
+                        const isKilled = Boolean(dailyProgression?.worldBosses.includes(boss.apiId));
+                        return (
+                          <div key={boss.id} className={`daily-boss-pill ${isKilled ? 'completed' : ''}`}>
+                            {isKilled ? (
+                              <CheckCircle2 size={13} className="good shrink-0" />
+                            ) : (
+                              <Circle size={13} className="dim shrink-0" />
+                            )}
+                            <span className="font-serif text-xs truncate">
+                              {lang === 'en' ? boss.nameEn : boss.name}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="daily-section-card">
+                    <div className="daily-section-header">
+                      <Gift size={14} className="gold" />
+                      <span className="font-serif font-bold text-sm text-[#f4e3a8]">
+                        {lang === 'en' ? "Today's Hero's Choice Chests" : 'Heutige Helden-Truhen'} ({dailyProgression?.mapChests.length || 0} / {MAP_HERO_CHESTS.length})
+                      </span>
+                    </div>
+                    <div className="worldboss-clears-grid">
+                      {MAP_HERO_CHESTS.map((chest) => {
+                        const isOpened = Boolean(dailyProgression?.mapChests.includes(chest.apiId));
+                        return (
+                          <div key={chest.id} className={`daily-boss-pill ${isOpened ? 'completed' : ''}`}>
+                            {isOpened ? (
+                              <CheckCircle2 size={13} className="good shrink-0" />
+                            ) : (
+                              <Circle size={13} className="dim shrink-0" />
+                            )}
+                            <span className="font-serif text-xs truncate">
+                              {lang === 'en' ? chest.nameEn : chest.name}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Next Recommendations Queue */}
-            <div className="achieve-queue-header">
-              <h3 className="font-serif font-bold text-sm text-[#f4e3a8]">
-                {lang === 'en' ? 'Best Next Priorities' : 'Weitere Top-Prioritäten'} ({bestNextRecs.slice(1).length})
-              </h3>
             </div>
-
-            <div className="achieve-grid-cards">
-              {bestNextRecs.slice(1).map((rec) => renderRecommendationCard(rec))}
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================
-            VIEW 2: BEST EFFICIENCY
-            ============================================================ */}
-        {activeTab === 'efficiency' && (
-          <div className="achieve-view-stack">
-            <div className="strategy-banner font-serif">
-              <Zap size={14} className="text-amber-300" />
-              <span>
-                {lang === 'en'
-                  ? 'Ranked strictly by estimated achievement-point-to-effort ratio (AP per remaining objective).'
-                  : 'Priorisiert nach dem günstigsten Verhältnis aus erreichbaren Erfolgspunkten zu Restaufwand.'}
-              </span>
-            </div>
-            <div className="achieve-grid-cards">
-              {efficiencyRecs.map((rec) => renderRecommendationCard(rec))}
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================
-            VIEW 3: QUICK WINS
-            ============================================================ */}
-        {activeTab === 'quickWins' && (
-          <div className="achieve-view-stack">
-            <div className="strategy-banner font-serif">
-              <Target size={14} className="text-emerald-400" />
-              <span>
-                {lang === 'en'
-                  ? 'Prioritizes achievements closest to completion requiring the fewest remaining objectives.'
-                  : 'Priorisiert Erfolge kurz vor dem Abschluss mit den geringsten verbleibenden Teilzielen.'}
-              </span>
-            </div>
-            <div className="achieve-grid-cards">
-              {quickWinsRecs.map((rec) => renderRecommendationCard(rec))}
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================
-            VIEW 4: HIGHEST REWARD
-            ============================================================ */}
-        {activeTab === 'highestReward' && (
-          <div className="achieve-view-stack">
-            <div className="strategy-banner font-serif">
-              <Trophy size={14} className="gold" />
-              <span>
-                {lang === 'en'
-                  ? 'Ranked by total remaining obtainable achievement points (accounting for reward caps and completed tiers).'
-                  : 'Geordnet nach maximal erzielbaren Rest-Erfolgspunkten (unter Abzug bereits abgeschlossener Stufen und Punkte-Caps).'}
-              </span>
-            </div>
-            <div className="achieve-grid-cards">
-              {highestRewardRecs.map((rec) => renderRecommendationCard(rec))}
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================
-            VIEW 5: CONTINUE PROGRESS
-            ============================================================ */}
-        {activeTab === 'continueProgress' && (
-          <div className="achieve-view-stack">
-            <div className="strategy-banner font-serif">
-              <TrendingUp size={14} className="text-sky-400" />
-              <span>
-                {lang === 'en'
-                  ? 'Highlights your partially completed achievements with active progress.'
-                  : 'Hebt angefangene Erfolge mit aktivem Fortschritt hervor.'}
-              </span>
-            </div>
-            {continueProgressRecs.length === 0 ? (
-              <div className="achieve-empty-state">
-                <TrendingUp size={28} className="dim mb-2" />
-                <p className="dim text-xs">
-                  {lang === 'en'
-                    ? 'No partially completed achievements found. Connect your API key or start an achievement to see active goals here.'
-                    : 'Keine angefangenen Erfolge gefunden. Verbinde deinen API-Schlüssel, um deinen Fortschritt zu verfolgen.'}
-                </p>
-              </div>
-            ) : (
-              <div className="achieve-grid-cards">
-                {continueProgressRecs.map((rec) => renderRecommendationCard(rec))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ============================================================
-            VIEW 6: CATEGORIES & GROUPS EXPLORER
-            ============================================================ */}
-        {activeTab === 'categories' && (
-          <div className="achieve-view-stack">
-            {/* Filter controls toolbar */}
-            <div className="category-explorer-toolbar">
-              <div className="explorer-search-wrap">
-                <Search size={13} className="explorer-search-icon dim" />
-                <input
-                  type="text"
-                  className="gw2-input explorer-search-input"
-                  placeholder={t('intel.searchPlaceholder')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                  <button type="button" className="explorer-search-clear" onClick={() => setSearchQuery('')}>
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-
-              {/* Quick Status Filter Pills with Live Counts */}
-              <div className="quick-filter-pills" role="tablist" aria-label={t('intel.filterStatus')}>
-                <button
-                  type="button"
-                  className={`quick-filter-pill ${statusFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('all')}
-                >
-                  <span>{t('intel.quickFilterAll')}</span>
-                  <span className="pill-count">{categoryStatusCounts.all}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`quick-filter-pill ${statusFilter === 'in_progress' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('in_progress')}
-                >
-                  <span>{t('intel.quickFilterInProgress')}</span>
-                  <span className="pill-count count-progress">{categoryStatusCounts.inProg}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`quick-filter-pill ${statusFilter === 'unstarted' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('unstarted')}
-                >
-                  <span>{t('intel.quickFilterUnstarted')}</span>
-                  <span className="pill-count">{categoryStatusCounts.unstarted}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`quick-filter-pill ${statusFilter === 'completed' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('completed')}
-                >
-                  <span>{t('intel.quickFilterCompleted')}</span>
-                  <span className="pill-count count-done">{categoryStatusCounts.completed}</span>
-                </button>
-              </div>
-
-              <div className="explorer-selects-row">
-                {/* Group Selector */}
-                <select
-                  className="gw2-select explorer-select"
-                  value={selectedGroup}
-                  onChange={(e) => {
-                    setSelectedGroup(e.target.value);
-                    setSelectedCategoryId(0);
-                  }}
-                  aria-label={t('intel.groupAll')}
-                >
-                  <option value="all">{t('intel.groupAll')}</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {lang === 'en' ? g.nameEn : g.name}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Category Selector */}
-                <select
-                  className="gw2-select explorer-select"
-                  value={selectedCategoryId}
-                  onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
-                  aria-label={t('intel.categoryAll')}
-                >
-                  <option value={0}>{t('intel.categoryAll')}</option>
-                  {categories
-                    .filter((c) => selectedGroup === 'all' || c.groupId === selectedGroup)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {lang === 'en' ? c.nameEn : c.name}
-                      </option>
-                    ))}
-                </select>
-
-                {/* Status Selector */}
-                <select
-                  className="gw2-select explorer-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                  aria-label={t('intel.filterStatus')}
-                >
-                  <option value="all">{t('intel.statusAll')}</option>
-                  <option value="in_progress">{t('intel.statusInProgress')}</option>
-                  <option value="unstarted">{t('intel.statusUnstarted')}</option>
-                  <option value="completed">{t('intel.statusCompleted')}</option>
-                </select>
-
-                {/* Sort Selector */}
-                <select
-                  className="gw2-select explorer-select"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  aria-label={t('intel.sortBy')}
-                >
-                  <option value="ap-desc">{t('intel.sortApDesc')}</option>
-                  <option value="ap-asc">{t('intel.sortApAsc')}</option>
-                  <option value="progress-desc">{t('intel.sortProgressDesc')}</option>
-                  <option value="name-asc">{t('intel.sortNameAsc')}</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Results Grid */}
-            {categoryBrowserAchievements.length === 0 ? (
-              <div className="achieve-empty-state">
-                <Search size={28} className="dim mb-2" />
-                <p className="dim text-xs">{t('intel.emptyList')}</p>
-                <button
-                  type="button"
-                  className="gw2-gw-btn mt-2"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedGroup('all');
-                    setSelectedCategoryId(0);
-                    setStatusFilter('all');
-                  }}
-                >
-                  {t('common.resetFilters')}
-                </button>
-              </div>
-            ) : selectedCategoryId === 0 && !searchQuery && groupedByCategory.length > 1 ? (
-              <div className="category-section-divider">
-                {groupedByCategory.map((catGroup) => {
-                  const completedInCat = catGroup.items.filter((i) => i.isDone).length;
-                  const catObtainable = catGroup.items.reduce((acc, i) => acc + i.obtainableAp, 0);
-                  return (
-                    <div key={catGroup.catId} className="category-group-block">
-                      <div className="category-section-banner">
-                        <div className="category-banner-name font-serif">
-                          <Layers size={13} className="gold" />
-                          <span>{lang === 'en' ? catGroup.nameEn : catGroup.name}</span>
-                          <span className="dim text-xs">({catGroup.items.length})</span>
-                        </div>
-                        <div className="category-banner-stats font-mono">
-                          <span className="text-emerald-400 font-semibold">{completedInCat} / {catGroup.items.length} {lang === 'en' ? 'Done' : 'Erledigt'}</span>
-                          <span className="sep mx-1.5">•</span>
-                          <span className="text-amber-300 font-semibold">+{catObtainable} AP</span>
-                        </div>
-                      </div>
-                      <div className="achieve-grid-cards" style={{ marginTop: 8 }}>
-                        {catGroup.items.map((ach) => renderAchievementCard(ach))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="achieve-grid-cards">
-                {categoryBrowserAchievements.map((ach) => renderAchievementCard(ach))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ============================================================
-            VIEW 7: WATCHLIST (STARRED FAVORITES)
-            ============================================================ */}
-        {activeTab === 'watchlist' && (
-          <div className="achieve-view-stack">
-            {watchlistAchievements.length === 0 ? (
-              <div className="achieve-empty-state">
-                <Star size={28} className="gold mb-2" fill="#d2b268" />
-                <p className="dim text-xs">{t('intel.emptyWatchlist')}</p>
-              </div>
-            ) : (
-              <div className="achieve-grid-cards">
-                {watchlistAchievements.map((ach) => renderAchievementCard(ach))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ============================================================
-            VIEW 8: DAILY & WIZARD'S VAULT ROUTINE
-            ============================================================ */}
-        {activeTab === 'daily' && (
-          <div className="gw2-daily-dashboard">
-            {/* Wizard's Vault Daily Strip */}
-            {dailyProgression?.wizardsVault && (
-              <div className="daily-section-card">
-                <div className="daily-section-header">
-                  <Flame size={14} className="gold" />
-                  <span className="font-serif font-bold text-sm text-[#f4e3a8]">
-                    {t('common.wizardsVaultDaily')} ({dailyProgression.wizardsVault.meta_progress_current} / {dailyProgression.wizardsVault.meta_progress_complete})
-                  </span>
-                </div>
-                <div className="vault-objectives-grid">
-                  {dailyProgression.wizardsVault.objectives.map((obj) => (
-                    <div key={obj.id} className="vault-obj-card">
-                      <div className="flex items-center justify-between text-xs font-serif">
-                        <span className="font-semibold text-[#f3efe6]">{obj.title}</span>
-                        <span className="vault-track-pill">{obj.track}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-1 text-xs font-mono">
-                        <span className="dim">
-                          {obj.progress_current} / {obj.progress_complete}
-                        </span>
-                        <span className="gold font-bold">+{obj.acclaim} Astral</span>
-                      </div>
-                      <ProgressBar value={obj.progress_current / Math.max(1, obj.progress_complete)} tone={obj.claimed ? 'gold' : 'green'} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Core World Boss Clears Today */}
-            <div className="daily-section-card">
-              <div className="daily-section-header">
-                <Award size={14} className="gold" />
-                <span className="font-serif font-bold text-sm text-[#f4e3a8]">
-                  {lang === 'en' ? "Today's Core World Boss Clears" : 'Heutige Weltenboss-Abschlüsse'} ({dailyProgression?.worldBosses.length || 0} / {CORE_WORLD_BOSSES.length})
-                </span>
-              </div>
-              <div className="worldboss-clears-grid">
-                {CORE_WORLD_BOSSES.map((boss) => {
-                  const isKilled = Boolean(dailyProgression?.worldBosses.includes(boss.apiId));
-                  return (
-                    <div key={boss.id} className={`daily-boss-pill ${isKilled ? 'completed' : ''}`}>
-                      {isKilled ? (
-                        <CheckCircle2 size={13} className="good shrink-0" />
-                      ) : (
-                        <Circle size={13} className="dim shrink-0" />
-                      )}
-                      <span className="font-serif text-xs truncate">
-                        {lang === 'en' ? boss.nameEn : boss.name}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Meta Event Hero's Choice Chests Today */}
-            <div className="daily-section-card">
-              <div className="daily-section-header">
-                <Gift size={14} className="gold" />
-                <span className="font-serif font-bold text-sm text-[#f4e3a8]">
-                  {lang === 'en' ? "Today's Hero's Choice Chests" : 'Heutige Helden-Truhen'} ({dailyProgression?.mapChests.length || 0} / {MAP_HERO_CHESTS.length})
-                </span>
-              </div>
-              <div className="worldboss-clears-grid">
-                {MAP_HERO_CHESTS.map((chest) => {
-                  const isOpened = Boolean(dailyProgression?.mapChests.includes(chest.apiId));
-                  return (
-                    <div key={chest.id} className={`daily-boss-pill ${isOpened ? 'completed' : ''}`}>
-                      {isOpened ? (
-                        <CheckCircle2 size={13} className="good shrink-0" />
-                      ) : (
-                        <Circle size={13} className="dim shrink-0" />
-                      )}
-                      <span className="font-serif text-xs truncate">
-                        {lang === 'en' ? chest.nameEn : chest.name}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </main>
       </div>
 
       {/* 4. Bottom Dock: Account Verification & Fast Switch to Events */}
@@ -1113,10 +1446,81 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
   );
 
   /**
-   * Helper to render a recommendation card with explainable rationale
+   * Helper to render a Recently Completed card row matching the Hero panel
    */
-  function renderRecommendationCard(rec: AchievementRecommendation) {
-    return renderAchievementCard(rec.achievement, rec);
+  function renderRecentlyCompletedRow(ach: EnrichedAchievement) {
+    const desc = stripGw2Tags(
+      lang === 'en'
+        ? (ach.definition.requirementEn || ach.definition.requirement || ach.definition.descriptionEn || ach.definition.description)
+        : (ach.definition.requirement || ach.definition.description),
+    );
+
+    return (
+      <div key={ach.definition.id} className="hero-summary-card-row">
+        <div className="summary-card-icon-wrap">
+          <AchievementIcon
+            icon={ach.definition.icon}
+            groupId={ach.definition.groupId}
+            categoryName={ach.definition.categoryName}
+            size={40}
+          />
+        </div>
+        <div className="summary-card-details">
+          <span className="summary-card-title">
+            {lang === 'en' ? ach.definition.nameEn : ach.definition.name}
+          </span>
+          {desc && <p className="summary-card-desc">{desc}</p>}
+          <span className="summary-card-cat">
+            {lang === 'en' ? ach.definition.categoryNameEn : ach.definition.categoryName}
+          </span>
+        </div>
+        <div className="summary-card-ap-pill font-mono">
+          <Trophy size={11} className="gold" />
+          <span>+{ach.totalRewardAp || 1} AP</span>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Helper to render a Nearly Completed card row matching the Hero panel
+   */
+  function renderNearlyCompletedRow(ach: EnrichedAchievement) {
+    const desc = stripGw2Tags(
+      lang === 'en'
+        ? (ach.definition.requirementEn || ach.definition.requirement || ach.definition.descriptionEn || ach.definition.description)
+        : (ach.definition.requirement || ach.definition.description),
+    );
+
+    return (
+      <div key={ach.definition.id} className="hero-summary-card-row">
+        <div className="summary-card-icon-wrap">
+          <AchievementIcon
+            icon={ach.definition.icon}
+            groupId={ach.definition.groupId}
+            categoryName={ach.definition.categoryName}
+            size={40}
+          />
+        </div>
+        <div className="summary-card-details">
+          <div className="flex items-center justify-between">
+            <span className="summary-card-title">
+              {lang === 'en' ? ach.definition.nameEn : ach.definition.name}
+            </span>
+            <span className="summary-card-progress-stat font-mono">
+              {ach.currentProgress}/{ach.maxProgress}
+            </span>
+          </div>
+          {desc && <p className="summary-card-desc">{desc}</p>}
+          <div style={{ marginTop: 4 }}>
+            <ProgressBar
+              value={ach.progressFraction}
+              tone={ach.progressFraction >= 0.8 ? 'gold' : 'green'}
+            />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   /**
@@ -1128,6 +1532,14 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
     const isDone = ach.isDone;
     const isInProgress = !isDone && ach.progressStatus === 'in_progress';
     const isRank1 = rec?.rank === 1;
+
+    const primaryText = lang === 'en'
+      ? (ach.definition.requirementEn || ach.definition.requirement || ach.definition.descriptionEn || ach.definition.description)
+      : (ach.definition.requirement || ach.definition.description);
+
+    const secondaryText = lang === 'en'
+      ? (ach.definition.descriptionEn || ach.definition.description)
+      : ach.definition.description;
 
     let podiumClass = '';
     let podiumPrefix = '';
@@ -1218,10 +1630,19 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
             </div>
           </div>
 
-          {/* Description */}
-          <p className="card-desc">
-            {stripGw2Tags(lang === 'en' ? ach.definition.descriptionEn : ach.definition.description)}
-          </p>
+          {/* Task Requirement / Instruction & Story Lore */}
+          <div style={{ margin: '4px 0' }}>
+            {primaryText && (
+              <p className="card-desc font-serif" style={{ margin: 0, color: '#e5e0d4', lineHeight: 1.4 }}>
+                {stripGw2Tags(primaryText)}
+              </p>
+            )}
+            {secondaryText && secondaryText !== primaryText && (
+              <p className="card-desc-lore dim text-xs italic mt-1" style={{ margin: '3px 0 0 0', color: '#9ca3af' }}>
+                {stripGw2Tags(secondaryText)}
+              </p>
+            )}
+          </div>
 
           {/* Explainable Recommendation Reason (if recommendation) */}
           {rec && (
@@ -1248,7 +1669,12 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
 
           {/* Card Footer: Expand Objectives / Fast Travel Waypoint */}
           <div className="card-bottom-actions">
-            {ach.remainingObjectives.length > 0 && (
+            {isDone ? (
+              <span className="text-xs good flex items-center gap-1 font-sans" style={{ padding: '4px 0' }}>
+                <CheckCircle2 size={13} />
+                <span>{lang === 'en' ? 'Achievement Completed' : 'Erfolg abgeschlossen'}</span>
+              </span>
+            ) : ach.remainingObjectives.length > 0 ? (
               <button
                 type="button"
                 className="btn-expand-objs"
@@ -1257,7 +1683,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
                 <span>{isExpanded ? (lang === 'en' ? 'Hide Details' : 'Details einklappen') : (lang === 'en' ? `Show Objectives (${ach.remainingObjectives.length})` : `Ziele anzeigen (${ach.remainingObjectives.length})`)}</span>
                 {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
               </button>
-            )}
+            ) : null}
 
             {(ach.definition.waypoint || ach.definition.eventId) && (
               <button
