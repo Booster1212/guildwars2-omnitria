@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { AggregatedMaterial, ItemProcurement } from '../../domain/craftingCalculator';
+import { isUntradable } from '../../domain/types';
+import { KNOWN_VENDOR_PRICES } from '../../domain/costs';
 import { getItem } from '../../data/gw2/items';
 import { useAccountState } from '../../data/gw2/account';
 import { fmtInt } from '../common/labels';
@@ -223,6 +225,18 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                           <span className={`role-badge role-${m.role}`}>
                             {getRoleLabel(m.role)}
                           </span>
+                          {isUntradable(item) && !KNOWN_VENDOR_PRICES.has(m.itemId) && (
+                            <span
+                              className="badge-untradable"
+                              title={
+                                lang === 'en'
+                                  ? 'Account-bound: cannot be traded on the Trading Post'
+                                  : 'Accountgebunden: nicht im Handelsposten handelbar'
+                              }
+                            >
+                              {lang === 'en' ? 'Account Bound' : 'Accountgebunden'}
+                            </span>
+                          )}
                           {m.needsDiscovery && (
                             <span
                               className="mat-badge badge-discovery"

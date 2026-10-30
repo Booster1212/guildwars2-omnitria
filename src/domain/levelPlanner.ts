@@ -264,7 +264,10 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     if (options.craftIntermediates && depth < 8 && !stack.has(itemId)) {
       stack.add(itemId);
       for (const r of recipesByOutput.get(itemId) ?? []) {
-        if (!r.disciplines.includes(discipline) || r.rating > rank || !isUsable(r)) continue;
+        if (!r.disciplines.includes(discipline) || r.rating > rank) continue;
+        // If the item cannot be bought on TP/vendor (price === null), crafting it is the only viable in-game path!
+        // Otherwise, honor isUsable(r)
+        if (!isUsable(r) && price !== null) continue;
         let sum = 0;
         let hasPricedIngredient = false;
         for (const ing of r.ingredients) {
@@ -307,8 +310,15 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         stockCoveredCount++;
       }
       if (a.unit === null) {
-        unknown++;
-        cost += 50;
+        const isCovered = owned >= ing.count;
+        if (isCovered) {
+          cost += 50;
+        } else {
+          unknown++;
+          // Severe unbuyable penalty: this ingredient is unpriced and untradable on the TP/vendor,
+          // and the player does not have it in stock. Prevent treating it as cheap 50 copper!
+          cost += 250_000;
+        }
       } else {
         cost += a.unit * ing.count;
       }

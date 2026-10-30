@@ -1,6 +1,6 @@
 {
   "name": "omnitria",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Omnitria - Guild Wars 2 In-Game Overlay (Events, Inventory & PvE Hub, Achievement Intelligence, Crafting, Legendary Armory & Settings)",
   "main": "electron/main.cjs",
   "scripts": {

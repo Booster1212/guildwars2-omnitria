@@ -4,7 +4,7 @@
 
 # Omnitria HUD
 
-[![Release](https://img.shields.io/badge/Release-v0.2.5-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Release](https://img.shields.io/badge/Release-v0.2.6-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
@@ -16,6 +16,16 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 ![Omnitria In-Game Overlay](docs/screenshots/Introduction.png)
 
 </div>
+
+## What's New in v0.2.6
+
+- 🛠️ **Crafting Level Planner & Shopping List Overhaul:**
+  - **Account-Bound & Untradable Material Logic:** Fixed an optimizer flaw where unpriced or account-bound materials (e.g. *Bloodstone Dust*, *Obsidian Shards*, *Marauder Inscriptions*) were scored with a dummy fallback price, falsely making high-requirement recipes look virtually free (such as crafting 318 Bloodstone Bricks with 31,800 dust). Unowned untradable materials now incur an unbuyable penalty, driving the optimizer toward realistic, tradeable recipes.
+  - **Recursive Crafting for Untradable Intermediates:** Intermediate components with valid crafting recipes (e.g. Marauder or Seraph Inscriptions/Insignias) are now recursively routed to craft from base materials instead of being treated as impossible Trading Post purchases.
+  - **Clear Untradable Badges & Advisory Banners:** The shopping list and material demand tables now prominently flag untradable items with `[Accountgebunden]` / `[Nicht handelbar]` warning badges (`⚠️`) and display an advisory banner reminding players that these items must come from personal account storage or direct gameplay.
+  - **Master Craftsman Vendor Pricing:** Added automatic fallback pricing for common vendor reagents (Thermocatalytic Reagents, Spool of Silk Thread, Lump of Coal, etc.).
+- 👑 **Official Omnitria Brand Identity:** High-resolution brand logo integrated directly into the top header navigation and native Windows taskbar icon integration with multi-resolution `.ico` and `AppUserModelId`.
+- 🎨 **Hero Panel & UI/UX Polish:** Expanded 98px navigation rail, standardized 32px interactive controls, enhanced typography, and authentic in-game Guild Wars 2 Hero Panel style for achievement tracking.
 
 ## Features
 
@@ -38,7 +48,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ### Standalone Binary (Windows)
 
-1. Download `Omnitria-v0.2.5-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.2.6-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (portable, no installer required).
 3. Launch `Omnitria.exe`.
 

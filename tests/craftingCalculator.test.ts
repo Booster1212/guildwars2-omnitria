@@ -7,6 +7,7 @@ import {
   type CraftingRecipeProvider,
   type TargetCraftItem,
 } from '../src/domain/craftingCalculator.ts';
+import { planLevelRoute } from '../src/domain/levelPlanner.ts';
 import type { Recipe, PriceInfo } from '../src/domain/types.ts';
 
 // Hilfsfunktion zum Erstellen von Test-Rezepten
@@ -506,4 +507,114 @@ test('13. Account-bekanntes Rezept hebt needsDiscovery auf', () => {
   const mat = result.materials.find((m) => m.itemId === 7000);
   assert.equal(mat?.needsDiscovery, false);
   assert.equal(result.totals.totalDiscoveryCount, 0);
+});
+
+// ============================================================================
+// Test 14: Untradable, unpriced intermediate recipe resolves to craft when craftIntermediates is true
+// ============================================================================
+test('14. Accountgebundenes Zwischenprodukt wird bei craftIntermediates rekursiv hergestellt statt gekauft', () => {
+  // Recipe for Marauder Inscription (output: 76361), LearnedFromItem, untradable
+  const rInscription: Recipe = {
+    ...makeRecipe('r-inscr', 76361, 1, [[12988, 5], [19721, 5]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: ['LearnedFromItem'],
+    type: 'Inscription',
+  };
+
+  // Recipe for Trident using the Marauder Inscription
+  const rTrident: Recipe = {
+    ...makeRecipe('r-trident', 75144, 1, [[76361, 1], [13004, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: ['AutoLearned'],
+    type: 'Trident',
+  };
+
+  const byOut = new Map<number, Recipe[]>([
+    [76361, [rInscription]],
+    [75144, [rTrident]],
+  ]);
+
+  // Prices: 76361 has NO price (account-bound / untradable), but 12988 and 19721 have prices
+  const prices = new Map<number, PriceInfo>([
+    [12988, { sell: 200, buy: 150, sellQty: 100, buyQty: 100 }],
+    [19721, { sell: 3000, buy: 2500, sellQty: 100, buyQty: 100 }],
+    [13004, { sell: 100, buy: 80, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  const plan = planLevelRoute({
+    discipline: 'Artificer',
+    fromRank: 400,
+    toRank: 410,
+    recipes: [rInscription, rTrident],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      craftIntermediates: true,
+      allowDiscovery: false,
+    },
+  });
+
+  // Untradable intermediate 76361 must NOT be in purchases (Einkaufsliste)
+  assert.equal(plan.purchases.has(76361), false, 'Accountgebundene Inschrift darf nicht auf der Einkaufsliste stehen');
+  // Its craftable components must be in purchases instead
+  assert.ok(plan.purchases.has(12988), 'Dübel müssen gekauft werden');
+  assert.ok(plan.purchases.has(19721), 'Ektoplasmakugeln müssen gekauft werden');
+  // It must be registered as an intermediate craft
+  assert.ok(plan.intermediates.some((im) => im.recipe.id === 'r-inscr'), 'Inschrift muss als Zwischenprodukt hergestellt werden');
+});
+
+// ============================================================================
+// Test 15: Level planner avoids recipes with unowned untradable materials (e.g. Bloodstone Dust)
+// ============================================================================
+test('15. Levelplaner bevorzugt handelbare Rezepte vor nicht besessenen accountgebundenen Materialien', () => {
+  // Candidate A: Normal weapon using tradeable components (cost ~5000 copper)
+  const rTradeableWeapon: Recipe = {
+    ...makeRecipe('r-normal-weapon', 50000, 1, [[100, 1], [200, 1]]),
+    disciplines: ['Artificer'],
+    rating: 450,
+    flags: ['AutoLearned'],
+    type: 'Staff',
+  };
+
+  // Candidate B: Ascended refinement requiring 100 Bloodstone Dust (46731, untradable)
+  const rBloodstoneBrick: Recipe = {
+    ...makeRecipe('r-brick', 46736, 1, [[46731, 100], [46747, 10]]),
+    disciplines: ['Artificer'],
+    rating: 450,
+    flags: ['AutoLearned'],
+    type: 'Refinement',
+  };
+
+  const byOut = new Map<number, Recipe[]>([
+    [50000, [rTradeableWeapon]],
+    [46736, [rBloodstoneBrick]],
+  ]);
+
+  const prices = new Map<number, PriceInfo>([
+    [100, { sell: 2500, buy: 2000, sellQty: 100, buyQty: 100 }],
+    [200, { sell: 2500, buy: 2000, sellQty: 100, buyQty: 100 }],
+    // 46731 has NO price (Bloodstone Dust is account-bound)
+  ]);
+
+  // When player has 0 Bloodstone Dust in stock:
+  const plan = planLevelRoute({
+    discipline: 'Artificer',
+    fromRank: 450,
+    toRank: 460,
+    recipes: [rTradeableWeapon, rBloodstoneBrick],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      craftIntermediates: true,
+      allowDiscovery: false,
+      stock: new Map(), // 0 Bloodstone Dust
+    },
+  });
+
+  // Planner must pick tradeable weapon, NOT Bloodstone Brick!
+  assert.ok(plan.steps.some((st) => st.recipe.id === 'r-normal-weapon'), 'Handelbare Waffe muss gewählt werden');
+  assert.equal(plan.steps.some((st) => st.recipe.id === 'r-brick'), false, 'Blutsteinziegel darf ohne Bestand nicht gewählt werden');
+  assert.equal(plan.purchases.has(46731), false, 'Blutsteinstaub darf nicht auf der Einkaufsliste landen');
 });

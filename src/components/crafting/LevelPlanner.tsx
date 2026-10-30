@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import type { DisciplineId } from '../../domain/types';
+import { isUntradable, type DisciplineId } from '../../domain/types';
+import { KNOWN_VENDOR_PRICES, unitPrice } from '../../domain/costs';
 import {
   planLevelRoute,
   collectPlannerItemIds,
@@ -57,6 +58,7 @@ import {
   Target,
   Zap,
   Award,
+  AlertCircle,
 } from 'lucide-react';
 import { useTranslation, type TranslationKey } from '../../i18n';
 import { MaterialDemandTable } from './MaterialDemandTable';
@@ -2168,58 +2170,128 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
       {/* Tab 5: Shopping List (compact list) */}
       {activeTab === 'shopping' && plan && (
         <div className="planner-shopping-wrap">
-          <table className="gw2-dense-table shopping-table">
-            <thead>
-              <tr>
-                <th style={{ width: '40px' }}>{t('legendary.colIcon')}</th>
-                <th>{t('crafting.colItem')}</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colGross')}</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colStock')}</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colStillBuy')}</th>
-                <th style={{ width: '120px', textAlign: 'right' }}>{t('crafting.colUnit')}</th>
-                <th style={{ width: '140px', textAlign: 'right' }}>{t('crafting.colTotal')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from(plan.purchases.entries()).map(([itemId, qty]) => {
-                const item = getItem(itemId);
-                const stock = account.stockMap.get(itemId) ?? 0;
-                const missing = Math.max(0, qty - stock);
-                const price = prices.map.get(itemId);
-                const unit = price && price.sell > 0 ? price.sell : null;
-                const totalLineCost = unit !== null ? unit * missing : null;
+          {(() => {
+            const purchaseList = Array.from(plan.purchases.entries());
+            const hasUntradable = purchaseList.some(([id]) => {
+              const it = getItem(id);
+              return isUntradable(it) && !KNOWN_VENDOR_PRICES.has(id);
+            });
 
-                return (
-                  <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
-                    <td className="icon-cell">
-                      <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
-                    </td>
-                    <td
-                      className="name-cell font-serif cursor-pointer"
-                      onClick={() => onOpenItem(itemId)}
-                    >
-                      <span className={`r-${item?.rarity ?? 'Basic'}`}>
-                        {item?.name ?? `#${itemId}`}
-                      </span>
-                    </td>
-                    <td className="num font-mono">{fmtInt(qty)}</td>
-                    <td className="num font-mono dim">
-                      {account.hasStockData ? fmtInt(stock) : '–'}
-                    </td>
-                    <td className={`num font-mono ${missing > 0 ? 'bad font-bold' : 'good'}`}>
-                      {account.hasStockData ? fmtInt(missing) : fmtInt(qty)}
-                    </td>
-                    <td className="num">
-                      <Coin copper={unit} />
-                    </td>
-                    <td className="num">
-                      <Coin copper={totalLineCost} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            return (
+              <>
+                {hasUntradable && (
+                  <div className="planner-untradable-banner">
+                    <AlertCircle size={15} className="text-amber shrink-0" />
+                    <span>
+                      {lang === 'en'
+                        ? 'Note: Some materials below are account-bound (marked with ⚠️) and cannot be purchased on the Trading Post. They must be gathered, looted, or acquired in-game with currencies (e.g. Karma).'
+                        : 'Hinweis: Einige Materialien unten sind accountgebunden (mit ⚠️ markiert) und können nicht im Handelsposten gekauft werden. Sie müssen im Spiel gesammelt, erbeutet oder über Währungen (z. B. Karma) beschafft werden.'}
+                    </span>
+                  </div>
+                )}
+
+                <table className="gw2-dense-table shopping-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>{t('legendary.colIcon')}</th>
+                      <th>{t('crafting.colItem')}</th>
+                      <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colGross')}</th>
+                      <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colStock')}</th>
+                      <th style={{ width: '110px', textAlign: 'right' }}>{t('crafting.colStillBuy')}</th>
+                      <th style={{ width: '120px', textAlign: 'right' }}>{t('crafting.colUnit')}</th>
+                      <th style={{ width: '140px', textAlign: 'right' }}>{t('crafting.colTotal')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseList.map(([itemId, qty]) => {
+                      const item = getItem(itemId);
+                      const stock = account.stockMap.get(itemId) ?? 0;
+                      const missing = Math.max(0, qty - stock);
+                      const isVendor = KNOWN_VENDOR_PRICES.has(itemId);
+                      const untradable = isUntradable(item) && !isVendor;
+                      const unit = unitPrice(prices.map.get(itemId), itemId);
+                      const totalLineCost = unit !== null ? unit * missing : null;
+
+                      return (
+                        <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
+                          <td className="icon-cell">
+                            <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
+                          </td>
+                          <td
+                            className="name-cell font-serif cursor-pointer"
+                            onClick={() => onOpenItem(itemId)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`r-${item?.rarity ?? 'Basic'}`}>
+                                {item?.name ?? `#${itemId}`}
+                              </span>
+                              {untradable && (
+                                <span
+                                  className="badge-untradable"
+                                  title={
+                                    lang === 'en'
+                                      ? 'Account-bound: cannot be traded on the Trading Post'
+                                      : 'Accountgebunden: nicht im Handelsposten handelbar'
+                                  }
+                                >
+                                  {lang === 'en' ? 'Account Bound' : 'Accountgebunden'}
+                                </span>
+                              )}
+                              {isVendor && (
+                                <span
+                                  className="mat-badge badge-discovery-ing"
+                                  title={
+                                    lang === 'en'
+                                      ? 'Purchasable from Master Craftsman / NPC Vendor'
+                                      : 'Kaufbar beim Handwerksmeister / Händler'
+                                  }
+                                >
+                                  {lang === 'en' ? 'Vendor' : 'Händler'}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="num font-mono">{fmtInt(qty)}</td>
+                          <td className="num font-mono dim">
+                            {account.hasStockData ? fmtInt(stock) : '–'}
+                          </td>
+                          <td className={`num font-mono ${missing > 0 ? (untradable ? 'text-amber font-bold' : 'bad font-bold') : 'good'}`}>
+                            {account.hasStockData ? (
+                              untradable && missing > 0 ? (
+                                <span title={lang === 'en' ? 'Must be farmed/looted in-game' : 'Muss im Spiel gesammelt/erbeutet werden'}>
+                                  {fmtInt(missing)} ⚠️
+                                </span>
+                              ) : (
+                                fmtInt(missing)
+                              )
+                            ) : (
+                              fmtInt(qty)
+                            )}
+                          </td>
+                          <td className="num">
+                            {untradable ? (
+                              <span className="dim text-xs font-serif">
+                                {lang === 'en' ? 'Not tradable' : 'Nicht handelbar'}
+                              </span>
+                            ) : (
+                              <Coin copper={unit} />
+                            )}
+                          </td>
+                          <td className="num">
+                            {untradable ? (
+                              <span className="dim text-xs font-serif">–</span>
+                            ) : (
+                              <Coin copper={totalLineCost} />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
         </div>
       )}
 

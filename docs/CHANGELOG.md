@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.6] - 2026-10-30
+
+### Fixed & Improved
+
+#### Crafting Level Planner & Material Acquisition Scoring (`src/domain/levelPlanner.ts`)
+* **Account-Bound & Untradable Material Optimizer Penalty:**
+  * Fixed an issue in candidate evaluation (`evalCandidate`) where unpriced materials (`a.unit === null`, such as Bloodstone Dust `46731`, Obsidian Shards `19925`, or Empyreal Fragments) received a dummy fallback price of 50 copper. This caused the optimizer to treat high-tier conversion recipes (like Bloodstone Bricks yielding only 5,000 XP for 100 dust) as virtually free, suggesting 318 crafts (31,800 dust) for Artificer 425–500.
+  * Unowned materials with no Trading Post price now incur an unbuyable penalty (+250,000 copper), guiding the level planner toward realistic, tradeable recipes (e.g. Berserker/Knight/Assassin weapons).
+* **Recursive Intermediate Crafting for Untradable Components:**
+  * Fixed material acquisition resolution (`acq` function): craftable intermediate components with no Trading Post price (such as Marauder or Seraph Inscriptions/Insignias) are now recursively routed to `'craft'` when `craftIntermediates` is enabled, resolving to their craftable base ingredients rather than failing back to direct purchase.
+
+#### Crafting Shopping List & Material Demand UI (`src/components/crafting/LevelPlanner.tsx`, `src/components/crafting/MaterialDemandTable.tsx`, `src/index.css`)
+* **Untradable Item Indicators & Advisory Banners:**
+  * Added distinct warning badges (`.badge-untradable`) displaying `[Accountgebunden]` / `[Nicht handelbar]` (`⚠️`) in both the Shopping List and Material Demand tables for untradable or account-bound items.
+  * Added top advisory banner (`.planner-untradable-banner`) on the Shopping List when untradable items are present, advising players that these materials must be gathered or supplied from account inventory and cannot be acquired on the Trading Post.
+  * Integrated Master Craftsman vendor pricing fallback (`unitPrice(price, itemId)`) for common vendor reagents (Thermocatalytic Reagents, Silk Thread, Coal, Peacemaker/Master reagents).
+
+#### Test Suite & Verification (`tests/craftingCalculator.test.ts`)
+* Added unit test #14 validating recursive crafting of untradable intermediate components with active sub-recipes.
+* Added unit test #15 validating candidate evaluation penalties for unowned unpriced materials, ensuring tradeable recipes are chosen for leveling.
+* All 98 test suites passing cleanly with zero type errors.
+
+---
+
 ## [0.2.5] - 2026-10-30
 
 ### Added & Improved
