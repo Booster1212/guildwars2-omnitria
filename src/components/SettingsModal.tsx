@@ -41,6 +41,7 @@ import {
 } from '../data/gw2Api';
 import { syncAccountData, clearAccountData } from '../data/gw2/account';
 import { useTranslation } from '../i18n';
+import { checkForAppUpdate, type UpdateCheckResult } from '../domain/updateChecker';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ interface SettingsModalProps {
     achievements: Map<number, Gw2AccountAchievement>,
     dailyProgression?: Gw2DailyProgression | null,
   ) => void;
+  initialUpdateInfo?: UpdateCheckResult | null;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -62,6 +64,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateSettings,
   isElectron,
   onApiDataSynced,
+  initialUpdateInfo,
 }) => {
   const { t, lang, setLanguage } = useTranslation();
   const [apiKeyInput, setApiKeyInput] = useState<string>(settings.apiKey || '');
@@ -73,82 +76,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isSecureStorageAvailable, setIsSecureStorageAvailable] = useState<boolean>(false);
 
   // Auto-Updater State
-  const [currentVersion, setCurrentVersion] = useState<string>('0.2.6');
-  const [updateInfo, setUpdateInfo] = useState<{
-    ok: boolean;
-    currentVersion: string;
-    latestVersion?: string;
-    latestTag?: string;
-    hasUpdate?: boolean;
-    releaseName?: string;
-    releaseNotes?: string;
-    publishedAt?: string;
-    htmlUrl?: string;
-    downloadUrl?: string | null;
-    assetName?: string | null;
-    assetSize?: number;
-    isPackaged?: boolean;
-    devMode?: boolean;
-    error?: string;
-  } | null>(null);
+  const [currentVersion, setCurrentVersion] = useState<string>(
+    initialUpdateInfo?.currentVersion || '0.2.7'
+  );
+  const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(
+    initialUpdateInfo || null
+  );
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
   const [isApplyingUpdate, setIsApplyingUpdate] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<number>(0);
   const [updateStatusText, setUpdateStatusText] = useState<string | null>(null);
 
+  // Sync initialUpdateInfo when prop updates
+  useEffect(() => {
+    if (initialUpdateInfo) {
+      setUpdateInfo(initialUpdateInfo);
+      if (initialUpdateInfo.currentVersion) {
+        setCurrentVersion(initialUpdateInfo.currentVersion);
+      }
+    }
+  }, [initialUpdateInfo]);
+
   const checkUpdates = async (forceManual = false) => {
     setIsCheckingUpdate(true);
     setUpdateStatusText(null);
     try {
-      const api = (window as unknown as { electronAPI?: {
-        getAppVersion?: () => Promise<string>;
-        checkUpdate?: () => Promise<any>;
-      } }).electronAPI;
-
-      let version = currentVersion;
-      if (api?.getAppVersion) {
-        try {
-          const v = await api.getAppVersion();
-          if (v) {
-            version = v;
-            setCurrentVersion(v);
-          }
-        } catch (_) {}
-      }
-
-      if (api?.checkUpdate) {
-        const res = await api.checkUpdate();
-        setUpdateInfo(res);
-      } else {
-        // Fallback for browser mode
-        const res = await fetch('https://api.github.com/repos/Booster1212/guildwars2-omnitria/releases/latest');
-        if (res.ok) {
-          const rel = await res.json();
-          const latestTag = rel.tag_name || '';
-          const latestVer = latestTag.replace(/^v/, '');
-          const cleanCur = version.replace(/^v/, '');
-          const hasUpdate = latestVer !== cleanCur;
-          const assets = Array.isArray(rel.assets) ? rel.assets : [];
-          const zipAsset = assets.find((a: any) => a.name?.toLowerCase().endsWith('.zip'));
-          setUpdateInfo({
-            ok: true,
-            currentVersion: version,
-            latestVersion: latestVer,
-            latestTag,
-            hasUpdate,
-            releaseName: rel.name || rel.tag_name,
-            releaseNotes: rel.body,
-            publishedAt: rel.published_at,
-            htmlUrl: rel.html_url,
-            downloadUrl: zipAsset ? zipAsset.browser_download_url : rel.html_url,
-            isPackaged: false,
-          });
-        } else {
-          setUpdateInfo({ ok: false, currentVersion: version, error: `GitHub API (${res.status})` });
-        }
+      const res = await checkForAppUpdate(currentVersion);
+      setUpdateInfo(res);
+      if (res.currentVersion) {
+        setCurrentVersion(res.currentVersion);
       }
     } catch (e: any) {
-      setUpdateInfo({ ok: false, currentVersion, error: e.message });
+      setUpdateInfo({ ok: false, currentVersion, hasUpdate: false, error: e.message });
     } finally {
       setIsCheckingUpdate(false);
     }

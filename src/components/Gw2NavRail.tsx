@@ -14,12 +14,16 @@ interface Gw2NavRailProps {
   currentTab: OverlayTab;
   onSelectTab: (tab: OverlayTab) => void;
   onOpenSettings: () => void;
+  hasUpdate?: boolean;
+  latestVersion?: string;
 }
 
 export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
   currentTab,
   onSelectTab,
   onOpenSettings,
+  hasUpdate,
+  latestVersion,
 }) => {
   const { t } = useTranslation();
 
@@ -112,15 +116,25 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
       {/* Einstellungen unten */}
       <button
         type="button"
-        className="nav-rail-item settings-item"
+        className={`nav-rail-item settings-item ${hasUpdate ? 'has-update' : ''}`}
         onClick={onOpenSettings}
-        title={t('nav.settings')}
+        title={
+          hasUpdate
+            ? t('settings.updateAvailableTooltip', { version: latestVersion || '' })
+            : t('nav.settings')
+        }
         aria-label={t('nav.settings')}
       >
         <div className="nav-item-icon" aria-hidden="true">
           <GlyphGear />
+          {hasUpdate && <span className="nav-update-dot" />}
         </div>
         <span className="nav-rail-label">{t('nav.settings')}</span>
+        {hasUpdate && (
+          <span className="nav-rail-update-pill" title={`v${latestVersion}`}>
+            UPDATE
+          </span>
+        )}
       </button>
     </nav>
   );

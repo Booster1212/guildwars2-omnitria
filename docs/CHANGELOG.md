@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.7] - 2026-10-30
+
+### Added & Improved
+
+#### Visual Update Indicators & Automated Background Service (`src/domain/updateChecker.ts`, `src/components/*`, `src/index.css`)
+* **Left Navigation Rail Update Indicator (`src/components/Gw2NavRail.tsx`, `src/index.css`):**
+  * Added pulsing amber notification dot (`.nav-update-dot`) on the Settings gear icon.
+  * Added distinct golden `UPDATE` pill badge (`.nav-rail-update-pill`) positioned underneath the Settings navigation label.
+  * Applied warm amber left-border glow and ambient background highlighting (`.settings-item.has-update`).
+  * Enriched tooltip dynamically displaying `Update v{latestVersion} verfügbar – Klicke zum Installieren`.
+* **Top Header Quick-Access Pill & Notification Dot (`src/components/Header.tsx`, `src/index.css`):**
+  * Added clickable `[✨ Update v{version}]` badge button (`.gw2-header-update-pill`) directly in the header bar, active across both Full Hero Panel and compact Mini-HUD modes for instant 1-click access to the updater.
+  * Added pulsing amber notification dot (`.header-update-dot`) on the Settings button in `.gw2-header-controls`.
+* **Automated Background Update Service (`src/App.tsx`, `src/domain/updateChecker.ts`):**
+  * Added non-blocking update checks running 2.5 seconds after application startup and repeating every 30 minutes.
+  * Queries native Electron IPC (`app-check-update`) with resilient GitHub Releases API fallback.
+  * Implemented pure numeric semver parser and comparison service (`parseSemver` and `isNewerVersion`).
+  * Directly passes detected update info to `<SettingsModal>` so the 1-click update action is pre-populated immediately upon opening.
+* **Test Suite & Verification (`tests/updateChecker.test.ts`):**
+  * Added dedicated unit test suite covering semver parsing and version comparison across patch, minor, and major release boundaries.
+  * Full test suite passing at 100/100 tests with zero TypeScript errors.
+
+---
+
 ## [0.2.6] - 2026-10-30
 
 ### Fixed & Improved

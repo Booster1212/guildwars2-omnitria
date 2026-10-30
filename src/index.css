@@ -458,6 +458,7 @@ button {
 }
 
 .nav-item-icon {
+  position: relative;
   width: 28px;
   height: 28px;
   display: flex;
@@ -531,6 +532,120 @@ button {
 .settings-item:hover .nav-item-icon {
   color: var(--gw2-gold);
   transform: rotate(30deg);
+}
+
+/* ========================================================
+   UPDATE INDICATOR STYLES & NOTIFICATIONS
+   ======================================================== */
+.settings-item.has-update {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.settings-item.has-update .nav-item-icon {
+  color: #fbbf24;
+}
+
+.nav-update-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: #f59e0b;
+  border: 1.5px solid #141720;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.9);
+  animation: pulse-update-dot 2s infinite ease-in-out;
+}
+
+.nav-rail-update-pill {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  color: #fffbeb;
+  background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  animation: pulse-gold 2.4s infinite;
+}
+
+.gw2-nav-icon-btn.has-update {
+  position: relative;
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fbbf24;
+}
+
+.header-update-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 7px;
+  height: 7px;
+  background-color: #f59e0b;
+  border: 1.5px solid #1c1e26;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.9);
+  animation: pulse-update-dot 2s infinite ease-in-out;
+}
+
+.gw2-header-update-pill {
+  height: 26px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fffbeb;
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.35) 0%, rgba(180, 83, 9, 0.45) 100%);
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  transition: all 0.2s ease;
+  -webkit-app-region: no-drag;
+}
+
+.gw2-header-update-pill:hover {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.5) 0%, rgba(217, 119, 6, 0.6) 100%);
+  border-color: #fde047;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+  transform: translateY(-0.5px);
+}
+
+.update-sparkle-icon {
+  color: #fde047;
+  animation: pulse-sparkle 1.8s infinite ease-in-out;
+}
+
+@keyframes pulse-update-dot {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px rgba(245, 158, 11, 0.8);
+  }
+  50% {
+    transform: scale(1.25);
+    box-shadow: 0 0 9px rgba(245, 158, 11, 1);
+  }
+}
+
+@keyframes pulse-sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.15) rotate(15deg);
+    opacity: 1;
+  }
 }
 
 .gw2-view-content {

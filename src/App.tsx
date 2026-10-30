@@ -20,6 +20,7 @@ import { progressActions } from './data/progressStore';
 import { ensureItems } from './data/gw2/items';
 import { DISCIPLINE_ICON_ITEM } from './components/common/labels';
 import { useTranslation } from './i18n';
+import { checkForAppUpdate, type UpdateCheckResult } from './domain/updateChecker';
 
 // Code-split heavy views to reduce initial bundle and startup time
 const InventoryHubView = lazy(() => import('./components/inventory/InventoryHubView').then((m) => ({ default: m.InventoryHubView })));
@@ -65,6 +66,7 @@ export const App: React.FC = () => {
     return loadCachedApiData().dailyProgression;
   });
   const [isRefreshingProgression, setIsRefreshingProgression] = useState<boolean>(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
 
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -153,6 +155,37 @@ export const App: React.FC = () => {
       return () => clearInterval(timer);
     }
   }, [settings.apiKey, handleRefreshProgression]);
+
+  // Background update checker: checks on mount and every 30 minutes
+  useEffect(() => {
+    let isMounted = true;
+    const runCheck = async () => {
+      try {
+        const res = await checkForAppUpdate('0.2.7');
+        if (isMounted && res.ok && res.hasUpdate) {
+          setUpdateInfo(res);
+        }
+      } catch (err) {
+        console.debug('Background update check failed:', err);
+      }
+    };
+
+    // Stagger initial check to 2.5s after load
+    const initialTimer = setTimeout(() => {
+      void runCheck();
+    }, 2500);
+
+    // Periodic check every 30 minutes
+    const intervalTimer = setInterval(() => {
+      void runCheck();
+    }, 30 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, []);
 
   // Check if running in Electron
   const isElectron = Boolean(
@@ -529,6 +562,8 @@ export const App: React.FC = () => {
         onOpenSettings={handleOpenSettings}
         isElectron={isElectron}
         accountName={accountInfo?.name}
+        hasUpdate={Boolean(updateInfo?.hasUpdate)}
+        latestVersion={updateInfo?.latestVersion}
       />
 
       {clickThroughActive && (
@@ -557,6 +592,8 @@ export const App: React.FC = () => {
             currentTab={currentTab}
             onSelectTab={handleSelectTab}
             onOpenSettings={handleOpenSettings}
+            hasUpdate={Boolean(updateInfo?.hasUpdate)}
+            latestVersion={updateInfo?.latestVersion}
           />
 
           {/* Right Content View Area */}
@@ -719,6 +756,7 @@ export const App: React.FC = () => {
             onUpdateSettings={updateSettings}
             isElectron={isElectron}
             onApiDataSynced={handleApiDataSynced}
+            initialUpdateInfo={updateInfo}
           />
         </Suspense>
       )}

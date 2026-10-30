@@ -8,6 +8,7 @@ import {
   Minus,
   Compass,
   Globe,
+  Sparkles,
 } from 'lucide-react';
 import type { OverlaySettings, OverlayTab } from '../types';
 import omnitriaIcon from '../../assets/icon.png';
@@ -22,6 +23,8 @@ interface HeaderProps {
   onOpenSettings: () => void;
   isElectron: boolean;
   accountName?: string | null;
+  hasUpdate?: boolean;
+  latestVersion?: string;
 }
 
 export const Header: React.FC<HeaderProps> = React.memo(({
@@ -32,6 +35,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   onOpenSettings,
   isElectron,
   accountName,
+  hasUpdate,
+  latestVersion,
 }) => {
   const account = useAccountState();
   const { t, lang, setLanguage } = useTranslation();
@@ -173,15 +178,38 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             {settings.soundEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
           </button>
 
+          {/* Version Update Pill in Header (visible in both Full & Mini modes) */}
+          {hasUpdate && (
+            <button
+              type="button"
+              className="gw2-header-update-pill"
+              onClick={onOpenSettings}
+              title={
+                lang === 'de'
+                  ? `Neues Update v${latestVersion} verfügbar! Klicke zum Öffnen der Einstellungen.`
+                  : `New update v${latestVersion} available! Click to open settings.`
+              }
+              aria-label={`Update v${latestVersion} available`}
+            >
+              <Sparkles size={12} className="update-sparkle-icon" aria-hidden="true" />
+              <span>Update v{latestVersion}</span>
+            </button>
+          )}
+
           {/* Settings Button */}
           <button
             type="button"
-            className="gw2-nav-icon-btn"
-            title={t('nav.settings')}
+            className={`gw2-nav-icon-btn ${hasUpdate ? 'has-update' : ''}`}
+            title={
+              hasUpdate
+                ? t('settings.updateAvailableTooltip', { version: latestVersion || '' })
+                : t('nav.settings')
+            }
             aria-label={t('nav.settings')}
             onClick={onOpenSettings}
           >
             <Settings size={14} aria-hidden="true" />
+            {hasUpdate && <span className="header-update-dot" />}
           </button>
 
           {/* Electron Minimize */}
