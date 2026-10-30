@@ -73,7 +73,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isSecureStorageAvailable, setIsSecureStorageAvailable] = useState<boolean>(false);
 
   // Auto-Updater State
-  const [currentVersion, setCurrentVersion] = useState<string>('0.1.0');
+  const [currentVersion, setCurrentVersion] = useState<string>('0.2.5');
   const [updateInfo, setUpdateInfo] = useState<{
     ok: boolean;
     currentVersion: string;

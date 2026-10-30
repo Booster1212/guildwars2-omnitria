@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.5] - 2026-10-30
+
+### Added & Improved
+
+#### Official Omnitria Brand Icon & Visual Identity (`assets/icon.png`, `src/components/Header.tsx`, `electron/main.cjs`)
+* **Top Header Brand Emblem (`src/components/Header.tsx`, `src/index.css`):**
+  * Integrated the official high-resolution Omnitria emblem (`icon.png`) directly into the top header bar (`.gw2-hero-brand` / `.gw2-shield-emblem`), replacing the placeholder vector diamond with authentic branding.
+  * Styled with subtle ambient drop-shadow (`filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85))`) and sharp subpixel scaling for both expanded Hero Board and compact Mini-HUD modes.
+* **Native Desktop, Windows Taskbar & System Tray Integration (`electron/main.cjs`, `assets/icon.ico`, `index.html`):**
+  * Generated multi-resolution Windows ICO (`assets/icon.ico` containing 16, 24, 32, 48, 64, 128, and 256 px frames) for sharp taskbar, Alt+Tab, and thumbnail scaling.
+  * Registered Windows Application User Model ID (`app.setAppUserModelId('com.omnitria.gw2overlay')`) ensuring Windows groups the process under Omnitria rather than generic Electron host.
+  * Explicitly bound taskbar icon via `mainWindow.setIcon(appIcon)` and ensured persistent visibility (`skipTaskbar: false`).
+  * Updated Electron application icon asset (`assets/icon.png`, 1254×1254 RGBA) used for tray context menus and system notifications.
+  * Added web favicon declaration in `index.html` (`<link rel="icon" type="image/png" href="./icon.png" />`).
+* **Visual Documentation & Multi-Resolution Screenshots (`docs/screenshots/*`):**
+  * Re-generated all 15 application view screenshots and high-resolution reference captures (`1520x685` and `1180x780`) reflecting the new brand icon, navigation rail, and UI polish.
+  * Prepared version bump to `v0.2.5` across `package.json`, `README.md`, and `SettingsModal.tsx`.
+
+---
+
 ## [0.2.4] - 2026-10-30
 
 ### Added & Improved

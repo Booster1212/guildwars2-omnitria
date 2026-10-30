@@ -10,7 +10,7 @@ import {
   Globe,
 } from 'lucide-react';
 import type { OverlaySettings, OverlayTab } from '../types';
-import { BrandMark } from './common/Glyphs';
+import omnitriaIcon from '../../assets/icon.png';
 import { useAccountState } from '../data/gw2/account';
 import { useTranslation } from '../i18n';
 
@@ -79,8 +79,14 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     <header className="gw2-top-header">
       <div className="gw2-title-strip">
         <div className="gw2-hero-brand">
-          <div className="gw2-shield-emblem">
-            <BrandMark />
+          <div className="gw2-shield-emblem" title="Omnitria • Guild Wars 2">
+            <img
+              src={omnitriaIcon}
+              alt="Omnitria"
+              className="omnitria-header-logo"
+              width={22}
+              height={22}
+            />
           </div>
 
           <div className="gw2-title-text-wrap">

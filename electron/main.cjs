@@ -200,12 +200,14 @@ function createWindow() {
   const defaultPos = getChatAnchoredPosition(defaultWidth, defaultHeight);
   log('Window geometry:', { width: defaultWidth, height: defaultHeight, pos: defaultPos });
 
-  const iconPath = path.join(__dirname, '../assets/icon.png');
+  const icoPath = path.join(__dirname, '../assets/icon.ico');
+  const pngPath = path.join(__dirname, '../assets/icon.png');
+  const winIconPath = (process.platform === 'win32' && fs.existsSync(icoPath)) ? icoPath : pngPath;
   let appIcon = null;
-  if (fs.existsSync(iconPath)) {
+  if (fs.existsSync(winIconPath)) {
     try {
-      appIcon = nativeImage.createFromPath(iconPath);
-      log('Icon loaded from png, empty:', appIcon.isEmpty(), 'size:', appIcon.getSize());
+      appIcon = nativeImage.createFromPath(winIconPath);
+      log('Icon loaded from', winIconPath, 'empty:', appIcon.isEmpty(), 'size:', appIcon.getSize());
     } catch (e) {
       log('Icon load failed:', e.message);
     }
@@ -223,7 +225,7 @@ function createWindow() {
     resizable: true,
     hasShadow: false,
     show: true,
-    icon: (appIcon && !appIcon.isEmpty()) ? appIcon : undefined,
+    icon: (appIcon && !appIcon.isEmpty()) ? (process.platform === 'win32' && fs.existsSync(icoPath) ? icoPath : appIcon) : undefined,
     minWidth: 300,
     minHeight: 160,
     webPreferences: {
@@ -234,6 +236,14 @@ function createWindow() {
     },
   });
   log('BrowserWindow instance created!');
+
+  if (appIcon && !appIcon.isEmpty()) {
+    try {
+      mainWindow.setIcon(appIcon);
+    } catch (e) {
+      log('mainWindow.setIcon failed:', e.message);
+    }
+  }
 
   try {
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
@@ -879,6 +889,9 @@ exit
 
 app.whenReady().then(() => {
   log('app.whenReady() triggered!');
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.omnitria.gw2overlay');
+  }
   createWindow();
 
   app.on('activate', () => {
