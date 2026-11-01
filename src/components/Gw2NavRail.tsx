@@ -61,23 +61,7 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
         {currentTab === 'inventory' && <div className="nav-rail-active-notch" />}
       </button>
 
-      {/* 3. Bosse & Erfolge */}
-      <button
-        type="button"
-        className={`nav-rail-item ${currentTab === 'achievements' ? 'active' : ''}`}
-        onClick={() => onSelectTab('achievements')}
-        title={t('nav.achievements')}
-        aria-label={t('nav.achievements')}
-        aria-current={currentTab === 'achievements' ? 'page' : undefined}
-      >
-        <div className="nav-item-icon" aria-hidden="true">
-          <GlyphAchievements />
-        </div>
-        <span className="nav-rail-label">{t('nav.achievements')}</span>
-        {currentTab === 'achievements' && <div className="nav-rail-active-notch" />}
-      </button>
-
-      {/* 4. Berufe & Handwerk */}
+      {/* 3. Berufe & Handwerk */}
       <button
         type="button"
         className={`nav-rail-item ${currentTab === 'crafting' ? 'active' : ''}`}
@@ -93,7 +77,7 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
         {currentTab === 'crafting' && <div className="nav-rail-active-notch" />}
       </button>
 
-      {/* 5. Legendary Weapons */}
+      {/* 4. Legendary Weapons */}
       <button
         type="button"
         className={`nav-rail-item ${currentTab === 'legendary' ? 'active' : ''}`}
@@ -107,6 +91,22 @@ export const Gw2NavRail: React.FC<Gw2NavRailProps> = React.memo(({
         </div>
         <span className="nav-rail-label">{t('nav.legendary')}</span>
         {currentTab === 'legendary' && <div className="nav-rail-active-notch" />}
+      </button>
+
+      {/* 5. Bosse & Erfolge */}
+      <button
+        type="button"
+        className={`nav-rail-item ${currentTab === 'achievements' ? 'active' : ''}`}
+        onClick={() => onSelectTab('achievements')}
+        title={t('nav.achievements')}
+        aria-label={t('nav.achievements')}
+        aria-current={currentTab === 'achievements' ? 'page' : undefined}
+      >
+        <div className="nav-item-icon" aria-hidden="true">
+          <GlyphAchievements />
+        </div>
+        <span className="nav-rail-label">{t('nav.achievements')}</span>
+        {currentTab === 'achievements' && <div className="nav-rail-active-notch" />}
       </button>
 
       <div className="nav-rail-spacer" />

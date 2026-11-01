@@ -47,6 +47,7 @@ import { useItems } from '../data/gw2/items';
 import { ItemIcon } from './common/ui';
 import { useTranslation } from '../i18n';
 import { evaluateEventDailyWeekly } from '../domain/dailyWeeklyEvents';
+import { useMumbleLink, isEventOnMap } from '../data/gw2/mumble';
 
 function getLootMeta(loot: string): { type: string; icon: LucideIcon } {
   const lower = loot.toLowerCase();
@@ -268,6 +269,8 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
   const [showAchievements, setShowAchievements] = useState(false);
   const { t, lang } = useTranslation();
   const { event, isActive, startsInSeconds, endsInSeconds } = instance;
+  const mumble = useMumbleLink();
+  const isOnCurrentMap = Boolean(mumble.connected && isEventOnMap(event, mumble.mapId));
 
   const progress = useProgress();
   const completionsCount = progress.eventCompletions[event.id] ?? 0;
@@ -346,7 +349,7 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
         isImminent ? 'imminent-event' : ''
       } ${dwMatch.isDaily ? 'daily-highlight-event' : ''} ${
         dwMatch.isWeekly ? 'weekly-highlight-event' : ''
-      }`}
+      } ${isOnCurrentMap ? 'on-current-map' : ''}`}
     >
       <div className="gw2-card-body">
         {/* Left Laurel Wreath Medal Icon with Dynamic Boss Glyph */}
@@ -368,6 +371,15 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
               <span className={`gw2-cat-tag ${getCategoryClass()}`}>
                 {displayCategory}
               </span>
+              {isOnCurrentMap && (
+                <span
+                  className="gw2-dw-badge current-map-badge"
+                  title={t('events.onYourMapTooltip')}
+                >
+                  <MapPin size={11} className="dw-badge-icon" />
+                  <span>{t('events.onYourMap')}</span>
+                </span>
+              )}
               {dwMatch.isDaily && (
                 <span
                   className={`gw2-dw-badge daily-badge ${dwMatch.dailyCompleted || isCompletedToday ? 'is-done' : ''}`}

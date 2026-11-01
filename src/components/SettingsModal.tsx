@@ -23,7 +23,11 @@ import {
   Download,
   ArrowUpCircle,
   PackageCheck,
+  Radio,
+  Swords,
+  MapPin,
 } from 'lucide-react';
+import { useMumbleLink, GW2_MAP_ZONE_MAP, getProfessionName } from '../data/gw2/mumble';
 import { OverlaySettings, MessageTemplateType, Language } from '../types';
 import {
   validateApiKey,
@@ -67,6 +71,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   initialUpdateInfo,
 }) => {
   const { t, lang, setLanguage } = useTranslation();
+  const mumble = useMumbleLink();
   const [apiKeyInput, setApiKeyInput] = useState<string>(settings.apiKey || '');
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -77,7 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Auto-Updater State
   const [currentVersion, setCurrentVersion] = useState<string>(
-    initialUpdateInfo?.currentVersion || '0.2.8'
+    initialUpdateInfo?.currentVersion || '0.2.9'
   );
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(
     initialUpdateInfo || null
@@ -567,6 +572,120 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     {t('settings.faqImagesDesc')}
                   </span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION: MumbleLink Live Telemetry (v0.2.9) */}
+          <div className="settings-card-panel">
+            <div className="card-panel-header">
+              <Radio size={14} className="gold-accent" />
+              <span className="card-panel-title">{t('settings.mumbleTitle')}</span>
+              <div style={{ marginLeft: 'auto' }}>
+                {mumble.connected ? (
+                  <span className="mumble-status-pill connected">
+                    <span className="mumble-pulse-dot" />
+                    <span>{t('settings.mumbleConnected')}</span>
+                  </span>
+                ) : (
+                  <span className="mumble-status-pill disconnected">
+                    <span className="mumble-pulse-dot idle" />
+                    <span>{t('settings.mumbleDisconnected')}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="card-panel-desc">
+              {t('settings.mumbleDesc')}
+            </div>
+
+            {/* Live Telemetry Data Preview */}
+            {mumble.connected && (
+              <div className="mumble-status-card">
+                <div className="mumble-telemetry-meta">
+                  <div className="mumble-meta-item">
+                    <span className="mumble-meta-label">{lang === 'en' ? 'Active Character' : 'Aktiver Charakter'}</span>
+                    <span className="mumble-meta-val font-serif">
+                      {mumble.identity?.name || (lang === 'en' ? 'Character Loaded' : 'Charakter geladen')}
+                    </span>
+                  </div>
+                  <div className="mumble-meta-item">
+                    <span className="mumble-meta-label">{lang === 'en' ? 'Profession' : 'Klasse'}</span>
+                    <span className="mumble-meta-val">
+                      {getProfessionName(mumble.identity?.profession, lang) || '–'}
+                    </span>
+                  </div>
+                  <div className="mumble-meta-item">
+                    <span className="mumble-meta-label">{lang === 'en' ? 'Current Zone' : 'Aktuelle Zone'}</span>
+                    <span className="mumble-meta-val">
+                      {mumble.mapId && GW2_MAP_ZONE_MAP[mumble.mapId]
+                        ? GW2_MAP_ZONE_MAP[mumble.mapId][lang]
+                        : mumble.mapId ? `Map ${mumble.mapId}` : '–'}
+                    </span>
+                  </div>
+                  <div className="mumble-meta-item">
+                    <span className="mumble-meta-label">{lang === 'en' ? 'Combat State' : 'Kampfstatus'}</span>
+                    <span className="mumble-meta-val" style={{ color: mumble.isInCombat ? '#f87171' : '#34d399' }}>
+                      {mumble.isInCombat ? t('settings.mumbleCombat') : t('settings.mumblePeace')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Toggles */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+              <div className="checkbox-setting-row">
+                <input
+                  type="checkbox"
+                  id="mumbleEnabledToggle"
+                  className="gw2-checkbox"
+                  checked={settings.mumbleEnabled !== false}
+                  onChange={(e) => onUpdateSettings({ mumbleEnabled: e.target.checked })}
+                />
+                <label htmlFor="mumbleEnabledToggle" className="checkbox-label">
+                  {t('settings.mumbleEnableToggle')}
+                </label>
+              </div>
+
+              <div className="checkbox-setting-row">
+                <input
+                  type="checkbox"
+                  id="mumbleAutoCharToggle"
+                  className="gw2-checkbox"
+                  checked={settings.autoSelectMumbleCharacter !== false}
+                  onChange={(e) => onUpdateSettings({ autoSelectMumbleCharacter: e.target.checked })}
+                />
+                <label htmlFor="mumbleAutoCharToggle" className="checkbox-label">
+                  {t('settings.mumbleAutoChar')}
+                </label>
+              </div>
+
+              <div className="checkbox-setting-row">
+                <input
+                  type="checkbox"
+                  id="mumbleAutoCombatToggle"
+                  className="gw2-checkbox"
+                  checked={settings.autoDimInCombat !== false}
+                  onChange={(e) => onUpdateSettings({ autoDimInCombat: e.target.checked })}
+                />
+                <label htmlFor="mumbleAutoCombatToggle" className="checkbox-label" title={t('settings.mumbleAutoCombatDimHint')}>
+                  {t('settings.mumbleAutoCombatDim')}
+                </label>
+              </div>
+
+              <div className="checkbox-setting-row">
+                <input
+                  type="checkbox"
+                  id="mumbleHighlightMapToggle"
+                  className="gw2-checkbox"
+                  checked={settings.highlightCurrentMapEvents !== false}
+                  onChange={(e) => onUpdateSettings({ highlightCurrentMapEvents: e.target.checked })}
+                />
+                <label htmlFor="mumbleHighlightMapToggle" className="checkbox-label">
+                  {t('settings.mumbleHighlightMap')}
+                </label>
               </div>
             </div>
           </div>

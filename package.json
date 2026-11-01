@@ -1,11 +1,12 @@
 {
   "name": "omnitria",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Omnitria - Guild Wars 2 In-Game Overlay (Events, Inventory & PvE Hub, Achievement Intelligence, Crafting, Legendary Armory & Settings)",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:mumble": "powershell -ExecutionPolicy Bypass -Command \"& 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe' /nologo /optimize /target:exe /out:electron\\mumble-reader.exe electron\\MumbleReader.cs\"",
     "preview": "vite preview",
     "overlay": "concurrently -k -s first \"vite\" \"wait-on tcp:5188 && electron electron/main.cjs\"",
     "electron": "electron electron/main.cjs",

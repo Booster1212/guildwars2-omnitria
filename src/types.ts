@@ -103,4 +103,9 @@ export interface OverlaySettings {
   pinnedOnTop: boolean;
   widgetMode: boolean;       // super mini strip
   apiKey?: string;           // Official Guild Wars 2 ArenaNet API key for achievements sync
+  // MumbleLink Telemetry & Live Integration
+  mumbleEnabled?: boolean;
+  autoSelectMumbleCharacter?: boolean;
+  autoDimInCombat?: boolean;
+  highlightCurrentMapEvents?: boolean;
 }

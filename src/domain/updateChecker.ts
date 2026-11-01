@@ -46,7 +46,7 @@ export function isNewerVersion(current: string, latest: string): boolean {
 /**
  * Executes an update check via Electron IPC or GitHub Releases API fallback.
  */
-export async function checkForAppUpdate(fallbackVersion = '0.2.8'): Promise<UpdateCheckResult> {
+export async function checkForAppUpdate(fallbackVersion = '0.2.9'): Promise<UpdateCheckResult> {
   const api = (window as unknown as {
     electronAPI?: {
       getAppVersion?: () => Promise<string>;

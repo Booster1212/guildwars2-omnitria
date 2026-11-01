@@ -887,12 +887,110 @@ exit
   }
 });
 
+// --- MumbleLink Telemetry Service (Read-Only Shared Memory Reader) ---
+let mumbleProcess = null;
+let lastMumbleData = { connected: false };
+let mumbleRestartTimer = null;
+let isQuittingApp = false;
+
+function startMumbleReader() {
+  if (process.platform !== 'win32') {
+    log('MumbleLink: Non-Windows platform detected, skipping reader.');
+    return;
+  }
+  const mumbleExe = path.join(__dirname, 'mumble-reader.exe');
+  if (!fs.existsSync(mumbleExe)) {
+    log('MumbleLink: mumble-reader.exe not found at:', mumbleExe);
+    return;
+  }
+
+  stopMumbleReader();
+
+  try {
+    log('MumbleLink: Spawning reader process:', mumbleExe);
+    const { spawn } = require('child_process');
+    mumbleProcess = spawn(mumbleExe, [], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdoutBuffer = '';
+
+    mumbleProcess.stdout.on('data', (chunk) => {
+      stdoutBuffer += chunk.toString('utf8');
+      const lines = stdoutBuffer.split(/\r?\n/);
+      stdoutBuffer = lines.pop() || ''; // Keep partial line
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const parsed = JSON.parse(trimmed);
+          lastMumbleData = parsed;
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('mumble-data-update', parsed);
+          }
+        } catch (e) {
+          log('MumbleLink: Failed to parse reader line:', trimmed.slice(0, 100), e.message);
+        }
+      }
+    });
+
+    mumbleProcess.stderr.on('data', (data) => {
+      log('MumbleLink stderr:', data.toString().trim());
+    });
+
+    mumbleProcess.on('error', (err) => {
+      log('MumbleLink process error:', err.message);
+    });
+
+    mumbleProcess.on('exit', (code, signal) => {
+      log(`MumbleLink process exited (code=${code}, signal=${signal})`);
+      mumbleProcess = null;
+      lastMumbleData = { connected: false };
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('mumble-data-update', { connected: false });
+      }
+      if (!isQuittingApp) {
+        mumbleRestartTimer = setTimeout(() => {
+          startMumbleReader();
+        }, 5000);
+      }
+    });
+  } catch (err) {
+    log('MumbleLink: Failed to spawn mumble-reader:', err.message);
+  }
+}
+
+function stopMumbleReader() {
+  if (mumbleRestartTimer) {
+    clearTimeout(mumbleRestartTimer);
+    mumbleRestartTimer = null;
+  }
+  if (mumbleProcess) {
+    try {
+      mumbleProcess.kill();
+    } catch (_) {}
+    mumbleProcess = null;
+  }
+}
+
+ipcMain.handle('mumble-get-data', () => {
+  return lastMumbleData;
+});
+
+ipcMain.handle('mumble-restart', () => {
+  startMumbleReader();
+  return { ok: true };
+});
+
 app.whenReady().then(() => {
   log('app.whenReady() triggered!');
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.omnitria.gw2overlay');
   }
   createWindow();
+  startMumbleReader();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -906,6 +1004,8 @@ app.on('window-all-closed', (e) => {
 
 app.on('before-quit', () => {
   log('app.on(before-quit) called');
+  isQuittingApp = true;
+  stopMumbleReader();
   if (pendingBounds) saveBounds(pendingBounds);
   flushLogsSync();
 });

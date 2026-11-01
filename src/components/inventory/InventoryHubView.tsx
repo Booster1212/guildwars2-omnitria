@@ -54,9 +54,11 @@ import {
   Briefcase,
   Archive,
   Box,
+  Target,
 } from 'lucide-react';
+import { CharacterProgressionView } from '../crafting/CharacterProgressionView';
 
-export type InventorySubTab = 'search' | 'characters' | 'progression';
+export type InventorySubTab = 'search' | 'characters' | 'leveling' | 'progression';
 
 interface InventoryHubViewProps {
   apiKey?: string;
@@ -516,10 +518,19 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
 
           <button
             type="button"
+            className={`inv-hub-tab-btn ${subTab === 'leveling' ? 'active' : ''}`}
+            onClick={() => setSubTab('leveling')}
+          >
+            <Compass size={14} />
+            <span>{t('inventory.tabLeveling')}</span>
+          </button>
+
+          <button
+            type="button"
             className={`inv-hub-tab-btn ${subTab === 'progression' ? 'active' : ''}`}
             onClick={() => setSubTab('progression')}
           >
-            <Compass size={14} />
+            <Target size={14} />
             <span>{t('inventory.tabProgression')}</span>
             {progress.tracked.length > 0 && (
               <span className="inv-tab-count font-mono">{progress.tracked.length}</span>
@@ -1050,7 +1061,16 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
         )}
 
         {/* ============================================================
-            SUBTAB 3: PVE PROGRESSION GOALS & RESOURCE PLANNING
+            SUBTAB 3: CHARACTER LEVELING & PROGRESSION (1–80 & MASTERIES)
+            ============================================================ */}
+        {subTab === 'leveling' && (
+          <div className="inv-leveling-view" style={{ padding: '4px 0' }}>
+            <CharacterProgressionView onOpenItem={openDrawer} />
+          </div>
+        )}
+
+        {/* ============================================================
+            SUBTAB 4: PVE PROGRESSION GOALS & RESOURCE PLANNING
             ============================================================ */}
         {subTab === 'progression' && (
           <div className="inv-progression-view">

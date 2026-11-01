@@ -17,6 +17,15 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 </div>
 
+## What's New in v0.2.9
+
+- **MumbleLink Live Telemetry (Shared Memory Integration):**
+  - **Live Game Telemetry:** Standalone reader worker connects to Tyria's `MumbleLink` shared memory (read-only, zero DLL injection or keystroke simulation).
+  - **Automatic Character Synchronization:** Automatically switches active character context in the Level Planner and Inventory views to match the character currently logged in and active in Guild Wars 2.
+  - **Current Map Meta-Event Highlighting:** Displays an emerald `📍 ON YOUR MAP` (`📍 DEINE KARTE`) badge and illuminated card border whenever a World Boss or Meta-Event is active on the player's current map.
+  - **In-Combat Full Auto-Stealth:** Completely hides the overlay (`opacity: 0, visibility: hidden`) and passes mouse clicks directly to the game window during combat (`uiState & 0x40`), restoring visibility and controls immediately upon leaving combat.
+  - **MumbleLink Settings & Live Status Panel:** Dedicated settings card with live telemetry indicators (character name, profession, current zone, combat state) and customizable toggles.
+
 ## What's New in v0.2.8
 
 - **Crafting Level Planner (450–500 Endgame & Discovery Routes):**
@@ -53,7 +62,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ### Standalone Binary (Windows)
 
-1. Download `Omnitria-v0.2.8-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.2.9-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (portable, no installer required).
 3. Launch `Omnitria.exe`.
 

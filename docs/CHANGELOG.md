@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.9] - 2026-11-01
+
+### Added & Improved
+
+#### MumbleLink Live Telemetry & In-Game Context Awareness (`electron/MumbleReader.cs`, `src/data/gw2/mumble.ts`)
+* **Real-Time Guild Wars 2 Shared Memory Mapping (`MumbleLink`):**
+  * Created a lightweight, standalone C# memory reader (`electron/MumbleReader.cs`, compiled to 6 KB `electron/mumble-reader.exe`) that continuously reads the official ArenaNet `MumbleLink` memory structure.
+  * Fully compliant with ArenaNet third-party policies: strictly read-only, zero DLL injection, and zero simulated keystrokes.
+  * Captures live telemetry including character name, profession, race, map ID, player coordinates, camera rotation, and UI bitmask state (`uiState`).
+* **Automatic Active Character Synchronization (`src/App.tsx`, `src/data/progressStore.ts`):**
+  * Automatically switches the active character context in the Level Planner and Inventory views to match the character currently logged in and active in Guild Wars 2, eliminating manual dropdown selection.
+* **Current Map Event Highlighting (`src/components/EventCard.tsx`, `src/components/MiniWidget.tsx`):**
+  * Added dynamic map matching connecting official GW2 `mapId`s and zone names across Core Tyria, Heart of Thorns, Path of Fire, End of Dragons, Secrets of the Obscure, Janthir Wilds, and Visions of Eternity.
+  * Displays an emerald `📍 HIER AUF DEINER KARTE` / `📍 ON YOUR MAP` badge and subtle border illumination whenever an active or upcoming World Boss or Meta-Event takes place on the player's current map.
+* **In-Combat Full Auto-Stealth (`src/App.tsx`, `src/index.css`):**
+  * Leveraged `uiState & 0x40` (`isInCombat`) to completely hide the overlay (`opacity: 0`, `visibility: hidden`, `pointer-events: none`) during in-game combat.
+  * Seamlessly passes mouse clicks through to the game window during combat to prevent accidental interface interactions, instantly restoring full visibility and controls upon leaving combat.
+* **MumbleLink Settings & Live Status Panel (`src/components/SettingsModal.tsx`):**
+  * Added a dedicated MumbleLink settings card with live connection status indicators (pulsing green dot when connected, character name, profession, current zone, and combat state).
+  * Provided user toggles for MumbleLink telemetry, character auto-switching, in-combat auto-dimming, and current map event highlighting.
+* **Comprehensive Test Suite (`tests/mumbleLink.test.ts`):**
+  * Added 9 automated unit tests verifying map matching, multi-zone handling, profession/race localization in English and German, combat bitmask decoding, and standalone reader executable verification.
+
+#### Shopping List Overhaul, Tier Grouping & Navigation Restructuring (`src/components/crafting/LevelPlanner.tsx`, `src/components/inventory/InventoryHubView.tsx`, `src/components/Gw2NavRail.tsx`)
+* **Shopping List Tier-Based Organization:**
+  * Categorized all planned crafting purchases into distinct **Tiers 1 to 6** (Novice 0–75 through Master/Grandmaster 400–500) and Master Craftsman NPC vendor supplies.
+  * Prominent Tier header rows show tier level, rank range, material count, missing items, and subtotal cost in gold/silver/copper.
+  * Added interactive toolbar with live material search and filter chips: `Alle`, `Nur fehlende`, `Handelsposten`, `Händler`.
+  * Reworked column proportions and table layout (`Icon`, `Material`, `Gesamtbedarf`, `Vorhanden`, `Noch kaufen`, `Einzelpreis`, `Gesamtkosten`), eliminating horizontal clipping and coin overflow.
+  * Solid `#161922` sticky header prevents scrolled rows from bleeding through.
+* **Character Progression Hub Category (`src/components/crafting/CharacterProgressionView.tsx`):**
+  * Decoupled general character progression (Level 1–80 milestones, story chapters, dungeons, gear checkpoints, and masteries) from crafting subtabs into its own dedicated component.
+  * Added `Charakter-Leveling (1–80)` as a primary category under **Inventar & PvE-Zentrale**, keeping the Crafting view 100% focused on handcrafting disciplines.
+* **Streamlined Main Navigation Menu (`src/components/Gw2NavRail.tsx`):**
+  * Reordered main navigation rail to: **1. Eventübersicht**, **2. Inventar & PvE-Zentrale**, **3. Handwerk & Berufe**, **4. Legendäre Waffen**, **5. Erfolge**.
+* **MumbleLink Telemetry Performance Throttle (`src/data/gw2/mumble.ts`):**
+  * Implemented semantic change detection to eliminate a 20 Hz React re-render storm across `App.tsx` and 57 `EventCard` components caused by player coordinate jitter.
+  * Combat transitions, map changes, and character switches remain instant (< 50ms), reducing idle/movement CPU usage by over 95%.
+* **Expanded Automated Test Suite (`tests/shoppingListAndCharacterProgression.test.ts`):**
+  * Added 6 unit tests covering tier classification, shopping filters, MumbleLink semantic jitter suppression, and navigation tab order.
+  * Total automated test count increased to **126 / 126 passing tests** across 12 test suites.
+
+---
+
 ## [0.2.8] - 2026-11-01
 
 ### Fixed & Improved

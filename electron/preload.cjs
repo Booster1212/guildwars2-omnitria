@@ -42,4 +42,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getApiKey: () => ipcRenderer.invoke('secure-credentials-get-key'),
     clearApiKey: () => ipcRenderer.invoke('secure-credentials-clear-key'),
   },
+  // MumbleLink telemetry bridge (GW2 shared memory reader)
+  mumble: {
+    getData: () => ipcRenderer.invoke('mumble-get-data'),
+    onUpdate: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on('mumble-data-update', handler);
+      return () => ipcRenderer.removeListener('mumble-data-update', handler);
+    },
+  },
 });

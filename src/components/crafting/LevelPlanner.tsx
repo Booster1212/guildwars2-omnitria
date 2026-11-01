@@ -36,6 +36,7 @@ import { getItem, useItems } from '../../data/gw2/items';
 import { fmtInt, getDisciplineName } from '../common/labels';
 import { Coin, ItemIcon, Notice, Check, ProgressBar } from '../common/ui';
 import {
+  Search,
   ChevronRight,
   ChevronDown,
   Sliders,
@@ -130,8 +131,12 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   const craftIntermediates = Boolean(discProgress.craftIntermediates);
 
   const [activeTab, setActiveTab] = useState<
-    'steps' | 'character' | 'materials' | 'tree' | 'intermediates' | 'shopping'
+    'steps' | 'materials' | 'tree' | 'intermediates' | 'shopping'
   >('steps');
+
+  // Shopping list filtering & search
+  const [shoppingSearch, setShoppingSearch] = useState('');
+  const [shoppingFilter, setShoppingFilter] = useState<'all' | 'missing' | 'tp' | 'vendor'>('all');
 
   // Strategy for self-crafting vs. buying
   const [strategy, setStrategy] = useState<CraftingStrategy>(
@@ -318,6 +323,19 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     () => getNextCraftingMilestone(effectiveStart, effectiveTarget),
     [effectiveStart, effectiveTarget],
   );
+
+  // Map each purchased item to the minimum step rank where it is first required
+  const itemMinRankMap = useMemo(() => {
+    const map = new Map<number, number>();
+    if (!plan) return map;
+    for (const st of plan.steps) {
+      for (const p of st.purchases) {
+        const prev = map.get(p.itemId) ?? Infinity;
+        if (st.fromRank < prev) map.set(p.itemId, st.fromRank);
+      }
+    }
+    return map;
+  }, [plan]);
 
   // Compute Character Leveling & Progression Plan (Lv 1–80 & Masteries)
   const accountAccess = useMemo(() => getAccountAccessList(account.data), [account.data]);
@@ -520,21 +538,23 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   }
 
   const isAllStepsCompleted = Boolean(plan && plan.steps.length > 0 && stepCounts.open === 0);
-  const displayCost = isAllStepsCompleted
+  const rawCost = isAllStepsCompleted
     ? 0
     : craftingPlanResult
       ? craftingPlanResult.totals.totalCost
       : (plan?.totalCost ?? 0);
-  const displayCrafts = isAllStepsCompleted
+  const displayCost = Number.isFinite(rawCost) ? rawCost : 0;
+
+  const rawCrafts = isAllStepsCompleted
     ? 0
     : craftingPlanResult
       ? craftingPlanResult.totals.totalCraftRuns
       : (plan?.totalCrafts ?? 0);
+  const displayCrafts = Number.isFinite(rawCrafts) ? rawCrafts : 0;
   const discName = getDisciplineName(discipline, lang);
 
-  // Determine whether the Next Action spotlight should focus on the Character Progression task or Crafting Step
-  const showCharTaskInSpotlight =
-    activeTab === 'character' || (!nextCraftingRecommendation && charProgressionPlan.recommendedNextTask !== null);
+  // Next Action spotlight focuses on the next crafting step in the plan
+  const showCharTaskInSpotlight = false;
   const spotlightCharTask: EvaluatedProgressionTask | null = charProgressionPlan.recommendedNextTask;
   const spotlightCraftStep: PlanStep | null = nextCraftingRecommendation?.step ?? null;
 
@@ -699,29 +719,16 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             <div className="pnao-progress-header">
               <span className="pnao-metric-label">{t('planner.overview.overallProgress')}</span>
               <span className="pnao-summary-counts font-mono">
-                {activeTab === 'character'
-                  ? t('planner.overview.remainingSummary', {
-                      open: charProgressionPlan.counts.remaining,
-                      done: charProgressionPlan.counts.completed,
-                      skipped: charProgressionPlan.counts.skipped,
-                      deferred: charProgressionPlan.counts.deferred,
-                    })
-                  : t('planner.overview.remainingSummary', {
-                      open: stepCounts.open,
-                      done: stepCounts.done,
-                      skipped: stepCounts.skipped,
-                      deferred: stepCounts.deferred,
-                    })}
+                {t('planner.overview.remainingSummary', {
+                  open: stepCounts.open,
+                  done: stepCounts.done,
+                  skipped: stepCounts.skipped,
+                  deferred: stepCounts.deferred,
+                })}
               </span>
             </div>
             <ProgressBar
-              value={
-                activeTab === 'character'
-                  ? charProgressionPlan.counts.total > 0
-                    ? charProgressionPlan.counts.completed / charProgressionPlan.counts.total
-                    : 0
-                  : progressFrac
-              }
+              value={progressFrac}
               tone="gold"
               slim
             />
@@ -1206,17 +1213,6 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             <Sliders size={13} />
             <span>
               {t('crafting.stepsTab')} ({plan?.steps.length ?? 0})
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`subtab-btn ${activeTab === 'character' ? 'active' : ''}`}
-            onClick={() => setActiveTab('character')}
-          >
-            <Compass size={13} />
-            <span>
-              {t('planner.tab.charProgression')} ({charProgressionPlan.counts.completed}/
-              {charProgressionPlan.counts.total})
             </span>
           </button>
           <button
@@ -1829,350 +1825,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       )}
 
-      {/* Tab 2: Character Progression (Lv 1–80 & Masteries) */}
-      {activeTab === 'character' && (
-        <div className="planner-char-progression-wrap">
-          <div className="char-progression-toolbar">
-            <div className="cpt-left">
-              <label className="control-label">{t('planner.targetMilestoneLabel')}</label>
-              <select
-                className="gw2-select"
-                value={charProg.targetMilestoneId ?? ''}
-                onChange={(e) =>
-                  progressActions.setCharacterTargetMilestone(
-                    selectedCharacter,
-                    e.target.value ? e.target.value : null,
-                  )
-                }
-              >
-                <option value="">{t('planner.targetMilestoneAuto')}</option>
-                {charProgressionPlan.milestones.map((ms) => (
-                  <option key={ms.id} value={ms.id}>
-                    {t(ms.titleKey as TranslationKey)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="cpt-right">
-              {charProgressionPlan.counts.skipped > 0 && (
-                <button
-                  type="button"
-                  className={`btn-tiny ${showSkippedSteps ? 'active' : ''}`}
-                  onClick={() => setShowSkippedSteps(!showSkippedSteps)}
-                >
-                  {t('planner.filter.showSkipped', {
-                    count: charProgressionPlan.counts.skipped,
-                  })}
-                </button>
-              )}
-              {(charProg.completedTaskIds.length > 0 ||
-                charProg.skippedTaskIds.length > 0 ||
-                charProg.deferredTaskIds.length > 0) && (
-                <button
-                  type="button"
-                  className="btn-tiny"
-                  onClick={() => progressActions.resetCharacterTasks(selectedCharacter)}
-                >
-                  <RotateCcw size={10} className="mr-1 inline" />
-                  {t('planner.resetCharTasks')}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {charProgressionPlan.stages.map((stage) => {
-            const isCollapsed = collapsedStages.has(stage.id);
-            const visibleTasks = stage.tasks.filter(
-              (tk) => showSkippedSteps || tk.status !== 'skipped',
-            );
-            if (visibleTasks.length === 0) return null;
-
-            const stageActiveCount = Math.max(0, stage.tasks.length - stage.skippedCount);
-            const stageFrac =
-              stageActiveCount > 0 ? Math.min(1, stage.completedCount / stageActiveCount) : 1;
-
-            return (
-              <div key={stage.id} className="planner-stage-group">
-                <div
-                  className="planner-stage-header"
-                  onClick={() => toggleStageCollapsed(stage.id)}
-                >
-                  <div className="psh-left">
-                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                    <span className="psh-title font-serif">
-                      {t(stage.labelKey as TranslationKey)}
-                    </span>
-                  </div>
-                  <div className="psh-right">
-                    <span className="psh-counts font-mono">
-                      {stage.completedCount} / {stageActiveCount} {t('crafting.doneWord')}
-                    </span>
-                    <div className="psh-progress-wrap">
-                      <ProgressBar
-                        value={stageFrac}
-                        tone={stageFrac >= 1 ? 'gold' : 'green'}
-                        slim
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {!isCollapsed && (
-                  <div className="planner-stage-steps">
-                    {visibleTasks.map((tk) => {
-                      const def = tk.definition;
-                      const isDone = tk.status === 'completed';
-                      const isApiVerified = tk.verificationSource === 'api_verified';
-                      const isNextRec =
-                        charProgressionPlan.recommendedNextTask?.definition.id === def.id;
-                      const isExpanded =
-                        expandedTaskIds.has(def.id) || (isNextRec && !isDone);
-
-                      return (
-                        <div
-                          key={def.id}
-                          className={`planner-step-card char-task-card ${
-                            isDone ? 'step-done' : ''
-                          } ${tk.status === 'skipped' ? 'step-skipped' : ''} ${
-                            tk.status === 'deferred' ? 'step-deferred' : ''
-                          } ${!tk.isAvailable && !isDone ? 'step-blocked' : ''} ${
-                            isNextRec ? 'step-recommended-next' : ''
-                          }`}
-                        >
-                          <div className="step-check-col">
-                            {isApiVerified ? (
-                              <span
-                                className="api-verified-check"
-                                title={t('planner.verify.apiVerifiedTip')}
-                              >
-                                <ShieldCheck size={16} className="text-emerald-400" />
-                              </span>
-                            ) : (
-                              <Check
-                                checked={isDone}
-                                onChange={() =>
-                                  progressActions.toggleTaskCompleted(selectedCharacter, def.id)
-                                }
-                                title={t('planner.action.complete')}
-                              />
-                            )}
-                          </div>
-
-                          <div className="step-rank-badge font-mono">
-                            <span>Lv {def.minLevel}+</span>
-                          </div>
-
-                          <div className="step-content-col">
-                            <div className="step-title-line">
-                              <span
-                                className="step-item-name font-serif cursor-pointer"
-                                onClick={() => toggleTaskExpanded(def.id)}
-                              >
-                                {t(def.titleKey as TranslationKey)}
-                              </span>
-                              <span className={`planner-cat-pill cat-${def.category}`}>
-                                {t(`planner.cat.${def.category}` as TranslationKey)}
-                              </span>
-                              {isNextRec && (
-                                <span className="planner-status-pill next-rec">
-                                  {t('planner.next.badge')}
-                                </span>
-                              )}
-                              {isDone && (
-                                <span
-                                  className={`planner-status-pill ${
-                                    isApiVerified ? 'api-verified' : 'completed'
-                                  }`}
-                                >
-                                  {t('planner.status.completed')} ·{' '}
-                                  {isApiVerified
-                                    ? t('planner.verify.apiVerified')
-                                    : t('planner.verify.localTracked')}
-                                </span>
-                              )}
-                              {tk.status === 'skipped' && (
-                                <span className="planner-status-pill skipped">
-                                  {t('planner.status.skipped')}
-                                </span>
-                              )}
-                              {tk.status === 'deferred' && (
-                                <span className="planner-status-pill deferred">
-                                  {t('planner.status.deferred')}
-                                </span>
-                              )}
-                              {tk.accessStatus === 'locked_expansion' && def.requiredExpansion && (
-                                <span className="planner-status-pill locked">
-                                  <Lock size={10} />
-                                  <span>
-                                    {t('planner.status.lockedExpansion', {
-                                      exp: def.requiredExpansion,
-                                    })}
-                                  </span>
-                                </span>
-                              )}
-                              {tk.isBlockedByLevel && !isDone && (
-                                <span className="planner-status-pill blocked">
-                                  {t('planner.status.blockedLevel', { level: def.minLevel })}
-                                </span>
-                              )}
-                              {tk.isBlockedByPrereqs && !isDone && (
-                                <span className="planner-status-pill blocked">
-                                  {t('planner.status.blockedPrereq')}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="step-meta-reason-row">
-                              <span className="step-reason-inline dim">
-                                {t(tk.reasonKey as TranslationKey)}
-                              </span>
-                              <div className="step-prereq-pills">
-                                {def.effortMinutes !== null && (
-                                  <span className="prereq-chip">
-                                    ~{def.effortMinutes} min
-                                  </span>
-                                )}
-                                {def.prerequisiteTaskIds.map((pid) => {
-                                  const pTask = CHARACTER_PROGRESSION_TASKS.find(
-                                    (cand) => cand.id === pid,
-                                  );
-                                  const isUnmet = tk.unmetPrerequisiteIds.includes(pid);
-                                  return (
-                                    <span
-                                      key={pid}
-                                      className={`prereq-chip ${isUnmet ? 'unmet' : 'met'}`}
-                                    >
-                                      {t('planner.prereq.label')}{' '}
-                                      {pTask
-                                        ? t(pTask.titleKey as TranslationKey)
-                                        : pid}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            {isExpanded && (
-                              <div className="step-collapsible-details char-task-details">
-                                <p className="char-task-desc">
-                                  {t(def.descKey as TranslationKey)}
-                                </p>
-                                <div className="char-task-benefit">
-                                  <strong>{t('planner.next.expectedBenefit')}</strong>{' '}
-                                  <span>{t(def.benefitKey as TranslationKey)}</span>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="step-inline-actions-bar">
-                              {!isDone && tk.status !== 'skipped' && (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="btn-tiny"
-                                    onClick={() =>
-                                      progressActions.setTaskStatus(
-                                        selectedCharacter,
-                                        def.id,
-                                        'completed',
-                                      )
-                                    }
-                                  >
-                                    <CheckCircle2 size={10} />
-                                    <span>{t('planner.action.complete')}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-tiny"
-                                    onClick={() =>
-                                      progressActions.setTaskStatus(
-                                        selectedCharacter,
-                                        def.id,
-                                        tk.status === 'deferred' ? 'open' : 'deferred',
-                                      )
-                                    }
-                                  >
-                                    <PauseCircle size={10} />
-                                    <span>
-                                      {tk.status === 'deferred'
-                                        ? t('planner.action.restore')
-                                        : t('planner.action.defer')}
-                                    </span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-tiny"
-                                    onClick={() =>
-                                      progressActions.setTaskStatus(
-                                        selectedCharacter,
-                                        def.id,
-                                        'skipped',
-                                      )
-                                    }
-                                  >
-                                    <SkipForward size={10} />
-                                    <span>{t('planner.action.skip')}</span>
-                                  </button>
-                                </>
-                              )}
-                              {tk.status === 'skipped' && (
-                                <button
-                                  type="button"
-                                  className="btn-tiny"
-                                  onClick={() =>
-                                    progressActions.setTaskStatus(
-                                      selectedCharacter,
-                                      def.id,
-                                      'open',
-                                    )
-                                  }
-                                >
-                                  <RotateCcw size={10} />
-                                  <span>{t('planner.action.restore')}</span>
-                                </button>
-                              )}
-                              {def.category === 'crafting' && (
-                                <button
-                                  type="button"
-                                  className="btn-tiny"
-                                  onClick={() => setActiveTab('steps')}
-                                >
-                                  <Hammer size={10} />
-                                  <span>{t('crafting.stepsTab')}</span>
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="btn-tiny details-toggle-btn"
-                                onClick={() => toggleTaskExpanded(def.id)}
-                              >
-                                {isExpanded ? (
-                                  <>
-                                    <ChevronDown size={10} />
-                                    <span>{t('planner.action.detailsCollapse')}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronRight size={10} />
-                                    <span>{t('planner.action.detailsExpand')}</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Tab 3: Total Material Demand (fully recursively resolved) */}
+      {/* Tab 2: Total Material Demand (fully recursively resolved) */}
       {activeTab === 'materials' && (
         <MaterialDemandTable
           materials={craftingPlanResult?.materials ?? []}
@@ -2193,15 +1846,90 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         />
       )}
 
-      {/* Tab 5: Shopping List (compact list) */}
+      {/* Tab 5: Shopping List (Tier-grouped, searchable, with responsive columns) */}
       {activeTab === 'shopping' && plan && (
         <div className="planner-shopping-wrap">
           {(() => {
-            const purchaseList = Array.from(plan.purchases.entries());
-            const hasUntradable = purchaseList.some(([id]) => {
+            const rawPurchases = Array.from(plan.purchases.entries());
+            const hasUntradable = rawPurchases.some(([id]) => {
               const it = getItem(id);
               return isUntradable(it) && !KNOWN_VENDOR_PRICES.has(id);
             });
+
+            // Enrich all purchases with metadata, stock, prices, and tier assignment
+            const enriched = rawPurchases.map(([itemId, qty]) => {
+              const item = getItem(itemId);
+              const stock = account.stockMap.get(itemId) ?? 0;
+              const missing = Math.max(0, qty - stock);
+              const isVendor = KNOWN_VENDOR_PRICES.has(itemId);
+              const untradable = isUntradable(item) && !isVendor;
+              const unit = unitPrice(prices.map.get(itemId), itemId);
+              const totalLineCost = unit !== null && missing > 0 ? unit * missing : (missing === 0 ? 0 : null);
+
+              const minRank = itemMinRankMap.get(itemId);
+              const rank = minRank !== undefined && Number.isFinite(minRank) ? minRank : 0;
+              let tier = 1;
+              if (rank >= 400) tier = 6;
+              else if (rank >= 300) tier = 5;
+              else if (rank >= 225) tier = 4;
+              else if (rank >= 150) tier = 3;
+              else if (rank >= 75) tier = 2;
+
+              return {
+                itemId,
+                qty,
+                stock,
+                missing,
+                isVendor,
+                untradable,
+                unit,
+                totalLineCost,
+                item,
+                tier,
+                name: item?.name ?? `#${itemId}`,
+              };
+            });
+
+            // Counts for toolbar filter pills
+            const missingCount = enriched.filter((i) => i.missing > 0).length;
+            const tpCount = enriched.filter((i) => !i.isVendor && !i.untradable).length;
+            const vendorCount = enriched.filter((i) => i.isVendor).length;
+
+            let totalMissingCost = 0;
+            for (const item of enriched) {
+              if (item.totalLineCost !== null && item.missing > 0) {
+                totalMissingCost += item.totalLineCost;
+              }
+            }
+
+            // Apply search & filter
+            const query = shoppingSearch.trim().toLowerCase();
+            const filtered = enriched.filter((row) => {
+              if (query && !row.name.toLowerCase().includes(query)) return false;
+              if (shoppingFilter === 'missing' && row.missing <= 0) return false;
+              if (shoppingFilter === 'tp' && (row.isVendor || row.untradable)) return false;
+              if (shoppingFilter === 'vendor' && !row.isVendor) return false;
+              return true;
+            });
+
+            // Group by tier
+            const tierMap = new Map<number, typeof filtered>();
+            for (const item of filtered) {
+              const list = tierMap.get(item.tier) ?? [];
+              list.push(item);
+              tierMap.set(item.tier, list);
+            }
+
+            const tierMeta: Record<number, { title: string; range: string }> = {
+              1: { title: lang === 'en' ? 'Tier 1 · Novice' : 'Tier 1 · Novize', range: '0–75' },
+              2: { title: lang === 'en' ? 'Tier 2 · Initiate' : 'Tier 2 · Initiant', range: '75–150' },
+              3: { title: lang === 'en' ? 'Tier 3 · Apprentice' : 'Tier 3 · Lehrling', range: '150–225' },
+              4: { title: lang === 'en' ? 'Tier 4 · Journeyman' : 'Tier 4 · Geselle', range: '225–300' },
+              5: { title: lang === 'en' ? 'Tier 5 · Adept' : 'Tier 5 · Experte', range: '300–400' },
+              6: { title: lang === 'en' ? 'Tier 6 · Master & Grandmaster' : 'Tier 6 · Meister & Großmeister', range: '400–500' },
+            };
+
+            const presentTiers = [1, 2, 3, 4, 5, 6].filter((t) => tierMap.has(t));
 
             return (
               <>
@@ -2216,105 +1944,235 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                   </div>
                 )}
 
-                <table className="gw2-dense-table shopping-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '40px' }}>{t('legendary.colIcon')}</th>
-                      <th>{t('crafting.colItem')}</th>
-                      <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colGross')}</th>
-                      <th style={{ width: '100px', textAlign: 'right' }}>{t('crafting.colStock')}</th>
-                      <th style={{ width: '110px', textAlign: 'right' }}>{t('crafting.colStillBuy')}</th>
-                      <th style={{ width: '120px', textAlign: 'right' }}>{t('crafting.colUnit')}</th>
-                      <th style={{ width: '140px', textAlign: 'right' }}>{t('crafting.colTotal')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchaseList.map(([itemId, qty]) => {
-                      const item = getItem(itemId);
-                      const stock = account.stockMap.get(itemId) ?? 0;
-                      const missing = Math.max(0, qty - stock);
-                      const isVendor = KNOWN_VENDOR_PRICES.has(itemId);
-                      const untradable = isUntradable(item) && !isVendor;
-                      const unit = unitPrice(prices.map.get(itemId), itemId);
-                      const totalLineCost = unit !== null ? unit * missing : null;
+                {/* Shopping Toolbar: Search, Filters & Total Cost */}
+                <div className="shopping-toolbar">
+                  <div className="shopping-toolbar-left">
+                    <div className="shopping-search-box">
+                      <Search size={13} className="text-amber-400 shrink-0" />
+                      <input
+                        type="text"
+                        placeholder={t('crafting.searchMaterial')}
+                        value={shoppingSearch}
+                        onChange={(e) => setShoppingSearch(e.target.value)}
+                      />
+                    </div>
 
-                      return (
-                        <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
-                          <td className="icon-cell">
-                            <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
-                          </td>
-                          <td
-                            className="name-cell font-serif cursor-pointer"
-                            onClick={() => onOpenItem(itemId)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className={`r-${item?.rarity ?? 'Basic'}`}>
-                                {item?.name ?? `#${itemId}`}
-                              </span>
-                              {untradable && (
-                                <span
-                                  className="badge-untradable"
-                                  title={
-                                    lang === 'en'
-                                      ? 'Account-bound: cannot be traded on the Trading Post'
-                                      : 'Accountgebunden: nicht im Handelsposten handelbar'
-                                  }
-                                >
-                                  {lang === 'en' ? 'Account Bound' : 'Accountgebunden'}
-                                </span>
-                              )}
-                              {isVendor && (
-                                <span
-                                  className="mat-badge badge-discovery-ing"
-                                  title={
-                                    lang === 'en'
-                                      ? 'Purchasable from Master Craftsman / NPC Vendor'
-                                      : 'Kaufbar beim Handwerksmeister / Händler'
-                                  }
-                                >
-                                  {lang === 'en' ? 'Vendor' : 'Händler'}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="num font-mono">{fmtInt(qty)}</td>
-                          <td className="num font-mono dim">
-                            {account.hasStockData ? fmtInt(stock) : '–'}
-                          </td>
-                          <td className={`num font-mono ${missing > 0 ? (untradable ? 'text-amber font-bold' : 'bad font-bold') : 'good'}`}>
-                            {account.hasStockData ? (
-                              untradable && missing > 0 ? (
-                                <span title={lang === 'en' ? 'Must be farmed/looted in-game' : 'Muss im Spiel gesammelt/erbeutet werden'}>
-                                  {fmtInt(missing)} ⚠️
-                                </span>
-                              ) : (
-                                fmtInt(missing)
-                              )
-                            ) : (
-                              fmtInt(qty)
-                            )}
-                          </td>
-                          <td className="num">
-                            {untradable ? (
-                              <span className="dim text-xs font-serif">
-                                {lang === 'en' ? 'Not tradable' : 'Nicht handelbar'}
-                              </span>
-                            ) : (
-                              <Coin copper={unit} />
-                            )}
-                          </td>
-                          <td className="num">
-                            {untradable ? (
-                              <span className="dim text-xs font-serif">–</span>
-                            ) : (
-                              <Coin copper={totalLineCost} />
-                            )}
+                    <div className="shopping-filter-chips">
+                      <button
+                        type="button"
+                        className={`shopping-chip ${shoppingFilter === 'all' ? 'active' : ''}`}
+                        onClick={() => setShoppingFilter('all')}
+                      >
+                        {t('crafting.filterAll')} ({enriched.length})
+                      </button>
+                      <button
+                        type="button"
+                        className={`shopping-chip ${shoppingFilter === 'missing' ? 'active' : ''}`}
+                        onClick={() => setShoppingFilter('missing')}
+                      >
+                        {t('crafting.filterMissingOnly')} ({missingCount})
+                      </button>
+                      <button
+                        type="button"
+                        className={`shopping-chip ${shoppingFilter === 'tp' ? 'active' : ''}`}
+                        onClick={() => setShoppingFilter('tp')}
+                      >
+                        {t('crafting.filterTpOnly')} ({tpCount})
+                      </button>
+                      <button
+                        type="button"
+                        className={`shopping-chip ${shoppingFilter === 'vendor' ? 'active' : ''}`}
+                        onClick={() => setShoppingFilter('vendor')}
+                      >
+                        {t('crafting.filterVendorOnly')} ({vendorCount})
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="shopping-toolbar-right">
+                    <span className="dim text-xs">{t('crafting.shoppingTotalMissing')}:</span>
+                    <span className="font-bold">
+                      <Coin copper={totalMissingCost} />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Responsive Table Container */}
+                <div className="shopping-table-responsive-container">
+                  <table className="gw2-dense-table shopping-table">
+                    <thead>
+                      <tr>
+                        <th className="col-icon" style={{ width: '44px', textAlign: 'center' }}>
+                          {t('legendary.colIcon')}
+                        </th>
+                        <th className="col-item">{t('crafting.colItem')}</th>
+                        <th className="col-gross" style={{ width: '85px', textAlign: 'right' }}>
+                          {t('crafting.colGross')}
+                        </th>
+                        <th className="col-stock" style={{ width: '85px', textAlign: 'right' }}>
+                          {t('crafting.colStock')}
+                        </th>
+                        <th className="col-missing" style={{ width: '95px', textAlign: 'right' }}>
+                          {t('crafting.colStillBuy')}
+                        </th>
+                        <th className="col-unit" style={{ width: '115px', textAlign: 'right' }}>
+                          {t('crafting.colUnit')}
+                        </th>
+                        <th className="col-total" style={{ width: '140px', textAlign: 'right', paddingRight: '16px' }}>
+                          {t('crafting.colTotal')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {presentTiers.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="empty-cell">
+                            {t('crafting.noSearchResults')}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ) : (
+                        presentTiers.map((tierNum) => {
+                          const tierItems = tierMap.get(tierNum) ?? [];
+                          const meta = tierMeta[tierNum];
+                          let tierMissingCost = 0;
+                          let tierMissingItems = 0;
+                          for (const it of tierItems) {
+                            if (it.missing > 0) {
+                              tierMissingItems++;
+                              if (it.totalLineCost !== null) tierMissingCost += it.totalLineCost;
+                            }
+                          }
+
+                          return (
+                            <React.Fragment key={`tier-${tierNum}`}>
+                              <tr className="shopping-tier-separator">
+                                <td colSpan={7}>
+                                  <div className="tier-header-content">
+                                    <span className="tier-badge">
+                                      {meta.title} (Rang {meta.range})
+                                    </span>
+                                    <div className="tier-meta-right">
+                                      <span className="tier-items-count">
+                                        {tierItems.length}{' '}
+                                        {lang === 'en' ? 'materials' : 'Materialien'}
+                                      </span>
+                                      {tierMissingItems === 0 ? (
+                                        <span className="text-emerald-400 font-semibold text-xs">
+                                          {t('crafting.shoppingAllInStock')}
+                                        </span>
+                                      ) : (
+                                        <span className="text-amber-400 text-xs">
+                                          {t('crafting.shoppingMissingItems', { count: tierMissingItems })}
+                                        </span>
+                                      )}
+                                      <span className="tier-subtotal">
+                                        <Coin copper={tierMissingCost} />
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+
+                              {tierItems.map((row) => {
+                                const { itemId, qty, stock, missing, isVendor, untradable, unit, totalLineCost, item } = row;
+                                return (
+                                  <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
+                                    <td className="icon-cell" style={{ textAlign: 'center' }}>
+                                      <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
+                                    </td>
+                                    <td
+                                      className="name-cell font-serif cursor-pointer"
+                                      onClick={() => onOpenItem(itemId)}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className={`r-${item?.rarity ?? 'Basic'}`}>
+                                          {item?.name ?? `#${itemId}`}
+                                        </span>
+                                        {untradable && (
+                                          <span
+                                            className="badge-untradable"
+                                            title={
+                                              lang === 'en'
+                                                ? 'Account-bound: cannot be traded on the Trading Post'
+                                                : 'Accountgebunden: nicht im Handelsposten handelbar'
+                                            }
+                                          >
+                                            {lang === 'en' ? 'Account Bound' : 'Accountgebunden'}
+                                          </span>
+                                        )}
+                                        {isVendor && (
+                                          <span
+                                            className="mat-badge badge-discovery-ing"
+                                            title={
+                                              lang === 'en'
+                                                ? 'Purchasable from Master Craftsman / NPC Vendor'
+                                                : 'Kaufbar beim Handwerksmeister / Händler'
+                                            }
+                                          >
+                                            {lang === 'en' ? 'Vendor' : 'Händler'}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="num font-mono">{fmtInt(qty)}</td>
+                                    <td className="num font-mono dim">
+                                      {account.hasStockData ? fmtInt(stock) : '–'}
+                                    </td>
+                                    <td
+                                      className={`num font-mono ${
+                                        missing > 0
+                                          ? untradable
+                                            ? 'text-amber font-bold'
+                                            : 'bad font-bold'
+                                          : 'good font-bold'
+                                      }`}
+                                    >
+                                      {account.hasStockData ? (
+                                        untradable && missing > 0 ? (
+                                          <span
+                                            title={
+                                              lang === 'en'
+                                                ? 'Must be farmed/looted in-game'
+                                                : 'Muss im Spiel gesammelt/erbeutet werden'
+                                            }
+                                          >
+                                            {fmtInt(missing)} ⚠️
+                                          </span>
+                                        ) : missing === 0 ? (
+                                          <span className="text-emerald-400 font-bold">✓ 0</span>
+                                        ) : (
+                                          fmtInt(missing)
+                                        )
+                                      ) : (
+                                        fmtInt(qty)
+                                      )}
+                                    </td>
+                                    <td className="num font-mono col-unit" style={{ textAlign: 'right' }}>
+                                      {untradable ? (
+                                        <span className="dim text-xs font-serif">
+                                          {lang === 'en' ? 'Not tradable' : 'Nicht handelbar'}
+                                        </span>
+                                      ) : (
+                                        <Coin copper={unit} />
+                                      )}
+                                    </td>
+                                    <td className="num font-mono col-total" style={{ textAlign: 'right', paddingRight: '16px' }}>
+                                      {untradable ? (
+                                        <span className="dim text-xs font-serif">–</span>
+                                      ) : (
+                                        <Coin copper={totalLineCost} />
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </React.Fragment>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </>
             );
           })()}

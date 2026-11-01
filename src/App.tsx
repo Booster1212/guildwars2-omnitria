@@ -16,7 +16,8 @@ import {
   Gw2DailyProgression,
 } from './data/gw2Api';
 import { syncIfStale } from './data/gw2/account';
-import { progressActions } from './data/progressStore';
+import { progressActions, getProgress } from './data/progressStore';
+import { useMumbleLink } from './data/gw2/mumble';
 import { ensureItems } from './data/gw2/items';
 import { DISCIPLINE_ICON_ITEM } from './components/common/labels';
 import { useTranslation } from './i18n';
@@ -41,6 +42,10 @@ const DEFAULT_SETTINGS: OverlaySettings = {
   sortMode: 'time',
   pinnedOnTop: true,
   widgetMode: true, // Small overlay in game by default above chat!
+  mumbleEnabled: true,
+  autoSelectMumbleCharacter: true,
+  autoDimInCombat: true,
+  highlightCurrentMapEvents: true,
 };
 
 export const App: React.FC = () => {
@@ -104,6 +109,43 @@ export const App: React.FC = () => {
     return DEFAULT_SETTINGS;
   });
 
+  // Live MumbleLink telemetry (Shared memory reading from Guild Wars 2)
+  const mumble = useMumbleLink();
+
+  // Auto-switch active character from MumbleLink telemetry if enabled
+  useEffect(() => {
+    if (
+      settings.mumbleEnabled !== false &&
+      settings.autoSelectMumbleCharacter !== false &&
+      mumble.connected &&
+      mumble.identity?.name
+    ) {
+      const currentSelected = getProgress().plannerPreferences?.selectedCharacter;
+      if (currentSelected !== mumble.identity.name) {
+        progressActions.setSelectedCharacter(mumble.identity.name);
+      }
+    }
+  }, [
+    settings.mumbleEnabled,
+    settings.autoSelectMumbleCharacter,
+    mumble.connected,
+    mumble.identity?.name,
+  ]);
+
+  const isCombatDimmed = Boolean(
+    settings.mumbleEnabled !== false &&
+    settings.autoDimInCombat !== false &&
+    mumble.connected &&
+    mumble.isInCombat
+  );
+
+  useEffect(() => {
+    const api = (window as unknown as { electronAPI?: { setIgnoreMouse?: (ignore: boolean) => void } }).electronAPI;
+    if (api?.setIgnoreMouse) {
+      api.setIgnoreMouse(isCombatDimmed);
+    }
+  }, [isCombatDimmed]);
+
   // Sync settings.language with i18n
   useEffect(() => {
     if (settings.language && settings.language !== lang) {
@@ -161,7 +203,7 @@ export const App: React.FC = () => {
     let isMounted = true;
     const runCheck = async () => {
       try {
-        const res = await checkForAppUpdate('0.2.8');
+        const res = await checkForAppUpdate();
         if (isMounted && res.ok && res.hasUpdate) {
           setUpdateInfo(res);
         }
@@ -547,9 +589,11 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className="gw2-hero-window"
+      className={`gw2-hero-window ${isCombatDimmed ? 'mumble-in-combat' : ''}`}
       style={{
-        opacity: settings.opacity,
+        opacity: isCombatDimmed ? 0 : settings.opacity,
+        pointerEvents: isCombatDimmed ? 'none' : undefined,
+        visibility: isCombatDimmed ? 'hidden' : undefined,
         outline: clickThroughActive ? '2px dashed var(--gw2-cyan)' : undefined,
       }}
     >

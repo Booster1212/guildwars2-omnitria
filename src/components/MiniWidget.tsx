@@ -29,6 +29,7 @@ import {
 } from '../data/events';
 import { useProgress, progressStore } from '../data/progressStore';
 import { useTranslation } from '../i18n';
+import { useMumbleLink, isEventOnMap } from '../data/gw2/mumble';
 
 export type MiniTab = 'active' | 'metas' | 'core' | 'soon' | 'all';
 export type MiniDensity = 'standard' | 'compact';
@@ -57,6 +58,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
 }) => {
   const { t, lang } = useTranslation();
   const progress = useProgress();
+  const mumble = useMumbleLink();
 
   // Saved category filter
   const [activeTab, setActiveTab] = useState<MiniTab>(() => {
@@ -265,13 +267,14 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
             const completionsCount = progress.eventCompletions[inst.event.id] ?? 0;
             const doneToday = checkIsDoneToday(inst.event.id);
             const dwMatch = dwMatchMap.get(inst.event.id) || { isDaily: false, isWeekly: false };
+            const isOnCurrentMap = Boolean(mumble.connected && isEventOnMap(inst.event, mumble.mapId));
 
             // 1. Ultra-Compact Mode Row
             if (density === 'compact') {
               return (
                 <div
                   key={`${inst.event.id}_${inst.startTime.getTime()}`}
-                  className={`mini-compact-row ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''} ${dwMatch.isDaily ? 'daily-highlight' : dwMatch.isWeekly ? 'weekly-highlight' : ''}`}
+                  className={`mini-compact-row ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''} ${dwMatch.isDaily ? 'daily-highlight' : dwMatch.isWeekly ? 'weekly-highlight' : ''} ${isOnCurrentMap ? 'on-current-map' : ''}`}
                 >
                   {/* Left: Index, Flame/Clock, Title & Zone */}
                   <div className="mini-cr-left">
@@ -281,6 +284,11 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
                     ) : isImminent ? (
                       <Clock size={11} className="mini-cr-clock" />
                     ) : null}
+                    {isOnCurrentMap && (
+                      <span className="mini-dw-wrap" title={t('events.onYourMapTooltip')}>
+                        <MapPin size={11} className="text-emerald-400" />
+                      </span>
+                    )}
                     {dwMatch.isDaily && (
                       <span className="mini-dw-wrap" title={dwMatch.dailyTooltip}>
                         <Sparkles size={11} className="mini-dw-sparkle" />
@@ -360,13 +368,19 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
             return (
               <div
                 key={`${inst.event.id}_${inst.startTime.getTime()}`}
-                className={`mini-event-box ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''} ${dwMatch.isDaily ? 'daily-highlight' : dwMatch.isWeekly ? 'weekly-highlight' : ''}`}
+                className={`mini-event-box ${inst.isActive ? 'active' : isImminent ? 'imminent' : ''} ${dwMatch.isDaily ? 'daily-highlight' : dwMatch.isWeekly ? 'weekly-highlight' : ''} ${isOnCurrentMap ? 'on-current-map' : ''}`}
               >
                 {/* Event Header Row: Index, Title, Badges, Timer */}
                 <div className="mini-event-header">
                   <div className="mini-event-title-wrap">
                     <span className="mini-index font-mono">#{index + 1}</span>
                     {inst.isActive && <Flame size={13} className="mini-flame active" />}
+                    {isOnCurrentMap && (
+                      <span className="gw2-dw-badge current-map-badge mini-dw" title={t('events.onYourMapTooltip')}>
+                        <MapPin size={9} />
+                        <span>{t('events.onYourMap')}</span>
+                      </span>
+                    )}
                     {dwMatch.isDaily && (
                       <span className="gw2-dw-badge daily-badge mini-dw" title={dwMatch.dailyTooltip}>
                         <Sparkles size={9} />
