@@ -4,7 +4,7 @@
 
 # Omnitria HUD
 
-[![Release](https://img.shields.io/badge/Release-v0.2.7-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Release](https://img.shields.io/badge/Release-v0.2.8-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
@@ -17,21 +17,20 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 </div>
 
-## What's New in v0.2.7
+## What's New in v0.2.8
 
-- 🔔 **Visual Update Indicator & Background Notification Service:**
-  - **Settings Icon Notification Dots:** Pulsing amber glowing notification dots appear automatically on the settings gear buttons in both the top header controls and the bottom left navigation rail whenever a newer GitHub release is detected.
-  - **Header Quick-Action Pill:** An eye-catching, clickable `[✨ Update vX.X.X]` pill badge appears in the top header bar (visible in both Full Hero Panel and compact Mini-HUD modes) providing instant 1-click access to the updater.
-  - **Navigation Rail Badge:** A golden `UPDATE` pill badge is displayed directly under the Settings navigation label with subtle amber border lighting.
-  - **Automated Background Checks:** A non-blocking background check runs 2.5s after application launch and recurs every 30 minutes, keeping users informed without needing to open the Settings menu manually.
-  - **Robust SemVer Comparison Service:** Implemented pure numeric semver comparison logic (`parseSemver` & `isNewerVersion`) in `src/domain/updateChecker.ts` with 100% unit test coverage.
-- 🛠️ **Crafting Level Planner & Shopping List Overhaul:**
-  - **Account-Bound & Untradable Material Logic:** Fixed an optimizer flaw where unpriced or account-bound materials (e.g. *Bloodstone Dust*, *Obsidian Shards*, *Marauder Inscriptions*) were scored with a dummy fallback price, falsely making high-requirement recipes look virtually free. Unowned untradable materials now incur an unbuyable penalty, prioritizing viable, tradeable recipes.
-  - **Recursive Crafting for Untradable Intermediates:** Intermediate components with valid crafting recipes are now recursively routed to craft from base materials instead of being treated as impossible Trading Post purchases.
-  - **Clear Untradable Badges & Advisory Banners:** The shopping list and material demand tables prominently flag untradable items with `[Accountgebunden]` / `[Nicht handelbar]` warning badges (`⚠️`) and display an advisory banner reminding players that these items must come from personal account storage or direct gameplay.
-  - **Master Craftsman Vendor Pricing:** Added automatic fallback pricing for common vendor reagents (Thermocatalytic Reagents, Spool of Silk Thread, Lump of Coal, etc.).
-- 👑 **Official Omnitria Brand Identity:** High-resolution brand logo integrated directly into the top header navigation and native Windows taskbar icon integration with multi-resolution `.ico` and `AppUserModelId`.
-- 🎨 **Hero Panel & UI/UX Polish:** Expanded 98px navigation rail, standardized 32px interactive controls, enhanced typography, and authentic in-game Guild Wars 2 Hero Panel style for achievement tracking.
+- **Crafting Level Planner (450–500 Endgame & Discovery Routes):**
+  - **Active Discovery Recommendations (450/470+):** Prioritizes exotic armor and weapon discoveries for bonus XP, reducing total material and gold costs from rank 450/470 to 500.
+  - **Single-Craft Discovery Enforcement:** Discovery steps are strictly bounded to 1 craft (`crafts: 1`) and marked as known, preventing accidental bulk crafting of undiscovered recipes.
+  - **Preserved 0–450 Tier Progression:** Basic material refinements (ores, wood, cloth, leather) remain prioritized at each tier start (ranks 0–25, 75–100, etc.) before intermediate components or discoveries.
+  - **Accurate Recipe Tracking:** Automatically synchronizes unlocked recipes from `/v2/account/recipes`, character-specific discoveries, and manual step checkmarks.
+- **Crafting Calculation Stability & Fixes:**
+  - **Excluded Time-Gated Ascended Recipes:** Ascended daily crafts (e.g. *Bolt of Damask*, *Glob of Elder Spirit Residue*) and account-bound ingredients are excluded from bulk leveling routes.
+  - **Prevented `Infinity` / `NaN` Displays:** Added strict finite-number guards across recursive ingredient calculations, procurement costs, and progress totals.
+  - **Trading Post Price Reactivity:** Added dynamic store versioning to `usePrices` so that total costs and shopping lists calculate immediately as Trading Post data arrives on startup, without requiring a manual toggle of the discovery checkbox.
+  - **Performance Optimization:** Precomputed rank capabilities using typed arrays; all 9 crafting disciplines calculate full 0–500 routes in under 50ms without UI lag.
+- **Update Notification Indicator:**
+  - Added an update badge on the Settings gear button and a direct version pill in the top header bar when a newer release is published on GitHub.
 
 ## Features
 
@@ -54,7 +53,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ### Standalone Binary (Windows)
 
-1. Download `Omnitria-v0.2.7-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.2.8-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (portable, no installer required).
 3. Launch `Omnitria.exe`.
 

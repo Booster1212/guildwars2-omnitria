@@ -109,6 +109,9 @@ export function estimateCosts(
 
 /** Kupfer -> { gold, silver, copper } */
 export function splitCoins(copper: number): { gold: number; silver: number; copper: number } {
+  if (!Number.isFinite(copper) || Number.isNaN(copper)) {
+    return { gold: 0, silver: 0, copper: 0 };
+  }
   const c = Math.max(0, Math.round(copper));
   return { gold: Math.floor(c / 10000), silver: Math.floor((c % 10000) / 100), copper: c % 100 };
 }

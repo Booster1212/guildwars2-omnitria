@@ -8,6 +8,7 @@ import {
   type TargetCraftItem,
 } from '../src/domain/craftingCalculator.ts';
 import { planLevelRoute } from '../src/domain/levelPlanner.ts';
+import { splitCoins } from '../src/domain/costs.ts';
 import type { Recipe, PriceInfo } from '../src/domain/types.ts';
 
 // Hilfsfunktion zum Erstellen von Test-Rezepten
@@ -616,5 +617,416 @@ test('15. Levelplaner bevorzugt handelbare Rezepte vor nicht besessenen accountg
   // Planner must pick tradeable weapon, NOT Bloodstone Brick!
   assert.ok(plan.steps.some((st) => st.recipe.id === 'r-normal-weapon'), 'Handelbare Waffe muss gewählt werden');
   assert.equal(plan.steps.some((st) => st.recipe.id === 'r-brick'), false, 'Blutsteinziegel darf ohne Bestand nicht gewählt werden');
+  assert.equal(plan.purchases.has(46731), false, 'Blutsteinstaub darf nicht auf der Einkaufsliste landen');
+});
+
+// ============================================================================
+// Test 16: Level planner ab Rang 470 empfiehlt aktiv einmalige Entdeckungsrezepte (1 Craft je Rezept)
+// ============================================================================
+test('16. Levelplaner ab Rang 470 empfiehlt aktiv einmalige Entdeckungsrezepte mit Bonus-EP', () => {
+  // Erstelle 5 exotische Entdeckungsrezepte (Rating 400, keine AutoLearned-Flags)
+  const discRecipes: Recipe[] = [1, 2, 3, 4, 5].map((i) => ({
+    ...makeRecipe(`r-disc-${i}`, 8000 + i, 1, [[100, 1], [200, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [], // Entdeckung (weder AutoLearned noch LearnedFromItem)
+    type: 'Staff',
+  }));
+
+  const byOut = new Map<number, Recipe[]>();
+  for (const r of discRecipes) {
+    byOut.set(r.outputId, [r]);
+  }
+
+  const prices = new Map<number, PriceInfo>([
+    [100, { sell: 1000, buy: 800, sellQty: 50, buyQty: 50 }],
+    [200, { sell: 1200, buy: 900, sellQty: 50, buyQty: 50 }],
+  ]);
+
+  // Route von 470 bis 476 planen (auch wenn allowDiscovery = false ist!)
+  const plan = planLevelRoute({
+    discipline: 'Artificer',
+    fromRank: 470,
+    toRank: 476,
+    recipes: discRecipes,
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      craftIntermediates: true,
+      allowDiscovery: false, // Ab 470 werden Entdeckungen aktiv genutzt, um Lücken zu vermeiden
+    },
+  });
+
+  // Es dürfen keine Lücken entstehen
+  assert.equal(plan.gaps.length, 0, 'Keine Lücken im Plan ab 470 mit Entdeckungen');
+  assert.ok(plan.steps.length >= 2, 'Schritte müssen geplant worden sein');
+
+  // Jeder Schritt muss genau 1 Craft haben und als Entdeckung markiert sein
+  const usedRecipeIds = new Set<string>();
+  for (const step of plan.steps) {
+    assert.equal(step.crafts, 1, `Schritt ${step.key} muss genau 1 Craft haben`);
+    assert.equal(step.needsDiscovery, true, `Schritt ${step.key} muss als needsDiscovery markiert sein`);
+    assert.equal(step.reasonKey, 'planner.reason.discoveryBonusXp');
+    assert.equal(usedRecipeIds.has(step.recipe.id), false, `Rezept ${step.recipe.id} darf nicht mehrfach zur Entdeckung empfohlen werden`);
+    usedRecipeIds.add(step.recipe.id);
+  }
+});
+
+// ============================================================================
+// Test 17: Bereits entdeckte Rezepte (knownRecipeIds & doneStepKeys) werden korrekt erfasst
+// ============================================================================
+test('17. Bereits entdeckte Rezepte via knownRecipeIds und doneStepKeys werden nicht erneut empfohlen', () => {
+  const rDisc1: Recipe = {
+    ...makeRecipe('1001', 9001, 1, [[100, 1]]),
+    disciplines: ['Weaponsmith'],
+    rating: 400,
+    flags: [],
+    type: 'Sword',
+  };
+  const rDisc2: Recipe = {
+    ...makeRecipe('1002', 9002, 1, [[100, 1]]),
+    disciplines: ['Weaponsmith'],
+    rating: 400,
+    flags: [],
+    type: 'Dagger',
+  };
+  const rDisc3: Recipe = {
+    ...makeRecipe('1003', 9003, 1, [[100, 1]]),
+    disciplines: ['Weaponsmith'],
+    rating: 400,
+    flags: [],
+    type: 'Greatsword',
+  };
+
+  const byOut = new Map<number, Recipe[]>([
+    [9001, [rDisc1]],
+    [9002, [rDisc2]],
+    [9003, [rDisc3]],
+  ]);
+
+  const prices = new Map<number, PriceInfo>([
+    [100, { sell: 500, buy: 400, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  // Fall A: rDisc1 (1001) ist im Spiel-Account schon bekannt (/v2/account/recipes),
+  // rDisc2 (1002) wurde bereits als erledigter Schritt (doneStepKeys) markiert
+  const plan = planLevelRoute({
+    discipline: 'Weaponsmith',
+    fromRank: 470,
+    toRank: 472,
+    recipes: [rDisc1, rDisc2, rDisc3],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      craftIntermediates: false,
+      allowDiscovery: true,
+      knownRecipeIds: new Set([1001]),
+      doneStepKeys: new Set(['1002']),
+    },
+  });
+
+  // rDisc1 & rDisc2 dürfen NICHT als neuer Entdeckungsschritt empfohlen werden
+  const firstStep = plan.steps[0];
+  assert.ok(firstStep, 'Ein Schritt muss vorhanden sein');
+  assert.equal(firstStep.recipe.id, '1003', 'Nur das unentdeckte Rezept 1003 darf gewählt werden');
+  assert.equal(firstStep.crafts, 1);
+  assert.equal(firstStep.needsDiscovery, true);
+});
+
+// ============================================================================
+// Test 18: Leveling 0-470 bleibt vollständig unberührt (keine Entdeckungen ohne allowDiscovery)
+// ============================================================================
+test('18. Leveling unter Rang 470 bleibt unverändert und beachtet allowDiscovery strikt', () => {
+  const rAuto: Recipe = {
+    ...makeRecipe('r-auto-low', 3001, 1, [[10, 2]]),
+    disciplines: ['Tailor'],
+    rating: 100,
+    flags: ['AutoLearned'],
+    type: 'Boots',
+  };
+  const rDisc: Recipe = {
+    ...makeRecipe('r-disc-low', 3002, 1, [[10, 1]]), // Günstiger, aber Entdeckung
+    disciplines: ['Tailor'],
+    rating: 100,
+    flags: [],
+    type: 'Boots',
+  };
+
+  const byOut = new Map<number, Recipe[]>([
+    [3001, [rAuto]],
+    [3002, [rDisc]],
+  ]);
+  const prices = new Map<number, PriceInfo>([
+    [10, { sell: 100, buy: 80, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  // Wenn allowDiscovery = false unter Rang 470:
+  const plan = planLevelRoute({
+    discipline: 'Tailor',
+    fromRank: 100,
+    toRank: 105,
+    recipes: [rAuto, rDisc],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      craftIntermediates: false,
+      allowDiscovery: false,
+    },
+  });
+
+  assert.equal(plan.steps.length, 1);
+  assert.equal(plan.steps[0].recipe.id, 'r-auto-low', 'Unter 470 darf bei allowDiscovery=false nur AutoLearned gewählt werden');
+  assert.equal(plan.steps[0].needsDiscovery, false);
+});
+
+// ============================================================================
+// Test 19: Erfassung und Filterung entdeckter Rezepte in der UI (Stats & Filter)
+// ============================================================================
+test('19. Entdeckungsstatus (Stats & Filter) erfasst entdeckte Rezepte via Charakter-API und lokalem Fortschritt', async () => {
+  const { computeDiscoveryStats, filterDiscoveryRecipes } = await import('../src/domain/discovery.ts');
+
+  const disc1: Recipe = {
+    ...makeRecipe('101', 5001, 1, [[10, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [],
+    type: 'Staff',
+  };
+  const disc2: Recipe = {
+    ...makeRecipe('102', 5002, 1, [[10, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [],
+    type: 'Focus',
+  };
+  const disc3: Recipe = {
+    ...makeRecipe('103', 5003, 1, [[10, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [],
+    type: 'Scepter',
+  };
+  const recipes = [disc1, disc2, disc3];
+
+  // Set mit entdeckten Rezepten: 101 aus Charakter-API, 102 aus lokalem doneSteps
+  const effectiveKnown = new Set<number>([101, 102]);
+
+  // 1. Stats-Berechnung
+  const stats = computeDiscoveryStats(recipes, 'Artificer', effectiveKnown, 400, 500);
+  assert.equal(stats.total, 3, 'Gesamtzahl muss 3 sein');
+  assert.equal(stats.discovered, 2, '2 Rezepte müssen als entdeckt erkannt werden');
+  assert.equal(stats.undiscovered, 1, '1 Rezept muss als unentdeckt übrig bleiben');
+  assert.equal(stats.pctDiscovered, 67, 'Fortschritt muss 67% betragen');
+
+  // 2. Filter: Nur unentdeckte
+  const undiscoveredOnly = filterDiscoveryRecipes(recipes, {
+    discipline: 'Artificer',
+    minRating: 400,
+    maxRating: 500,
+    status: 'undiscovered',
+    knownRecipeIds: effectiveKnown,
+  });
+  assert.equal(undiscoveredOnly.length, 1);
+  assert.equal(undiscoveredOnly[0].id, '103');
+
+  // 3. Filter: Nur bereits entdeckte
+  const discoveredOnly = filterDiscoveryRecipes(recipes, {
+    discipline: 'Artificer',
+    minRating: 400,
+    maxRating: 500,
+    status: 'discovered',
+    knownRecipeIds: effectiveKnown,
+  });
+  assert.equal(discoveredOnly.length, 2);
+  assert.deepEqual(discoveredOnly.map((r) => r.id), ['101', '102']);
+});
+
+// ============================================================================
+// Test 20: Verhindere Herstellungen: Infinity und Gesamtkosten: NaN
+// ============================================================================
+test('20. Levelroute bei aktiven Entdeckungsrezepten erzeugt niemals Infinity oder NaN', () => {
+  // Rating 400 Entdeckungsrezepte und Veredelungsrezepte
+  const rDisc1: Recipe = {
+    ...makeRecipe('d-1', 9101, 1, [[100, 1], [200, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [],
+    type: 'Staff',
+  };
+  const rDisc2: Recipe = {
+    ...makeRecipe('d-2', 9102, 1, [[100, 1], [200, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [],
+    type: 'Focus',
+  };
+  const rDisc3: Recipe = {
+    ...makeRecipe('d-3', 9103, 1, [[100, 1], [200, 1]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [],
+    type: 'Scepter',
+  };
+  const rRefine: Recipe = {
+    ...makeRecipe('r-ref', 9200, 1, [[50, 2]]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: ['AutoLearned'],
+    type: 'Refinement',
+  };
+
+  const byOut = new Map<number, Recipe[]>([
+    [9101, [rDisc1]],
+    [9102, [rDisc2]],
+    [9103, [rDisc3]],
+    [9200, [rRefine]],
+  ]);
+
+  const prices = new Map<number, PriceInfo>([
+    [100, { sell: 500, buy: 400, sellQty: 100, buyQty: 100 }],
+    [200, { sell: 500, buy: 400, sellQty: 100, buyQty: 100 }],
+    [50, { sell: 50, buy: 40, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  // Plane von Rang 424 bis 500 mit allowDiscovery = true
+  const plan = planLevelRoute({
+    discipline: 'Artificer',
+    fromRank: 424,
+    toRank: 440,
+    recipes: [rDisc1, rDisc2, rDisc3, rRefine],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+    },
+  });
+
+  assert.ok(Number.isFinite(plan.totalCost), 'Gesamtkosten müssen endlich sein');
+  assert.equal(Number.isNaN(plan.totalCost), false, 'Gesamtkosten dürfen nicht NaN sein');
+  assert.ok(Number.isFinite(plan.totalCrafts), 'Herstellungen müssen endlich sein');
+  assert.equal(Number.isNaN(plan.totalCrafts), false, 'Herstellungen dürfen nicht NaN sein');
+
+  for (const st of plan.steps) {
+    assert.ok(Number.isFinite(st.crafts), `Schritt ${st.key} crafts darf nicht Infinity sein`);
+    assert.ok(Number.isFinite(st.cost), `Schritt ${st.key} cost darf nicht Infinity sein`);
+    assert.equal(Number.isNaN(st.cost), false, `Schritt ${st.key} cost darf nicht NaN sein`);
+  }
+
+  // Coin-Aufteilung prüfen
+  const coins = splitCoins(plan.totalCost);
+  assert.ok(Number.isFinite(coins.gold), 'Gold darf nicht Infinity sein');
+  assert.ok(Number.isFinite(coins.silver), 'Silber darf nicht Infinity sein');
+  assert.ok(Number.isFinite(coins.copper), 'Kupfer darf nicht Infinity sein');
+  assert.equal(Number.isNaN(coins.gold), false, 'Gold darf nicht NaN sein');
+  assert.equal(Number.isNaN(coins.silver), false, 'Silber darf nicht NaN sein');
+  assert.equal(Number.isNaN(coins.copper), false, 'Kupfer darf nicht NaN sein');
+});
+
+// ============================================================================
+// Test 23: Leveling unter 470 erzeugt keine Flut an 1-Craft-Entdeckungen
+// ============================================================================
+test('23. Leveling 0-470 behält gebündeltes Bulk-Crafting bei und erzeugt keine 1-Craft-Entdeckungsflut', () => {
+  const rRefine = {
+    ...makeRecipe('r-bronze', 10, 1, [[1, 2]]),
+    disciplines: ['Weaponsmith'],
+    rating: 0,
+    flags: ['AutoLearned'],
+    type: 'Refinement',
+  };
+  const rComp = {
+    ...makeRecipe('r-inscr', 20, 1, [[10, 2]]),
+    disciplines: ['Weaponsmith'],
+    rating: 0,
+    flags: ['AutoLearned'],
+    type: 'Component',
+  };
+  const weapons: Recipe[] = [];
+  for (let i = 0; i < 20; i++) {
+    weapons.push({
+      ...makeRecipe(`w-${i}`, 100 + i, 1, [[20, 2]]),
+      disciplines: ['Weaponsmith'],
+      rating: 0,
+      flags: [],
+      type: 'Weapon',
+    });
+  }
+
+  const byOut = new Map<number, Recipe[]>([
+    [10, [rRefine]],
+    [20, [rComp]],
+  ]);
+  weapons.forEach((w) => byOut.set(w.outputId, [w]));
+  const prices = new Map<number, PriceInfo>([[1, { sell: 2, buy: 2 } as PriceInfo]]);
+
+  const plan = planLevelRoute({
+    discipline: 'Weaponsmith',
+    fromRank: 0,
+    toRank: 25,
+    recipes: [rRefine, rComp, ...weapons],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+    },
+  });
+
+  // Unter Rang 470 darf trotz allowDiscovery=true KEINE Flut an 20 1-Craft-Schritten entstehen!
+  assert.ok(plan.steps.length <= 2, `Schritte sollen gebündelt sein (max 2), erhalten: ${plan.steps.length}`);
+  assert.equal(plan.steps[0].recipe.type, 'Refinement', 'Tier-Start 0-25 muss Refinement wählen');
+  assert.equal(plan.steps[0].needsDiscovery, false);
+});
+
+// ============================================================================
+// Test 24: Ascended accountgebundene Materialien werden nicht für Leveling vorgeschlagen
+// ============================================================================
+test('24. Ascended accountgebundene Materialien (Blutsteinstaub, Obsidianscherben) werden nicht vorgeschlagen', () => {
+  const rBloodstoneBrick: Recipe = {
+    ...makeRecipe('r-bloodstone-brick', 46725, 1, [
+      [46731, 100], // Pile of Bloodstone Dust
+      [19925, 2],   // Obsidian Shard
+      [46747, 10],  // Thermocatalytic Reagent
+    ]),
+    disciplines: ['Artificer'],
+    rating: 450,
+    flags: ['AutoLearned'],
+    type: 'Refinement',
+  };
+  const rPearlStaff: Recipe = {
+    ...makeRecipe('r-pearl-staff', 50001, 1, [
+      [19701, 2], // Orichalcum Ingot
+      [19900, 1], // Inscription
+    ]),
+    disciplines: ['Artificer'],
+    rating: 400,
+    flags: [],
+    type: 'Staff',
+  };
+
+  const byOut = new Map<number, Recipe[]>([
+    [46725, [rBloodstoneBrick]],
+    [50001, [rPearlStaff]],
+  ]);
+  const prices = new Map<number, PriceInfo>([
+    [19701, { sell: 50, buy: 40 } as PriceInfo],
+    [19900, { sell: 100, buy: 80 } as PriceInfo],
+  ]);
+
+  const plan = planLevelRoute({
+    discipline: 'Artificer',
+    fromRank: 450,
+    toRank: 475,
+    recipes: [rBloodstoneBrick, rPearlStaff],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+    },
+  });
+
+  const usesBloodstone = plan.steps.some((s) => s.recipe.id === 'r-bloodstone-brick');
+  assert.equal(usesBloodstone, false, 'Blutstein-Ziegel darf niemals als Leveling-Rezept gewählt werden');
   assert.equal(plan.purchases.has(46731), false, 'Blutsteinstaub darf nicht auf der Einkaufsliste landen');
 });

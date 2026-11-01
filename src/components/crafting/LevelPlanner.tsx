@@ -273,6 +273,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         allowDiscovery,
         craftIntermediates,
         knownRecipeIds: account.knownRecipeSet,
+        doneStepKeys: new Set(discProgress.doneSteps ?? []),
         mode: planningMode,
         stock: account.stockMap,
       },
@@ -285,9 +286,12 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     effectiveStart,
     effectiveTarget,
     prices.map,
+    prices.updatedAt,
+    prices.version,
     allowDiscovery,
     craftIntermediates,
     account.knownRecipeSet,
+    discProgress.doneSteps,
     planningMode,
     account.stockMap,
   ]);
@@ -431,6 +435,8 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     itemOverrides,
     account.stockMap,
     prices.map,
+    prices.updatedAt,
+    prices.version,
     recipeDb.status,
     allowDiscovery,
     account.knownRecipeSet,
@@ -513,8 +519,17 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     );
   }
 
-  const displayCost = craftingPlanResult ? craftingPlanResult.totals.totalCost : (plan?.totalCost ?? 0);
-  const displayCrafts = craftingPlanResult ? craftingPlanResult.totals.totalCraftRuns : (plan?.totalCrafts ?? 0);
+  const isAllStepsCompleted = Boolean(plan && plan.steps.length > 0 && stepCounts.open === 0);
+  const displayCost = isAllStepsCompleted
+    ? 0
+    : craftingPlanResult
+      ? craftingPlanResult.totals.totalCost
+      : (plan?.totalCost ?? 0);
+  const displayCrafts = isAllStepsCompleted
+    ? 0
+    : craftingPlanResult
+      ? craftingPlanResult.totals.totalCraftRuns
+      : (plan?.totalCrafts ?? 0);
   const discName = getDisciplineName(discipline, lang);
 
   // Determine whether the Next Action spotlight should focus on the Character Progression task or Crafting Step
@@ -1115,6 +1130,17 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           })}
         </Notice>
       )}
+
+      {/* Discovery Active Recommendation Notice for 470+ */}
+      {plan &&
+        plan.gaps.length === 0 &&
+        effectiveTarget >= 470 &&
+        !allowDiscovery &&
+        plan.steps.some((s) => s.fromRank >= 470 && s.needsDiscovery) && (
+          <Notice tone="info" title={t('crafting.discoveryEfficiencyNoteTitle')}>
+            {t('crafting.discoveryEfficiencyNoteDesc')}
+          </Notice>
+        )}
 
       {/* Strategy bar: Self-crafting vs. Buying */}
       <div className="planner-strategy-bar">

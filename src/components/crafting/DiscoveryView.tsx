@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { DisciplineId, Recipe } from '../../domain/types';
 import { useRecipeDb } from '../../data/gw2/recipes';
 import { useAccountState } from '../../data/gw2/account';
+import { useProgress, progressActions } from '../../data/progressStore';
 import { usePrices } from '../../data/gw2/prices';
 import { getItem, useItems } from '../../data/gw2/items';
 import { CURATED_DISCOVERIES } from '../../data/crafting/curatedDiscoveries';
@@ -51,6 +52,35 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
   const { t, lang } = useTranslation();
   const recipeDb = useRecipeDb(true);
   const account = useAccountState();
+  const progress = useProgress();
+  const selectedCharacter = progress.plannerPreferences?.selectedCharacter ?? null;
+  const discProgress = progressActions.getCharacterDiscipline(selectedCharacter, discipline);
+  const doneSteps = discProgress.doneSteps ?? [];
+
+  // Effective set of known / discovered recipe IDs: combines API (account + characters) + locally marked steps
+  const effectiveKnownRecipeSet = useMemo(() => {
+    const set = new Set<number>();
+    if (account.knownRecipeSet) {
+      for (const id of account.knownRecipeSet) set.add(id);
+    }
+    for (const k of doneSteps) {
+      const baseId = k.includes('.') ? k.split('.')[0] : k;
+      const num = Number(baseId);
+      if (!Number.isNaN(num) && num > 0) set.add(num);
+    }
+    return set.size > 0 ? set : (account.knownRecipeSet ?? null);
+  }, [account.knownRecipeSet, doneSteps]);
+
+  const handleToggleDiscovered = (recipeId: number | string) => {
+    const key = String(recipeId);
+    const isLocallyDone = doneSteps.some((k) => k === key || k.startsWith(`${key}.`));
+    progressActions.setStepStatus(
+      selectedCharacter,
+      discipline,
+      key,
+      isLocallyDone ? 'open' : 'completed',
+    );
+  };
 
   const craftingTiers = useMemo(() => getCraftingTiers(lang), [lang]);
   const guide = useMemo(() => getDiscoveryGuide(discipline, lang), [discipline, lang]);
@@ -90,11 +120,11 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
     return computeDiscoveryStats(
       allDisciplineRecipes,
       discipline,
-      account.knownRecipeSet,
+      effectiveKnownRecipeSet,
       activeTier.minRating,
       activeTier.maxRating,
     );
-  }, [allDisciplineRecipes, discipline, account.knownRecipeSet, activeTier.minRating, activeTier.maxRating]);
+  }, [allDisciplineRecipes, discipline, effectiveKnownRecipeSet, activeTier.minRating, activeTier.maxRating]);
 
   // Available types in this tier
   const availableTypes = useMemo(() => {
@@ -131,7 +161,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       type: selectedType,
       search: searchQuery,
       status: statusFilter,
-      knownRecipeIds: account.knownRecipeSet,
+      knownRecipeIds: effectiveKnownRecipeSet,
       getItemName: (id: number) => getItem(id)?.name,
       getRecipeTypeName: (type: string) => getRecipeTypeName(type, lang),
     });
@@ -143,7 +173,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
     selectedType,
     searchQuery,
     statusFilter,
-    account.knownRecipeSet,
+    effectiveKnownRecipeSet,
     itemsState.version,
     lang,
   ]);
@@ -158,7 +188,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       type: selectedType,
       search: searchQuery,
       status: statusFilter,
-      knownRecipeIds: account.knownRecipeSet,
+      knownRecipeIds: effectiveKnownRecipeSet,
       getItemName: (id: number) => getItem(id)?.name,
       getRecipeTypeName: (type: string) => getRecipeTypeName(type, lang),
     });
@@ -169,7 +199,7 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
     selectedType,
     searchQuery,
     statusFilter,
-    account.knownRecipeSet,
+    effectiveKnownRecipeSet,
     selectedTier,
     itemsState.version,
     lang,
@@ -202,15 +232,15 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
       });
     } else if (sortOrder === 'undiscovered_first') {
       arr.sort((a, b) => {
-        const knownA = account.knownRecipeSet ? account.knownRecipeSet.has(Number(a.id)) : false;
-        const knownB = account.knownRecipeSet ? account.knownRecipeSet.has(Number(b.id)) : false;
+        const knownA = effectiveKnownRecipeSet ? effectiveKnownRecipeSet.has(Number(a.id)) : false;
+        const knownB = effectiveKnownRecipeSet ? effectiveKnownRecipeSet.has(Number(b.id)) : false;
         if (!knownA && knownB) return -1;
         if (knownA && !knownB) return 1;
         return a.rating - b.rating;
       });
     }
     return arr;
-  }, [filteredRecipes, sortOrder, prices.map, account.knownRecipeSet]);
+  }, [filteredRecipes, sortOrder, prices.map, prices.updatedAt, prices.version, effectiveKnownRecipeSet]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sortedRecipes.length / PAGE_SIZE));
@@ -296,9 +326,9 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
             <strong>{stats.discovered}</strong> {lang === 'en' ? 'of' : 'von'} <strong>{stats.total}</strong> {lang === 'en' ? 'recipes discovered' : 'Rezepten entdeckt'}
             ({stats.pctDiscovered} %)
           </span>
-          {account.knownRecipeSet === null && (
+          {effectiveKnownRecipeSet === null && (
             <span className="stats-no-key dim">
-              ({lang === 'en' ? 'Connect an API key with "unlocks" to see your live discovery progress' : 'Verbinde einen API-Schlüssel mit „unlocks“, um deinen Entdeckungsstand live zu sehen'})
+              ({lang === 'en' ? 'Connect an API key with "unlocks" and "characters" to see your live discovery progress' : 'Verbinde einen API-Schlüssel mit „unlocks“ & „characters“, um deinen Entdeckungsstand live zu sehen'})
             </span>
           )}
         </div>
@@ -484,7 +514,9 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
         <div className="discovery-cards-grid">
           {paginatedRecipes.map((r) => {
             const outItem = getItem(r.outputId);
-            const isKnown = account.knownRecipeSet ? account.knownRecipeSet.has(Number(r.id)) : false;
+            const isApiKnown = account.knownRecipeSet ? account.knownRecipeSet.has(Number(r.id)) : false;
+            const isLocallyDone = doneSteps.some((k) => k === String(r.id) || k.startsWith(`${r.id}.`));
+            const isKnown = isApiKnown || isLocallyDone;
             const cost = estimateRecipeCost(r, prices.map);
             const typeLabel = r.type ? getRecipeTypeName(r.type, lang) : '';
 
@@ -519,22 +551,44 @@ export const DiscoveryView: React.FC<DiscoveryViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Discovery Badge */}
+                  {/* Discovery Badge with Click-to-Toggle */}
                   <div className="drc-badge-wrapper">
-                    {account.knownRecipeSet !== null ? (
+                    {effectiveKnownRecipeSet !== null ? (
                       isKnown ? (
-                        <span className="disc-status-badge known">
+                        <button
+                          type="button"
+                          className="disc-status-badge known cursor-pointer hover:opacity-85"
+                          onClick={() => handleToggleDiscovered(r.id)}
+                          title={
+                            isLocallyDone
+                              ? (lang === 'en' ? 'Click to unmark as discovered' : 'Klicken, um Status zurückzusetzen')
+                              : (lang === 'en' ? 'Discovered in-game on your GW2 account' : 'Über deinen GW2-Account im Spiel entdeckt')
+                          }
+                        >
                           <Check size={11} /> {t('crafting.statusDiscovered')}
-                        </span>
+                          {isLocallyDone && !isApiKnown && (
+                            <span className="ml-1 opacity-75 text-[10px]">({t('planner.verify.localTracked')})</span>
+                          )}
+                        </button>
                       ) : (
-                        <span className="disc-status-badge fresh">
+                        <button
+                          type="button"
+                          className="disc-status-badge fresh cursor-pointer hover:opacity-85"
+                          onClick={() => handleToggleDiscovered(r.id)}
+                          title={lang === 'en' ? 'Click to mark as discovered' : 'Klicken, um als entdeckt zu markieren'}
+                        >
                           <Sparkles size={11} /> {lang === 'en' ? 'New (+Bonus XP)' : 'Neu (+Bonus-EP)'}
-                        </span>
+                        </button>
                       )
                     ) : (
-                      <span className="disc-status-badge neutral">
+                      <button
+                        type="button"
+                        className="disc-status-badge neutral cursor-pointer hover:opacity-85"
+                        onClick={() => handleToggleDiscovered(r.id)}
+                        title={lang === 'en' ? 'Click to mark as discovered' : 'Klicken, um als entdeckt zu markieren'}
+                      >
                         <Sparkles size={11} /> {lang === 'en' ? 'Discovery' : 'Entdeckung'}
-                      </span>
+                      </button>
                     )}
                   </div>
                 </div>

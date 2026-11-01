@@ -23,7 +23,7 @@
  *     with a transparent explanation, effort estimate, and expected progression benefit.
  */
 import type { PriceInfo, Recipe } from './types.ts';
-import { categoryOf, ranksPerCraft } from './craftingXp.ts';
+import { categoryOf, ranksPerCraft, XP_MODEL } from './craftingXp.ts';
 import type { XpCategory } from './craftingXp.ts';
 import { unitPrice } from './costs.ts';
 import type { PlannerMode, TaskOrStepStatus } from '../data/progressStore.ts';
@@ -45,6 +45,8 @@ export interface PlannerOptions {
   craftIntermediates: boolean;
   /** Recipes known to account (API: /v2/account/recipes), if available */
   knownRecipeIds?: ReadonlySet<number> | null;
+  /** Step keys already marked done/completed in the current session */
+  doneStepKeys?: ReadonlySet<string> | null;
   /** Optional planning mode that adjusts candidate prioritization */
   mode?: PlannerMode;
   /** Optional account stock map to prioritize recipes with owned ingredients in goal/balanced modes */
@@ -225,27 +227,114 @@ export function maxRankOf(discipline: string, recipes: readonly Recipe[]): numbe
 export function planLevelRoute(input: PlannerInput): PlanResult {
   const { discipline, fromRank, toRank, recipes, recipesByOutput, prices, options } = input;
   const known = options.knownRecipeIds ?? null;
+  const doneKeys = options.doneStepKeys ?? null;
   const mode = options.mode;
   const stock = options.stock ?? null;
   const skippedIds = options.skippedRecipeIds ?? null;
   const goalItems = options.goalItemIds ?? null;
 
+  const doneRecipeIds = new Set<string>();
+  if (options.doneStepKeys) {
+    for (const k of options.doneStepKeys) {
+      const baseId = k.includes('.') ? k.split('.')[0] : k;
+      doneRecipeIds.add(baseId);
+    }
+  }
+
+  // Accurately detect learned or already discovered recipes:
+  // 1. AutoLearned recipes
+  // 2. Unlocked / discovered recipes returned by the official GW2 API (/v2/account/recipes)
+  // 3. Steps already marked done by the user in this session / progress store
   const isLearned = (r: Recipe): boolean =>
-    Boolean(r.flags?.includes('AutoLearned')) || (known !== null && known.has(Number(r.id)));
+    Boolean(r.flags?.includes('AutoLearned')) ||
+    (known !== null && (known.has(Number(r.id)) || known.has(r.id as any))) ||
+    doneRecipeIds.has(String(r.id));
+
   const isDiscovery = (r: Recipe): boolean =>
     !r.flags?.includes('AutoLearned') && !r.flags?.includes('LearnedFromItem');
-  const isUsable = (r: Recipe): boolean =>
-    isLearned(r) || (options.allowDiscovery && isDiscovery(r));
+
+  // Ascended account-bound materials (e.g. Bloodstone Dust, Dragonite Ore, Empyreal Fragment, Obsidian Shard)
+  // cannot be traded on the TP and have severe account-bound time/acquisition gates.
+  // They must NEVER be suggested as bulk leveling recipes (e.g. crafting 318 Bloodstone Bricks)!
+  const ASCENDED_ACCOUNT_BOUND_INGREDIENTS = new Set([
+    46731, // Pile of Bloodstone Dust
+    46733, // Dragonite Ore
+    46735, // Empyreal Fragment
+    19925, // Obsidian Shard
+  ]);
+
+  const isCandidate = (r: Recipe): boolean => {
+    if (r.ingredients.some((ing) => ASCENDED_ACCOUNT_BOUND_INGREDIENTS.has(ing.itemId))) {
+      return false;
+    }
+    return (
+      isLearned(r) ||
+      (isDiscovery(r) && (options.allowDiscovery || fromRank >= 450 || toRank > 450))
+    );
+  };
 
   // Candidates for leveling steps
   const allCandidates: { recipe: Recipe; category: XpCategory }[] = [];
   for (const r of recipes) {
     if (!r.disciplines.includes(discipline)) continue;
     const category = categoryOf(r.type);
-    if (!category || !isUsable(r)) continue;
+    if (!category || !isCandidate(r)) continue;
     allCandidates.push({ recipe: r, category });
   }
   allCandidates.sort((a, b) => a.recipe.rating - b.recipe.rating || String(a.recipe.id).localeCompare(String(b.recipe.id)));
+
+  // Precompute rank capabilities in O(C) instead of O(N * C * C) for maximum performance
+  const maxPossibleRank = Math.max(500, toRank);
+  const hasLearnedAtRank = new Uint8Array(maxPossibleRank + 1);
+  const hasLearnedRefinementAtRank = new Uint8Array(maxPossibleRank + 1);
+  for (const c of allCandidates) {
+    if (isLearned(c.recipe)) {
+      const { span } = XP_MODEL[c.category];
+      const maxR = Math.min(maxPossibleRank, c.recipe.rating + span);
+      for (let rk = c.recipe.rating; rk < maxR; rk++) {
+        hasLearnedAtRank[rk] = 1;
+        if (c.category === 'refinement') {
+          hasLearnedRefinementAtRank[rk] = 1;
+        }
+      }
+    }
+  }
+
+  // Leveling usability rules:
+  // - Learned recipes are always usable.
+  // - Undiscovered recipes honor allowDiscovery: when allowDiscovery is false, they are blocked
+  //   (except at rank >= 470 as gap fallback when no learned recipe exists).
+  // - When allowDiscovery is true:
+  //   * Tier starts (ranks 0-25, 75-100, etc.) enforce refinements if available, ensuring ores are refined.
+  //   * Mid/end-tier (25-75, 100-150, etc.) allow discoveries with bonus XP (accumulated in bulk, not 1-craft spam).
+  //   * Endgame (450/470-500) actively recommends unique 1-craft exotic discoveries.
+  const isUsableAtRank = (r: Recipe, rank: number): boolean => {
+    if (isLearned(r)) return true;
+    if (!isDiscovery(r)) return false;
+
+    if (!options.allowDiscovery) {
+      // Gap avoidance fallback at 470+ when no learned recipe gives XP
+      if (rank >= 470 && hasLearnedAtRank[rank] !== 1) return true;
+      return false;
+    }
+
+    // Rank >= 470: Active discovery recommendation
+    if (rank >= 470) return true;
+    // Rank >= 450: Exotic tier
+    if (rank >= 450) return true;
+    // Completionist mode allows discovery at all ranks
+    if (mode === 'completionist') return true;
+    // Chef relies on discoveries across all cooking levels
+    if (discipline === 'Chef') return true;
+
+    // For standard disciplines below 450:
+    // When basic material refinements are available at tier start, enforce refinements first so ores/cloth/leather get refined!
+    if (hasLearnedRefinementAtRank[rank] === 1 && categoryOf(r.type) === 'item') {
+      return false;
+    }
+
+    return true;
+  };
 
   // Filter out skipped recipes when non-skipped alternatives exist
   const nonSkippedCandidates = skippedIds && skippedIds.size > 0
@@ -266,8 +355,8 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       for (const r of recipesByOutput.get(itemId) ?? []) {
         if (!r.disciplines.includes(discipline) || r.rating > rank) continue;
         // If the item cannot be bought on TP/vendor (price === null), crafting it is the only viable in-game path!
-        // Otherwise, honor isUsable(r)
-        if (!isUsable(r) && price !== null) continue;
+        // Otherwise, honor isUsableAtRank(r, rank)
+        if (!isUsableAtRank(r, rank) && price !== null) continue;
         let sum = 0;
         let hasPricedIngredient = false;
         for (const ing of r.ingredients) {
@@ -290,16 +379,24 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   };
 
   // ---- Rezeptwahl je Rang ----------------------------------------------------------------------
+  const plannedDiscoveries = new Set<string>();
+
   interface Choice {
     recipe: Recipe;
     category: XpCategory;
     costPerRank: number;
     unknown: number;
+    isDisc?: boolean;
+    rpc?: number;
   }
   const evalCandidate = (c: { recipe: Recipe; category: XpCategory }, rank: number): Choice | null => {
-    const isDisc = !isLearned(c.recipe);
-    const rpc = ranksPerCraft(c.category, rank, c.recipe.rating, isDisc);
-    if (rpc <= 0) return null;
+    const isAlreadyPlanned = plannedDiscoveries.has(String(c.recipe.id));
+    const isDisc = !isLearned(c.recipe) && !isAlreadyPlanned && isDiscovery(c.recipe);
+    // Below 450 (standard bulk progression), do not inflate undiscovered items with discovery bonus
+    // unless in completionist mode or Chef, so that refinements & components maintain priority.
+    const useDiscMultiplier = isDisc && (rank >= 450 || mode === 'completionist' || discipline === 'Chef');
+    const rpc = ranksPerCraft(c.category, rank, c.recipe.rating, useDiscMultiplier);
+    if (rpc <= 0 || !Number.isFinite(rpc)) return null;
     let cost = 0;
     let unknown = 0;
     let stockCoveredCount = 0;
@@ -326,8 +423,13 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     // Efficient Leveling: Recipes crafted more than 25 ranks above unlock
     // lose experience rapidly in GW2 (yellow/green recipes). Age penalty encourages new tier recipes:
     const age = rank - c.recipe.rating;
-    const agePenalty = age > 25 ? 1 + (age - 25) * 0.2 : 1;
+    const agePenalty = (age > 25 && !isDisc) ? 1 + (age - 25) * 0.2 : 1;
     let effectiveCostPerRank = (cost * agePenalty) / rpc;
+
+    // Ab Level 470: Prioritize discovery bonus!
+    if (rank >= 470 && isDisc) {
+      effectiveCostPerRank *= 0.45;
+    }
 
     // Apply transparent mode-specific weighting when mode is specified
     if (mode === 'fast') {
@@ -361,7 +463,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       }
     }
 
-    return { recipe: c.recipe, category: c.category, costPerRank: effectiveCostPerRank, unknown };
+    return { recipe: c.recipe, category: c.category, costPerRank: effectiveCostPerRank, unknown, isDisc, rpc };
   };
 
   interface RawStep {
@@ -380,6 +482,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     let prevChoice: Choice | null = null;
     for (const c of candidates) {
       if (c.recipe.rating > n) break; // sortiert
+      if (!isUsableAtRank(c.recipe, n)) continue;
       const ev = evalCandidate(c, n);
       if (!ev) continue;
       if (prev && c.recipe.id === prev.recipe.id) prevChoice = ev;
@@ -405,15 +508,37 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     ) {
       chosen = prevChoice;
     }
-    const isStepFirstCraft = !prev || prev.recipe.id !== chosen.recipe.id;
-    const isDisc = !isLearned(chosen.recipe) && isStepFirstCraft;
-    const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, isDisc);
-    if (prev && prev.recipe.id === chosen.recipe.id && prev.toRank === n) {
-      prev.toRank = n + 1;
-      prev.craftsExact += 1 / rpc;
+
+    const isAlreadyPlanned = plannedDiscoveries.has(String(chosen.recipe.id));
+    const isDisc = !isLearned(chosen.recipe) && !isAlreadyPlanned && isDiscovery(chosen.recipe);
+
+    // In Guild Wars 2, a discovery is crafted exactly once (1-craft bonus XP).
+    // Once discovered, it enters the recipe book and yields standard learned XP on any subsequent craft.
+    if (isDisc) {
+      plannedDiscoveries.add(String(chosen.recipe.id));
+      const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, true);
+      const ranksGained = Math.max(1, Math.round(rpc));
+      const stepToRank = Math.min(toRank, n + ranksGained);
+      raw.push({
+        recipe: chosen.recipe,
+        category: chosen.category,
+        fromRank: n,
+        toRank: stepToRank,
+        craftsExact: 1,
+      });
+      n = stepToRank - 1; // loop increment will advance to stepToRank
+      prev = null;
     } else {
-      prev = { recipe: chosen.recipe, category: chosen.category, fromRank: n, toRank: n + 1, craftsExact: 1 / rpc };
-      raw.push(prev);
+      // Leveling for learned / repeated recipes (accumulation across ranks)
+      const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, false);
+      const craftsToAdd = rpc > 0 && Number.isFinite(1 / rpc) ? 1 / rpc : 1;
+      if (prev && prev.recipe.id === chosen.recipe.id && prev.toRank === n) {
+        prev.toRank = n + 1;
+        prev.craftsExact += craftsToAdd;
+      } else {
+        prev = { recipe: chosen.recipe, category: chosen.category, fromRank: n, toRank: n + 1, craftsExact: craftsToAdd };
+        raw.push(prev);
+      }
     }
   }
 
@@ -536,10 +661,11 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   let totalCost = 0;
   for (const [itemId, qty] of purchases) {
     const u = unitPrice(prices.get(itemId), itemId);
-    if (u !== null) totalCost += u * qty;
+    if (u !== null && Number.isFinite(u) && Number.isFinite(qty)) totalCost += u * qty;
   }
   const totalCrafts =
-    steps.reduce((s, st) => s + st.crafts, 0) + [...intermediateMap.values()].reduce((s, i) => s + i.crafts, 0);
+    steps.reduce((s, st) => s + (Number.isFinite(st.crafts) ? st.crafts : 1), 0) +
+    [...intermediateMap.values()].reduce((s, i) => s + (Number.isFinite(i.crafts) ? i.crafts : 1), 0);
 
   return {
     steps,

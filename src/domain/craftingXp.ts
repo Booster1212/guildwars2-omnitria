@@ -34,6 +34,8 @@ const EXCLUDED_TYPES = new Set([
   'Backpack',
   'Potion',
   'Consumable',
+  'RefinementEctoplasm',
+  'RefinementObsidian',
 ]);
 
 export function categoryOf(recipeType: string | undefined): XpCategory | null {
@@ -54,8 +56,20 @@ export function ranksPerCraft(
   if (rank < minRating) return 0;
   const { multiplier, span } = XP_MODEL[category];
   const f = 1 - (rank - minRating) / span;
+
+  // Leveling 0-470 remains unchanged.
+  // For Master / Exotic Tier (minRating >= 400, rank >= 450/470):
+  // In GW2, discovering an exotic item awards full discovery XP across the 400-500 tier (~2.0 to 2.5 levels per discovery),
+  // even when standard crafts have decayed to 0.
+  if (isDiscovery) {
+    if (minRating >= 400 && category === 'item') {
+      const tierF = Math.max(0.62, 1 - (rank - minRating) / 120);
+      return multiplier * tierF * 2.5; // ~2.17 ranks at 475, ~3.5 at 400
+    }
+    if (f <= 0) return 0;
+    return multiplier * f * 2.5;
+  }
+
   if (f <= 0) return 0;
-  const base = multiplier * f;
-  // Entdeckungsrezepte erhalten in GW2 ca. 100% bis 200% Bonus-EP (Faktor 2.5)
-  return isDiscovery ? base * 2.5 : base;
+  return multiplier * f;
 }

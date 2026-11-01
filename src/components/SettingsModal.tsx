@@ -77,7 +77,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Auto-Updater State
   const [currentVersion, setCurrentVersion] = useState<string>(
-    initialUpdateInfo?.currentVersion || '0.2.7'
+    initialUpdateInfo?.currentVersion || '0.2.8'
   );
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(
     initialUpdateInfo || null

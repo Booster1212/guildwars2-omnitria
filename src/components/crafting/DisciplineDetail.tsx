@@ -37,13 +37,38 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
 
   const progressFrac = Math.min(1, currentRank / maxRank);
 
-  // Discoverable recipes count
-  const discoveryRecipesCount = React.useMemo(() => {
+  const discProgress = progressActions.getCharacterDiscipline(selectedCharacter, discipline);
+  const doneSteps = discProgress.doneSteps ?? [];
+
+  const effectiveKnownSet = React.useMemo(() => {
+    const set = new Set<number>();
+    if (account.knownRecipeSet) {
+      for (const id of account.knownRecipeSet) set.add(id);
+    }
+    for (const k of doneSteps) {
+      const baseId = k.includes('.') ? k.split('.')[0] : k;
+      const num = Number(baseId);
+      if (!Number.isNaN(num) && num > 0) set.add(num);
+    }
+    return set.size > 0 ? set : (account.knownRecipeSet ?? null);
+  }, [account.knownRecipeSet, doneSteps]);
+
+  // Discoverable recipes stats
+  const discoveryStats = React.useMemo(() => {
     const list = recipeDb.status === 'ready' && recipeDb.recipes.length > 0
       ? recipeDb.recipes
       : CURATED_DISCOVERIES;
-    return list.filter((r) => r.disciplines.includes(discipline) && isDiscoveryRecipe(r)).length;
-  }, [recipeDb.recipes, recipeDb.status, discipline]);
+    let total = 0;
+    let discovered = 0;
+    for (const r of list) {
+      if (!r.disciplines.includes(discipline) || !isDiscoveryRecipe(r)) continue;
+      total++;
+      if (effectiveKnownSet && effectiveKnownSet.has(Number(r.id))) {
+        discovered++;
+      }
+    }
+    return { total, discovered };
+  }, [recipeDb.recipes, recipeDb.status, discipline, effectiveKnownSet]);
 
   // All recipes count for this discipline
   const allDisciplineRecipesCount = React.useMemo(() => {
@@ -95,7 +120,13 @@ export const DisciplineDetail: React.FC<DisciplineDetailProps> = ({ discipline, 
         <Tabs
           tabs={[
             { id: 'planner', label: t('crafting.plannerTab') },
-            { id: 'discovery', label: `${t('crafting.discoveryTab')} (${discoveryRecipesCount})` },
+            {
+              id: 'discovery',
+              label:
+                discoveryStats.discovered > 0
+                  ? `${t('crafting.discoveryTab')} (${discoveryStats.discovered}/${discoveryStats.total})`
+                  : `${t('crafting.discoveryTab')} (${discoveryStats.total})`,
+            },
             { id: 'recipes', label: `${t('crafting.recipesTab')} (${allDisciplineRecipesCount})` },
           ]}
           value={activeTab}

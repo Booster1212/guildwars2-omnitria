@@ -310,8 +310,9 @@ export function calculateCraftingPlan(
     const children: GrossNodeInfo[] = [];
 
     if (doCraft && recipe) {
-      const outputCount = Math.max(1, recipe.outputCount);
-      craftRuns = Math.ceil(demand / outputCount - EPS);
+      const outputCount = Math.max(1, Number.isFinite(recipe.outputCount) ? recipe.outputCount : 1);
+      const rawRuns = demand / outputCount;
+      craftRuns = Number.isFinite(rawRuns) ? Math.max(1, Math.ceil(rawRuns - EPS)) : 1;
       grossCraftRuns.set(itemId, (grossCraftRuns.get(itemId) ?? 0) + craftRuns);
 
       for (const ing of recipe.ingredients) {
@@ -391,9 +392,10 @@ export function calculateCraftingPlan(
 
     if (doCraft && recipe) {
       action = 'craft';
-      const outputCount = Math.max(1, recipe.outputCount);
+      const outputCount = Math.max(1, Number.isFinite(recipe.outputCount) ? recipe.outputCount : 1);
       if (netDemand > 0) {
-        craftRuns = Math.ceil(netDemand / outputCount - EPS);
+        const rawRuns = netDemand / outputCount;
+        craftRuns = Number.isFinite(rawRuns) ? Math.max(1, Math.ceil(rawRuns - EPS)) : 1;
         netCraftRuns.set(itemId, (netCraftRuns.get(itemId) ?? 0) + craftRuns);
 
         // Return surplus from rounding up back to the pool for subsequent branches/steps
@@ -503,18 +505,18 @@ export function calculateCraftingPlan(
     let lineCost: number | null = null;
     if (action === 'buy' || role === 'base_material') {
       if (netDemand > 0) {
-        if (up !== null) {
+        if (up !== null && Number.isFinite(up) && Number.isFinite(netDemand)) {
           lineCost = up * netDemand;
           totalCost += lineCost;
-        } else {
+        } else if (up === null) {
           unpricedCount++;
         }
       }
     }
 
-    totalCraftRuns += cRuns;
-    totalGrossItems += grossDemand;
-    totalNetItems += netDemand;
+    if (Number.isFinite(cRuns)) totalCraftRuns += cRuns;
+    if (Number.isFinite(grossDemand)) totalGrossItems += grossDemand;
+    if (Number.isFinite(netDemand)) totalNetItems += netDemand;
 
     const sources = resolveSources({ item: undefined, tags: [], price: p, recipe: r });
     const sourceInfo = sources[0];
@@ -558,10 +560,10 @@ export function calculateCraftingPlan(
     trees,
     materials,
     totals: {
-      totalGrossItems,
-      totalNetItems,
-      totalCraftRuns,
-      totalCost,
+      totalGrossItems: Number.isFinite(totalGrossItems) ? totalGrossItems : 0,
+      totalNetItems: Number.isFinite(totalNetItems) ? totalNetItems : 0,
+      totalCraftRuns: Number.isFinite(totalCraftRuns) ? totalCraftRuns : 0,
+      totalCost: Number.isFinite(totalCost) ? totalCost : 0,
       unpricedCount,
       totalDiscoveryCount: discoveryItemIds.size,
     },

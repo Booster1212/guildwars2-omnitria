@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { DisciplineId, Recipe } from '../../domain/types';
 import { useRecipeDb } from '../../data/gw2/recipes';
 import { useAccountState } from '../../data/gw2/account';
+import { useProgress, progressActions } from '../../data/progressStore';
 import { usePrices } from '../../data/gw2/prices';
 import { getItem, useItems } from '../../data/gw2/items';
 import { CURATED_DISCOVERIES } from '../../data/crafting/curatedDiscoveries';
@@ -63,6 +64,24 @@ export const LearnedRecipesView: React.FC<LearnedRecipesViewProps> = ({
   const { t, lang } = useTranslation();
   const recipeDb = useRecipeDb(true);
   const account = useAccountState();
+  const progress = useProgress();
+  const selectedCharacter = progress.plannerPreferences?.selectedCharacter ?? null;
+  const discProgress = progressActions.getCharacterDiscipline(selectedCharacter, discipline);
+  const doneSteps = discProgress.doneSteps ?? [];
+
+  // Effective known recipe set: combines account API (/v2/account/recipes + /v2/characters/:id/recipes) + locally marked steps
+  const effectiveKnownRecipeSet = useMemo(() => {
+    const set = new Set<number>();
+    if (account.knownRecipeSet) {
+      for (const id of account.knownRecipeSet) set.add(id);
+    }
+    for (const k of doneSteps) {
+      const baseId = k.includes('.') ? k.split('.')[0] : k;
+      const num = Number(baseId);
+      if (!Number.isNaN(num) && num > 0) set.add(num);
+    }
+    return set.size > 0 ? set : (account.knownRecipeSet ?? null);
+  }, [account.knownRecipeSet, doneSteps]);
 
   const craftingTiers = useMemo(() => getCraftingTiers(lang), [lang]);
   const discName = useMemo(() => getDisciplineName(discipline, lang), [discipline, lang]);
@@ -124,15 +143,15 @@ export const LearnedRecipesView: React.FC<LearnedRecipesViewProps> = ({
   const checkIsLearned = React.useCallback(
     (r: Recipe): boolean => {
       const isAuto = Boolean(r.flags?.includes('AutoLearned'));
-      if (account.knownRecipeSet !== null) {
+      if (effectiveKnownRecipeSet !== null) {
         return (
-          account.knownRecipeSet.has(Number(r.id)) ||
+          effectiveKnownRecipeSet.has(Number(r.id)) ||
           (isAuto && r.rating <= currentRank)
         );
       }
       return isAuto && r.rating <= currentRank;
     },
-    [account.knownRecipeSet, currentRank],
+    [effectiveKnownRecipeSet, currentRank],
   );
 
   // Helper to check if recipe can be crafted right now with account stock
@@ -327,7 +346,7 @@ export const LearnedRecipesView: React.FC<LearnedRecipesViewProps> = ({
           return a.rating - b.rating;
       }
     });
-  }, [filteredRecipes, sortOrder, prices.map, checkCanCraftNow]);
+  }, [filteredRecipes, sortOrder, prices.map, prices.updatedAt, prices.version, checkCanCraftNow]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sortedRecipes.length / PAGE_SIZE));
@@ -370,7 +389,7 @@ export const LearnedRecipesView: React.FC<LearnedRecipesViewProps> = ({
               </span>
             )}
           </span>
-          {account.knownRecipeSet === null && (
+          {effectiveKnownRecipeSet === null && (
             <span className="stats-no-key dim">
               ({lang === 'en'
                 ? 'Connect an API key with "unlocks" & "inventories" to track live unlocks & stock'

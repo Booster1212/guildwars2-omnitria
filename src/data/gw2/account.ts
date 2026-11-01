@@ -48,6 +48,8 @@ export interface AccountCharacter {
   deaths?: number;
   guild?: string;
   crafting: AccountCharacterDiscipline[];
+  /** Recipe IDs unlocked or discovered by this specific character (/v2/characters/:id/recipes) */
+  recipes?: number[];
   bagCount: number;
   bagSlotsTotal: number;
   bagSlotsUsed: number;
@@ -206,6 +208,7 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   const tasks: Promise<void>[] = [];
   let wallet: [number, number][] | null = null;
   let knownRecipes: number[] | null = null;
+  const allDiscoveredRecipes = new Set<number>();
   let armory: [number, number][] | null = null;
   let crafting: AccountData['crafting'] = null;
   let characters: AccountCharacter[] | null = null;
@@ -251,6 +254,33 @@ export async function syncAccountData(apiKey: string): Promise<void> {
         if (!r.ok || !r.data) return failed('characters', r);
         const best: NonNullable<AccountData['crafting']> = {};
         const charList: AccountCharacter[] = [];
+
+        // Concurrently fetch discovered/unlocked recipes for each character (/v2/characters/:id/recipes)
+        // GW2 API tracks discovered recipes per character; /v2/account/recipes only tracks sheet unlocks.
+        const charRecipesMap = new Map<string, number[]>();
+        await Promise.all(
+          r.data.map(async (c) => {
+            if (!c || !c.name) return;
+            try {
+              const recRes = await apiGet<{ recipes?: number[] } | number[]>(
+                buildUrl(`characters/${encodeURIComponent(c.name)}/recipes`, {}, key),
+              );
+              if (recRes.ok && recRes.data) {
+                const list: number[] = Array.isArray(recRes.data)
+                  ? recRes.data
+                  : Array.isArray((recRes.data as any).recipes)
+                    ? (recRes.data as any).recipes
+                    : [];
+                charRecipesMap.set(c.name, list);
+                for (const rid of list) {
+                  allDiscoveredRecipes.add(rid);
+                }
+              }
+            } catch {
+              /* ignore character recipes fetch error */
+            }
+          }),
+        );
 
         for (const c of r.data) {
           if (!c || !c.name) continue;
@@ -318,6 +348,7 @@ export async function syncAccountData(apiKey: string): Promise<void> {
             deaths: c.deaths,
             guild: c.guild,
             crafting: charCrafting,
+            recipes: charRecipesMap.get(c.name) ?? [],
             bagCount,
             bagSlotsTotal,
             bagSlotsUsed,
@@ -356,6 +387,17 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   }
   await Promise.all(tasks);
 
+  // Combine account-wide sheet unlocks and all character-discovered recipes
+  const allKnownSet = new Set<number>();
+  const rawRecipes = knownRecipes as number[] | null;
+  if (Array.isArray(rawRecipes)) {
+    for (const id of rawRecipes) allKnownSet.add(id);
+  }
+  for (const id of allDiscoveredRecipes) {
+    allKnownSet.add(id);
+  }
+  const finalKnownRecipes = allKnownSet.size > 0 ? Array.from(allKnownSet) : knownRecipes;
+
   const stock: [number, number][] = Object.entries(breakdown).map(([id, b]) => [Number(id), b[0] + b[1] + b[2] + b[3]]);
   const data: AccountData = {
     syncedAt: Date.now(),
@@ -367,7 +409,7 @@ export async function syncAccountData(apiKey: string): Promise<void> {
     characterBreakdown,
     characters,
     wallet,
-    knownRecipes,
+    knownRecipes: finalKnownRecipes,
     armory,
     crafting,
     errors,
@@ -396,7 +438,10 @@ export function clearAccountData(): void {
 export async function syncIfStale(apiKey: string | undefined, maxAgeMs = 15 * 60 * 1000): Promise<void> {
   if (!apiKey?.trim()) return;
   if (state.status === 'loading') return;
-  if (state.data && Date.now() - state.data.syncedAt < maxAgeMs) return;
+  // If cached data exists but lacks character-discovered recipes, force a fresh sync immediately
+  const hasCharRecipes = state.data?.characters?.some((c) => Array.isArray(c.recipes));
+  const isMissingCharRecipes = Boolean(state.data?.permissions.includes('characters')) && !hasCharRecipes;
+  if (!isMissingCharRecipes && state.data && Date.now() - state.data.syncedAt < maxAgeMs) return;
   try {
     await syncAccountData(apiKey);
   } catch {

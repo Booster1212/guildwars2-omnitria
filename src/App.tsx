@@ -161,7 +161,7 @@ export const App: React.FC = () => {
     let isMounted = true;
     const runCheck = async () => {
       try {
-        const res = await checkForAppUpdate('0.2.7');
+        const res = await checkForAppUpdate('0.2.8');
         if (isMounted && res.ok && res.hasUpdate) {
           setUpdateInfo(res);
         }

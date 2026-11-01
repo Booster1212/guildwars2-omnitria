@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.8] - 2026-11-01
+
+### Fixed & Improved
+
+#### Crafting Level Planner & Endgame Discovery Optimization (`src/domain/levelPlanner.ts`, `src/domain/craftingXp.ts`)
+* **Endgame Discovery Routing (450–500):**
+  * Actively recommends exotic discovery recipes with 2.5x bonus XP for ranks 450/470 to 500, significantly reducing the gold and material costs required to reach max rank.
+  * Enforced single-craft execution (`craftsExact: 1`) for discovery steps. Once discovered, recipes are added to the planned set so they cannot be accidentally bulk-crafted.
+* **Tier Progression & Refinement Protection (0–450):**
+  * Preserved normal 0–450 leveling progression. At each tier start (ranks 0–25, 75–100, etc.), basic material refinements (ores, wood, cloth, leather) remain strictly prioritized before intermediate components or discoveries.
+* **Accurate Recipe Discovery Tracking (`src/data/gw2/account.ts`, `src/domain/levelPlanner.ts`):**
+  * Merged official `/v2/account/recipes` sheet unlocks, character-specific discoveries, and manual planner checkmarks into a unified set to accurately identify known vs. undiscovered recipes.
+
+#### Crafting Calculation Stability & Reactivity (`src/data/gw2/prices.ts`, `src/domain/craftingCalculator.ts`, `src/components/crafting/LevelPlanner.tsx`)
+* **Eliminated `Infinity` and `NaN` Display Errors:**
+  * Excluded time-gated ascended recipes (`RefinementEctoplasm`, `RefinementObsidian`) such as *Bolt of Damask* and *Glob of Elder Spirit Residue* from bulk leveling candidates.
+  * Added `Number.isFinite` guards to recursive material requirement calculations (`visitGross`, `visitNet`) and procurement sum aggregations.
+* **Instant Trading Post Price Synchronization on Startup:**
+  * Added an atomic `version` counter in `src/data/gw2/prices.ts` via `useSyncExternalStore`.
+  * Wired `prices.version` into `LevelPlanner.tsx`, `DiscoveryView.tsx`, and `LearnedRecipesView.tsx`. When asynchronous price batches arrive on application startup, the plan recalculates immediately without requiring a manual toggle of the discovery checkbox.
+
+#### Performance Audit & Quality Assurance (`tests/craftingPerformanceAndCostAudit.test.ts`)
+* Precomputed rank capabilities via $O(C)$ typed array bitmasks, keeping route planning times below 50ms across all 9 crafting disciplines.
+* Complete test suite passing cleanly with 111/111 unit tests and 0 TypeScript errors.
+
+---
+
 ## [0.2.7] - 2026-10-30
 
 ### Added & Improved

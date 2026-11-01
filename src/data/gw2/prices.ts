@@ -35,6 +35,9 @@ export async function ensurePrices(ids: readonly number[], force = false): Promi
       buyQty: p.buys?.quantity ?? 0,
     }),
   );
+  if (res.items.length > 0) {
+    lastUpdate = Date.now();
+  }
   if (res.error) {
     lastError = res.error;
     need.forEach((id) => fetchedAt.delete(id));
@@ -54,9 +57,10 @@ export function usePrices(ids: readonly number[]): {
   map: ReadonlyMap<number, PriceInfo>;
   error: string | null;
   updatedAt: number;
+  version: number;
   refresh: () => void;
 } {
-  useSyncExternalStore(emitter.subscribe, () => version);
+  const ver = useSyncExternalStore(emitter.subscribe, () => version);
   const key = useMemo(() => [...new Set(ids)].sort((a, b) => a - b).join(','), [ids]);
   useEffect(() => {
     if (key) void ensurePrices(key.split(',').map(Number));
@@ -65,6 +69,7 @@ export function usePrices(ids: readonly number[]): {
     map: prices,
     error: lastError,
     updatedAt: lastUpdate,
+    version: ver,
     refresh: () => key && void ensurePrices(key.split(',').map(Number), true),
   };
 }
