@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.1] - 2026-11-01
+
+### Added & Improved
+
+#### Unified Discovery & Subsequent Production Workflow (`src/domain/levelPlanner.ts`, `src/components/crafting/LevelPlanner.tsx`)
+* **Combined Discovery and Crafting Operations:**
+  * Consolidated recipe discovery and subsequent repeat crafting into ONE single coherent leveling operation card (e.g. *Level 25 → 32: Discover & Craft Mighty Bronze Dagger (17x)*).
+  * Explicitly communicates the dual nature of discovery in Guild Wars 2: 1x discovery craft at the discovery station produces the initial item and permanently unlocks the recipe, followed by {N}x repeat crafts using the unlocked recipe.
+  * Preserves full material and cost transparency: the expanded details view displays the 1x discovery ingredient formula alongside subsequent repeat craft requirements without double-counting output items or ingredients.
+  * Preserves all completion checkboxes, skip buttons, defer actions, and progress tracking seamlessly.
+
+#### Crafting Route Intelligence & GW2Crafts Independent Validation (`src/domain/levelPlanner.ts`, `src/domain/gw2craftsReference.ts`, `src/data/crafting/gw2craftsSnapshot.ts`)
+* **GW2Crafts Benchmark & Offline Snapshot Engine:**
+  * Created complete offline structural snapshot across all 8 disciplines and tiers, repriced deterministically at live Trading Post prices without external network dependencies.
+  * Side-by-side comparison matrix validating Omnitria's leveling paths against GW2Crafts normal guides.
+* **Economic Defense Against Precursor and Lodestone Traps:**
+  * Excluded 140+ precursor collection items (*Handcrafted*, *Experimental*, *Perfected*) and untradable account-bound components (such as *Ineffable Inscriptions*) from leveling routes.
+  * Capped resale deductions against illiquid Trading Post buy orders, eliminating catastrophic runaway production on expensive lodestone weapons (reducing Weaponsmith 400–500 cost from 180g to 59g, and Huntsman from 352g to 53g).
+  * Eradicated all 9 artificial gaps across 0–400 leveling by balancing tier-start refinements and healthy bulk items.
+* **Discipline Maximum Ranks & Cooking Specialization:**
+  * Capped Jeweler strictly at rank 400 (`DISCIPLINE_MAX_RANK.Jeweler = 400`), matching official in-game mechanics.
+  * Capped Chef standard crafting routes at rank 450 (`DISCIPLINE_CRAFTING_ROUTE_CAP.Chef = 450`) with an explicit advisory notice directing players to the in-game Gourmet Training questline with Seimur Oxbone for ranks 450–500.
+
+#### Master Craftsman NPC Catalog Corrections (`src/data/crafting/masterCraftsmanVendors.ts`, `src/domain/costs.ts`)
+* **Corrected Cooking Ingredient Item IDs:**
+  * Fixed incorrect item IDs for chef base ingredients (Flour `12136`, Yeast `12152`, Vinegar `12157`, Soy Sauce `12271`, Buttermilk `12137`, Cheese Wedge `12159`, Sugar `12155`), ensuring authentic vendor purchase decisions and accurate pricing.
+
+---
+
 ## [0.3.0] - 2026-11-01
 
 ### Added & Improved

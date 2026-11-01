@@ -41,6 +41,7 @@ import {
   type Gw2CraftsBenchmark,
   type Gw2CraftsComparisonResult,
 } from './gw2craftsReference.ts';
+import { DISCIPLINE_MAX_RANK } from './disciplines.ts';
 
 export type { PlannerMode, TaskOrStepStatus };
 
@@ -145,6 +146,18 @@ export interface PlanStep {
   expectedBenefit?: StepExpectedBenefit;
   /** Prerequisite metadata */
   prerequisites?: StepPrerequisite;
+
+  // v0.3.0: Grouped Discovery & Subsequent Production
+  /** Whether this step groups discovery (1x) and subsequent repeat crafting (>=1x) */
+  isDiscoveryCombined?: boolean;
+  /** Number of discovery crafts (1 if discovery is performed in this step, 0 otherwise) */
+  discoveryCrafts?: number;
+  /** Number of subsequent repeat crafts after discovery */
+  repeatCrafts?: number;
+  /** Ingredients required for the initial discovery craft (1x) */
+  discoveryIngredients?: StepMaterial[];
+  /** Ingredients required for the subsequent repeat crafts */
+  repeatIngredients?: StepMaterial[];
 }
 
 export interface PlanGap {
@@ -261,6 +274,9 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const skippedIds = options.skippedRecipeIds ?? null;
   const goalItems = options.goalItemIds ?? null;
 
+  const maxAllowedRank = (DISCIPLINE_MAX_RANK as Record<string, number>)[discipline] ?? 500;
+  const effectiveToRank = Math.min(toRank, maxAllowedRank);
+
   const doneRecipeIds = new Set<string>();
   if (options.doneStepKeys) {
     for (const k of options.doneStepKeys) {
@@ -301,9 +317,36 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   ]);
 
   const isCandidate = (r: Recipe): boolean => {
-    if (r.ingredients.some((ing) => ASCENDED_ACCOUNT_BOUND_INGREDIENTS.has(ing.itemId))) {
-      return false;
+    // Exclude legendary components / precursor weapons:
+    if (r.type === 'LegendaryComponent') return false;
+
+    // Filter out precursor weapons if item metadata is provided
+    const outItem = input.items?.get(r.outputId);
+    if (outItem) {
+      const name = outItem.name;
+      if (
+        name.startsWith('Handcrafted ') ||
+        name.startsWith('Experimental ') ||
+        name.startsWith('Perfected ')
+      ) {
+        return false;
+      }
     }
+
+    // Exclude uncraftable account-bound ingredients that have no price, no vendor, no craft route, and no stock
+    for (const ing of r.ingredients) {
+      if (ASCENDED_ACCOUNT_BOUND_INGREDIENTS.has(ing.itemId)) return false;
+      if (ing.itemId === 50342) return false; // Ineffable Inscription
+      const price = unitPrice(prices.get(ing.itemId), ing.itemId);
+      const owned = stock ? (stock.get(ing.itemId) ?? 0) : 0;
+      if (price === null && owned < ing.count) {
+        const canCraftSub = (recipesByOutput.get(ing.itemId) ?? []).some(
+          (subR) => subR.disciplines.includes(discipline) && subR.rating <= r.rating
+        );
+        if (!canCraftSub) return false;
+      }
+    }
+
     // LearnedFromItem: Must be already known or have an available Master Craftsman vendor / TP sheet
     if (r.flags?.includes('LearnedFromItem') && !isLearned(r)) {
       const sheet = getVendorRecipeSheetOffer(Number(r.id));
@@ -312,7 +355,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     return (
       isLearned(r) ||
       Boolean(r.flags?.includes('LearnedFromItem')) ||
-      (isDiscovery(r) && (options.allowDiscovery || fromRank >= 450 || toRank > 450))
+      (isDiscovery(r) && (options.allowDiscovery || fromRank >= 400 || effectiveToRank > 400))
     );
   };
 
@@ -362,18 +405,18 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       return false;
     }
 
-    // Rank >= 470: Active discovery recommendation
-    if (rank >= 470) return true;
-    // Rank >= 450: Exotic tier
-    if (rank >= 450) return true;
+    // Rank >= 400: Active discovery recommendation for exotic tier / endgame
+    if (rank >= 400) return true;
     // Completionist mode allows discovery at all ranks
     if (mode === 'completionist') return true;
     // Chef relies on discoveries across all cooking levels
     if (discipline === 'Chef') return true;
 
-    // For standard disciplines below 450:
-    // When basic material refinements are available at tier start, enforce refinements first so ores/cloth/leather get refined!
-    if (hasLearnedRefinementAtRank[rank] === 1 && categoryOf(r.type) === 'item') {
+    // For standard disciplines below 400:
+    // Only enforce tier-start refinements when they are fresh (first 15 ranks of tier: e.g. 0-15, 75-90, 150-165, etc.)
+    // Once rank is past tier start + 15, allow item discoveries/crafts so leveling doesn't stall in gaps!
+    const tierStart = Math.floor(rank / 75) * 75;
+    if (rank < tierStart + 15 && hasLearnedRefinementAtRank[rank] === 1 && categoryOf(r.type) === 'item') {
       return false;
     }
 
@@ -437,9 +480,8 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const evalCandidate = (c: { recipe: Recipe; category: XpCategory }, rank: number): Choice | null => {
     const isAlreadyPlanned = plannedDiscoveries.has(String(c.recipe.id));
     const isDisc = !isLearned(c.recipe) && !isAlreadyPlanned && isDiscovery(c.recipe);
-    // Below 450 (standard bulk progression), do not inflate undiscovered items with discovery bonus
-    // unless in completionist mode or Chef, so that refinements & components maintain priority.
-    const useDiscMultiplier = isDisc && (rank >= 450 || mode === 'completionist' || discipline === 'Chef');
+    // Exotic discoveries (rank >= 400), completionist mode, Chef, or discovery in mid-tier grant discovery multiplier
+    const useDiscMultiplier = isDisc && (rank >= 400 || mode === 'completionist' || discipline === 'Chef' || (options.allowDiscovery && rank % 75 >= 25));
     const rpc = ranksPerCraft(c.category, rank, c.recipe.rating, useDiscMultiplier);
     if (rpc <= 0 || !Number.isFinite(rpc)) return null;
 
@@ -481,7 +523,10 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     // Deduct expected resale proceeds and amortize recipe sheet unlock costs
     const resale = calculateExpectedResaleValue(c.recipe.outputId, c.recipe.outputCount || 1, prices, input.items);
     const unlockCost = getRecipeUnlockCost(c.recipe, known, prices);
-    const netCraftCost = Math.max(0, cost - resale.unit);
+    // Guard against illiquid TP buy order trap: capped resale deduction (max 75% of cost)
+    const maxResaleCredit = cost * 0.75;
+    const cappedResale = Math.min(resale.unit, maxResaleCredit);
+    const netCraftCost = Math.max(0, cost - cappedResale);
     const amortizedUnlock = unlockCost > 0 ? unlockCost / 3 : 0;
 
     // Escalating decay penalty: In GW2, recipes in the yellow/green zone (past 60% of span)
@@ -491,25 +536,25 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
 
     let effectiveCostPerRank = ((netCraftCost + amortizedUnlock) * decayPenalty) / rpc;
 
-    // Ab Level 470: Prioritize discovery bonus!
-    if (rank >= 470 && isDisc) {
+    // Ab Level 400: Prioritize discovery bonus of exotics!
+    if (rank >= 400 && isDisc) {
       effectiveCostPerRank *= 0.45;
     }
 
     // Apply transparent mode-specific weighting:
     // 1. Höchste Kosteneffizienz (Cost Mode - Günstigster Weg von 0–500):
     if (mode === 'cost') {
-      if (rank < 450) {
+      if (rank < 400) {
         // Refinements at tier start are the absolute cheapest way to gain early tier ranks:
         if (c.category === 'refinement') {
           effectiveCostPerRank *= 0.25;
         } else if (!isDisc && f >= 0.35) {
-          // Below 450: Strongly prioritize healthy bulk recipes (components, bulk items)
+          // Below 400: Strongly prioritize healthy bulk recipes (components, bulk items)
           // over discoveries, avoiding fine-material price spikes and discovery window friction
           effectiveCostPerRank *= 0.55;
         }
       } else {
-        // 450–500: Discoveries of exotics are the most economical path (avoiding ascended gates)
+        // 400–500: Discoveries of exotics are the most economical path (avoiding ascended gates)
         if (isDisc) {
           effectiveCostPerRank *= 0.45;
         }
@@ -557,12 +602,15 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     fromRank: number;
     toRank: number;
     craftsExact: number;
+    isDiscovery: boolean;
+    discoveryCrafts: number;
+    repeatCraftsExact: number;
   }
   const raw: RawStep[] = [];
   const gaps: PlanGap[] = [];
   let prev: RawStep | null = null;
 
-  for (let n = fromRank; n < toRank; n++) {
+  for (let n = fromRank; n < effectiveToRank; n++) {
     let best: Choice | null = null;
     let prevChoice: Choice | null = null;
     for (const c of candidates) {
@@ -603,16 +651,19 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       plannedDiscoveries.add(String(chosen.recipe.id));
       const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, true);
       const ranksGained = Math.max(1, Math.round(rpc));
-      const stepToRank = Math.min(toRank, n + ranksGained);
-      raw.push({
+      const stepToRank = Math.min(effectiveToRank, n + ranksGained);
+      prev = {
         recipe: chosen.recipe,
         category: chosen.category,
         fromRank: n,
         toRank: stepToRank,
         craftsExact: 1,
-      });
+        isDiscovery: true,
+        discoveryCrafts: 1,
+        repeatCraftsExact: 0,
+      };
+      raw.push(prev);
       n = stepToRank - 1; // loop increment will advance to stepToRank
-      prev = null;
     } else {
       // Leveling for learned / repeated recipes (accumulation across ranks)
       const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, false);
@@ -620,10 +671,41 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       if (prev && prev.recipe.id === chosen.recipe.id && prev.toRank === n) {
         prev.toRank = n + 1;
         prev.craftsExact += craftsToAdd;
+        if (prev.isDiscovery) {
+          prev.repeatCraftsExact = (prev.repeatCraftsExact || 0) + craftsToAdd;
+        }
       } else {
-        prev = { recipe: chosen.recipe, category: chosen.category, fromRank: n, toRank: n + 1, craftsExact: craftsToAdd };
+        prev = {
+          recipe: chosen.recipe,
+          category: chosen.category,
+          fromRank: n,
+          toRank: n + 1,
+          craftsExact: craftsToAdd,
+          isDiscovery: false,
+          discoveryCrafts: 0,
+          repeatCraftsExact: craftsToAdd,
+        };
         raw.push(prev);
       }
+    }
+  }
+
+  // Consolidate adjacent raw steps for the same recipe (combining discovery + subsequent crafts into one coherent operation)
+  const consolidatedRaw: RawStep[] = [];
+  for (const rs of raw) {
+    const last = consolidatedRaw[consolidatedRaw.length - 1];
+    if (last && last.recipe.id === rs.recipe.id && last.toRank === rs.fromRank) {
+      last.toRank = rs.toRank;
+      last.craftsExact += rs.craftsExact;
+      if (rs.isDiscovery) {
+        last.isDiscovery = true;
+      }
+      if (last.isDiscovery) {
+        last.discoveryCrafts = 1;
+        last.repeatCraftsExact = Math.max(0, last.craftsExact - 1);
+      }
+    } else {
+      consolidatedRaw.push(rs);
     }
   }
 
@@ -633,8 +715,13 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const unpriced = new Set<number>();
   const usedKeys = new Map<string, number>();
 
-  const steps: PlanStep[] = raw.map((rs) => {
+  const steps: PlanStep[] = consolidatedRaw.map((rs) => {
     const crafts = Math.max(1, Math.ceil(rs.craftsExact - 1e-9));
+    const discoveryCrafts = rs.isDiscovery ? 1 : 0;
+    const repeatCrafts = rs.isDiscovery ? Math.max(0, crafts - 1) : crafts;
+    const isDiscoveryCombined = rs.isDiscovery && repeatCrafts > 0;
+    const needsDiscovery = rs.isDiscovery || !isLearned(rs.recipe);
+
     const stepPurchases = new Map<number, number>();
     const stepPrepMap = new Map<string, StepPrepItem>();
 
@@ -672,6 +759,13 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const ingredients: StepMaterial[] = rs.recipe.ingredients.map((i) => ({ itemId: i.itemId, qty: i.count * crafts }));
     for (const ing of ingredients) resolve(ing.itemId, ing.qty, rs.fromRank, 0);
 
+    const discoveryIngredients: StepMaterial[] = rs.isDiscovery
+      ? rs.recipe.ingredients.map((i) => ({ itemId: i.itemId, qty: i.count }))
+      : [];
+    const repeatIngredients: StepMaterial[] = repeatCrafts > 0
+      ? rs.recipe.ingredients.map((i) => ({ itemId: i.itemId, qty: i.count * repeatCrafts }))
+      : [];
+
     // Sortierung in exakter Produktionsreihenfolge: tiefste Unterprodukte (z.B. Seidenballen) zuerst,
     // darauf aufbauende Zwischenprodukte (z.B. Seiden-Insignie) danach
     const prepSteps = Array.from(stepPrepMap.values()).sort((a, b) => b.depth - a.depth);
@@ -698,13 +792,14 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const n = (usedKeys.get(base) ?? 0) + 1;
     usedKeys.set(base, n);
 
-    const needsDiscovery = !isLearned(rs.recipe);
     const prepCraftsTotal = prepSteps.reduce((acc, p) => acc + p.crafts, 0);
     const totalStationCrafts = crafts + prepCraftsTotal;
     const estimatedMinutes = Math.max(1, Math.ceil((totalStationCrafts * 2 + (needsDiscovery ? 15 : 0)) / 60));
 
     let reasonKey = 'planner.reason.costOptimal';
-    if ((mode === 'cost' || !mode) && !needsDiscovery && rs.category !== 'refinement') {
+    if (isDiscoveryCombined) {
+      reasonKey = 'planner.reason.discoverAndCraft';
+    } else if ((mode === 'cost' || !mode) && !needsDiscovery && rs.category !== 'refinement') {
       reasonKey = 'planner.reason.costOptimalBulk';
     } else if (needsDiscovery && mode === 'completionist') {
       reasonKey = 'planner.reason.completionistDiscovery';
@@ -735,6 +830,11 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       cost,
       unpricedCount,
       needsDiscovery,
+      isDiscoveryCombined,
+      discoveryCrafts,
+      repeatCrafts,
+      discoveryIngredients,
+      repeatIngredients,
       expectedResaleValue: resale.total,
       netCost,
       unlockCost,

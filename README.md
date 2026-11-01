@@ -4,7 +4,7 @@
 
 # Omnitria HUD
 
-[![Release](https://img.shields.io/badge/Release-v0.3.0-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Release](https://img.shields.io/badge/Release-v0.3.1-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
@@ -20,22 +20,38 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 ## Release Changelog
 
 <details open>
-<summary><b>v0.3.0 · Crafting Intelligence, Cost Optimizer & Master Craftsman NPC Integration</b> (Latest Release)</summary>
+<summary><b>v0.3.1 · Crafting Route Intelligence, Unified Discovery Operations & GW2Crafts Validation</b> (Latest Release)</summary>
+
+- **Unified Discovery & Subsequent Production Operations:**
+  - Combines recipe discovery and subsequent repeat crafting into ONE single coherent leveling operation (e.g. *Discover & Craft Mighty Bronze Dagger (17x)*).
+  - Explicitly communicates: 1x initial discovery producing the first item at the discovery station + 16x subsequent repeat crafts using the unlocked recipe = 17x total items produced.
+  - Transparent material breakdown in expanded details without double-counting ingredients or output quantities.
+- **Economic Intelligence & Level 400–500 Optimization:**
+  - Excludes uncraftable precursor collection weapons (*Handcrafted*, *Experimental*, *Perfected*) and untradable account-bound components (e.g. *Ineffable Inscriptions*), dropping 400–500 leveling costs by up to 70% to match GW2Crafts.
+  - Guards against illiquid Trading Post buy-order traps (e.g. expensive lodestone weapons with thin buy orders) by capping resale deductions.
+  - Zero-gap 0–400 leveling paths across all 8 disciplines with balanced tier-start refinements and healthy bulk equipment.
+- **Discipline Max Rank & Quest Handling:**
+  - Jeweler accurately capped at rank 400, preventing invalid 400–500 route generation.
+  - Chef capped at rank 450 for standard crafting routes with clear advisory for the in-game Gourmet Training questline (Seimur Oxbone).
+- **Master Craftsman Vendor Catalog Fixes:**
+  - Corrected official item IDs for cooking ingredients (Flour `12136`, Yeast `12152`, Vinegar `12157`, Soy Sauce `12271`, Buttermilk `12137`, Cheese Wedge `12159`, Sugar `12155`).
+  - Dynamic price comparison evaluating `min(NPC, Trading Post)` without prior assumptions.
+- **GW2Crafts Independent Validation & Benchmark Engine:**
+  - Complete offline structural snapshot across all disciplines with live Trading Post re-pricing, comparing Omnitria routes against GW2Crafts normal guides across all tiers (0–75, 75–150, 150–225, 225–300, 300–400, 400–500).
+
+</details>
+
+<details>
+<summary><b>v0.3.0 · Crafting Intelligence, Cost Optimizer & Master Craftsman NPC Integration</b></summary>
 
 - **Max Cost Efficiency Mode (0–500):**
-  - Dedicated gold quick-select button in the Crafting Planner that prioritizes economical bulk production and material refinements under rank 450, avoiding expensive discovery spam.
-  - Refinements at tier transitions (0–25, 75–100, 150–175, etc.) are heavily prioritized (Copper, Iron, Wood, Cloth, Leather), completing the first 25 ranks of each tier for minimal copper.
-  - Exotic discoveries are only prioritized from rank 450–500, bypassing expensive time-gated Ascended materials (Deldrimor Ingots, Spiritwood).
-  - Terminal decay cutoff (`f < 0.20`) and progressive decay penalties eliminate runaway loops (e.g. 77x inscriptions) and excessive material demands.
-- **Master Craftsman Vendor Integration:**
-  - Data-driven catalog with verified NPC prices for basic ingredients (Tin, Coal, Primordium, Thermocatalytic Reagents, Spools, Chef ingredients) and recipe sheets across all 8 disciplines.
-  - Dynamic price comparison evaluating `min(NPC, Trading Post)` without prior assumptions.
-- **GW2Crafts Reference Engine & Benchmark:**
-  - Evaluates leveling paths against official `gw2crafts.net` blueprints and calculates transparent cost differences and savings percentages.
+  - Dedicated gold quick-select button in the Crafting Planner prioritizing economical bulk production and material refinements under rank 450.
+  - Refinements at tier transitions (0–25, 75–100, 150–175, etc.) heavily prioritized (Copper, Iron, Wood, Cloth, Leather).
+  - Terminal decay cutoff (`f < 0.20`) and progressive decay penalties eliminate runaway loops.
 - **Opportunity Costs & Resale Offsets:**
-  - Evaluates the liquidation value of materials in stock (minus 15% Trading Post fees) and deducts expected resale proceeds from total net costs.
+  - Evaluates liquidation value of owned materials (minus 15% TP fees) and deducts expected resale proceeds from net leveling costs.
 - **Overhauled Shopping List & Column Alignment:**
-  - Clean grouping into 6 milestone tiers, responsive column widths, complete visibility for total costs without truncation, and live price freshness badge with manual refresh.
+  - Clean grouping into 6 milestone tiers, responsive column widths, and live price freshness indicator with manual refresh.
 
 </details>
 
@@ -85,7 +101,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ### Standalone Binary (Windows)
 
-1. Download `Omnitria-v0.3.0-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.3.1-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (portable, no installer required).
 3. Launch `Omnitria.exe`.
 

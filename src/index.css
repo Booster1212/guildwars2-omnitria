@@ -2305,6 +2305,37 @@ button {
   border: 1px solid #4c326e;
   color: #d8b4fe;
 }
+.discovery-tag.combined {
+  background: rgba(109, 40, 217, 0.3);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  color: #e9d5ff;
+  border-radius: 2px;
+}
+.step-operation-prefix {
+  font-size: 13px;
+  color: #facc15;
+}
+.step-crafts-count.combined {
+  color: #fef08a;
+  font-weight: 600;
+}
+.repeat-craft-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  padding: 1px 5px;
+  background: rgba(30, 58, 138, 0.35);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  color: #bfdbfe;
+  border-radius: 2px;
+}
+.combined-repeat-callout {
+  padding: 6px 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 3px;
+}
 .step-ings-line {
   display: flex;
   align-items: center;

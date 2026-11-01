@@ -1,32 +1,87 @@
 /**
  * GW2Crafts Reference Engine & Benchmark Comparison (Omnitria v0.3.0).
  *
- * Reference: https://gw2crafts.net/
+ * Reference: https://gw2crafts.net/ (guide generator by xanthic.9478, source: github.com/xanthics/gw2craft).
  *
- * GW2Crafts is the premier community crafting guide for Guild Wars 2.
- * It uses a greedy algorithmic approach prioritizing lowest initial gold investment
- * using live Trading Post prices and structured tier progression:
- *   - Tier Start (0-25, 75-100, etc.): Raw material refinement (ores, logs, cloth, leather).
- *   - Tier Mid (25-50, 100-125, etc.): Crafting components (insignias, inscriptions, blades/shafts).
- *   - Tier Discovery (50-75, 125-150, etc.): 1-craft discoveries of different attribute combos.
- *   - 450-500: Exotic weapon/armor discoveries using Intricate Gossamer/Orichalcum components.
+ * What this module does:
+ * 1. Bundles offline snapshot structures and blueprints of the community-proven GW2Crafts routes.
+ * 2. Dynamically re-prices the benchmark routes at current Trading Post prices (and NPC vendor prices).
+ * 3. Compares Omnitria's planned routes against the GW2Crafts benchmark (costs, discoveries, crafts).
+ * 4. Highlights differences transparently (account inventory utilization, Master Craftsman savings, resale deductions).
  *
- * This module models the GW2Crafts benchmark route for all 8 disciplines,
- * computes the expected reference costs at current TP prices, and provides
- * a side-by-side comparative analysis highlighting Omnitria's optimizations:
- *   - Opportunity cost & stock utilization from player's actual inventory/bank
- *   - Direct Master Craftsman NPC vendor savings (e.g. Lump of Tin/Coal, Spools)
- *   - Net cost calculation deducting expected resale proceeds
+ * Local-First & Independent:
+ * GW2Crafts is an optional reference benchmark. The app never makes mandatory runtime calls to gw2crafts.net.
  */
-import type { DisciplineId, PriceInfo } from './types.ts';
+import type { DisciplineId, PriceInfo, Recipe } from './types.ts';
 import { unitPrice } from './costs.ts';
+import { GW2CRAFTS_GUIDES, GW2CRAFTS_SNAPSHOT_DATE } from '../data/crafting/gw2craftsSnapshot.ts';
+
+export type GuideVariant = 'normal' | 'fast' | 'f2p';
+
+export interface GuideDiscovery {
+  outputItemId: number;
+  recipeId: number | null;
+  ingredients: { itemId: number; count: number }[];
+}
+
+export interface GuideBlock {
+  level: number;
+  makes: { itemId: number; qty: number }[];
+  discoveries: GuideDiscovery[];
+}
+
+export interface Gw2CraftsGuideSnapshot {
+  guideId: string;
+  url: string;
+  discipline: DisciplineId;
+  variant: GuideVariant;
+  fromRank: number;
+  toRank: number;
+  guideUpdatedAt: string | null;
+  reportedInitialCopper: number;
+  reportedRecoveryCopper: number;
+  reportedFinalCopper: number;
+  blocks: GuideBlock[];
+  shopping: {
+    itemId: number;
+    need: number;
+    section: 'vendor' | 'collectible' | 'mixed' | 'recipes';
+    listedUnitCopper: number;
+    karmaBulk?: number;
+  }[];
+  recipePurchases: { sheetItemId: number; costKarma: number; costCopper: number }[];
+}
+
+export interface BenchmarkMaterial {
+  itemId: number;
+  qty: number;
+  unitCost: number | null;
+  totalCost: number | null;
+}
+
+export interface BenchmarkTier {
+  level: number;
+  discoveries: number;
+  makeCrafts: number;
+  costCopper: number;
+}
+
+export type BenchmarkUnavailableReason =
+  | 'no_guide_for_range'
+  | 'discipline_max_rank'
+  | 'cooking_quest_range'
+  | 'guide_not_published';
 
 export interface Gw2CraftsBenchmark {
   discipline: DisciplineId;
   fromRank: number;
   toRank: number;
   guideType: 'normal' | 'fast';
+  variant: Exclude<GuideVariant, 'f2p'>;
+  status: 'ok' | 'partial' | 'unavailable';
+  unavailableReason?: BenchmarkUnavailableReason;
   estimatedCostCopper: number;
+  costCopper: number;
   estimatedStepsCount: number;
   estimatedCraftRuns: number;
   referenceUrl: string;
@@ -37,7 +92,57 @@ export interface Gw2CraftsBenchmark {
     descriptionEn: string;
     estimatedCostCopper: number;
   }[];
+  guideIds: string[];
+  urls: string[];
+  snapshotDate: string;
+  guideUpdatedAt: string | null;
+  coveredFromRank: number;
+  coveredToRank: number;
+  materials: BenchmarkMaterial[];
+  unpricedItemIds: number[];
+  discoveryRecipeIds: number[];
+  discoveryCount: number;
+  makeCrafts: number;
+  tiers: BenchmarkTier[];
+  reportedInitialCopper: number;
 }
+
+export interface BenchmarkInput {
+  discipline: DisciplineId;
+  fromRank: number;
+  toRank: number;
+  recipesByOutput?: ReadonlyMap<number, readonly Recipe[]>;
+  prices: ReadonlyMap<number, PriceInfo>;
+  variant?: 'normal' | 'fast';
+}
+
+export interface ComparablePlan {
+  grossCostCopper: number;
+  discoveryRecipeIds?: readonly number[];
+  discoveryCount?: number;
+  totalCrafts?: number;
+  operationCount?: number;
+}
+
+export type ComparisonFindingCode =
+  | 'guide_unavailable'
+  | 'range_partial'
+  | 'cheaper_than_guide'
+  | 'similar_to_guide'
+  | 'dearer_than_guide'
+  | 'fewer_discoveries'
+  | 'more_discoveries'
+  | 'different_discovery_set'
+  | 'fewer_crafts'
+  | 'more_crafts'
+  | 'unpriced_materials';
+
+export interface ComparisonFinding {
+  code: ComparisonFindingCode;
+  params: Record<string, number>;
+}
+
+export type ComparisonVerdict = 'cheaper' | 'comparable' | 'dearer' | 'not_comparable';
 
 export interface Gw2CraftsComparisonResult {
   benchmark: Gw2CraftsBenchmark;
@@ -46,24 +151,29 @@ export interface Gw2CraftsComparisonResult {
   omnitriaStepsCount: number;
   differenceCopper: number;
   savingsPercentage: number;
+  deltaCopper: number;
+  deltaPercent: number;
+  verdict: ComparisonVerdict;
   summaryDe: string;
   summaryEn: string;
   advantages: {
     de: string;
     en: string;
   }[];
+  findings: ComparisonFinding[];
+  sharedDiscoveries: number;
+  onlyInGuide: number;
+  onlyInOmnitria: number;
 }
 
-/**
- * Standard Tier Blueprint representing GW2Crafts' typical material requirements.
- */
+export { GW2CRAFTS_SNAPSHOT_DATE };
+
 interface TierTemplate {
   tier: number;
   minRank: number;
   maxRank: number;
   descDe: string;
   descEn: string;
-  /** Representative basic materials consumed in standard GW2Crafts guide */
   sampleNeeds: { itemId: number; count: number }[];
 }
 
@@ -181,36 +291,36 @@ const DISCIPLINE_TIER_TEMPLATES: Record<DisciplineId, TierTemplate[]> = {
       tier: 1, minRank: 0, maxRank: 75,
       descDe: 'Grundteig, Backwaren & Einfache Gerichte',
       descEn: 'Basic dough, baked goods & simple meals',
-      sampleNeeds: [{ itemId: 12155, count: 60 }, { itemId: 12156, count: 60 }, { itemId: 12158, count: 40 }],
+      sampleNeeds: [{ itemId: 12136, count: 60 }, { itemId: 12156, count: 60 }, { itemId: 12152, count: 40 }],
     },
     {
       tier: 2, minRank: 75, maxRank: 150,
       descDe: 'Suppen, Salate & Gewürzmischungen',
       descEn: 'Soups, salads & seasoning blends',
-      sampleNeeds: [{ itemId: 12153, count: 60 }, { itemId: 12134, count: 40 }],
+      sampleNeeds: [{ itemId: 12153, count: 60 }, { itemId: 12159, count: 40 }],
     },
     {
       tier: 3, minRank: 150, maxRank: 225,
       descDe: 'Eintöpfe, Festmähler & Entdeckungen',
       descEn: 'Stews, feasts & discoveries',
-      sampleNeeds: [{ itemId: 12337, count: 60 }, { itemId: 12157, count: 40 }],
+      sampleNeeds: [{ itemId: 12155, count: 60 }, { itemId: 12157, count: 40 }],
     },
     {
       tier: 4, minRank: 225, maxRank: 300,
       descDe: 'Meistergerichte & Komplexe Zutaten',
       descEn: 'Master dishes & complex ingredients',
-      sampleNeeds: [{ itemId: 12338, count: 60 }, { itemId: 12240, count: 40 }],
+      sampleNeeds: [{ itemId: 12158, count: 60 }, { itemId: 12137, count: 40 }],
     },
     {
       tier: 5, minRank: 300, maxRank: 400,
-      descDe: 'Gourmet-Feats & Buff-Food',
+      descDe: 'Gourmet-Feasts & Buff-Food',
       descEn: 'Gourmet feasts & buff food',
       sampleNeeds: [{ itemId: 12132, count: 50 }],
     },
     {
       tier: 6, minRank: 400, maxRank: 500,
-      descDe: 'Gourmet-Koch 500 (Sous-Chef Quest & Blutstein-Küche)',
-      descEn: 'Gourmet Chef 500 (Sous Chef quest & bloodstone cooking)',
+      descDe: 'Gourmet-Koch 500 (Sous-Chef Quest & Gourmet-Training)',
+      descEn: 'Gourmet Chef 500 (Sous Chef quest & Gourmet Training)',
       sampleNeeds: [{ itemId: 46747, count: 20 }],
     },
   ],
@@ -368,39 +478,115 @@ const DISCIPLINE_TIER_TEMPLATES: Record<DisciplineId, TierTemplate[]> = {
   ],
 };
 
-/**
- * Computes the GW2Crafts benchmark guide for a discipline and rank range.
- */
-export function computeGw2CraftsBenchmark(
+export function listGuides(discipline: DisciplineId, variant: GuideVariant): Gw2CraftsGuideSnapshot[] {
+  return GW2CRAFTS_GUIDES.filter((g) => g.discipline === discipline && g.variant === variant && g.blocks.length > 0).sort(
+    (a, b) => a.fromRank - b.fromRank || b.toRank - a.toRank,
+  );
+}
+
+export function selectGuides(
   discipline: DisciplineId,
   fromRank: number,
   toRank: number,
-  prices: ReadonlyMap<number, PriceInfo>,
+  variant: 'normal' | 'fast' = 'normal',
+): Gw2CraftsGuideSnapshot[] {
+  const pool = listGuides(discipline, variant);
+  const chosen: Gw2CraftsGuideSnapshot[] = [];
+  let cursor = fromRank;
+  while (cursor < toRank) {
+    const candidates = pool.filter((g) => g.fromRank <= cursor && g.toRank > cursor);
+    if (candidates.length === 0) break;
+    const fits = candidates.filter((g) => g.toRank >= toRank).sort((a, b) => a.toRank - b.toRank);
+    const pick = fits[0] ?? candidates.sort((a, b) => b.toRank - a.toRank)[0];
+    chosen.push(pick);
+    cursor = pick.toRank;
+  }
+  return chosen;
+}
+
+function buildRecipeIndex(recipesByOutput: ReadonlyMap<number, readonly Recipe[]>): Map<string, Recipe> {
+  const byId = new Map<string, Recipe>();
+  for (const list of recipesByOutput.values()) for (const r of list) byId.set(String(r.id), r);
+  return byId;
+}
+
+function recipeForMake(
+  itemId: number,
+  discipline: DisciplineId,
+  recipesByOutput: ReadonlyMap<number, readonly Recipe[]>,
+  discoveredRecipeByOutput: ReadonlyMap<number, string>,
+  recipeById: ReadonlyMap<string, Recipe>,
+): Recipe | null {
+  const discovered = discoveredRecipeByOutput.get(itemId);
+  if (discovered && recipeById.has(discovered)) return recipeById.get(discovered)!;
+  const list = (recipesByOutput.get(itemId) ?? []).filter((r) => r.disciplines.includes(discipline));
+  if (list.length === 0) return null;
+  const learned = list.filter((r) => r.flags?.includes('AutoLearned') || r.flags?.includes('LearnedFromItem'));
+  const pool = learned.length > 0 ? learned : list;
+  return [...pool].sort((a, b) => a.rating - b.rating || String(a.id).localeCompare(String(b.id)))[0];
+}
+
+/**
+ * Computes the GW2Crafts benchmark guide. Supports both signature styles:
+ * 1. computeGw2CraftsBenchmark(discipline, fromRank, toRank, prices, recipesByOutput, variant)
+ * 2. computeGw2CraftsBenchmark(inputObj)
+ */
+export function computeGw2CraftsBenchmark(
+  disciplineOrInput: DisciplineId | BenchmarkInput,
+  fromRankParam?: number,
+  toRankParam?: number,
+  pricesParam?: ReadonlyMap<number, PriceInfo>,
+  recipesByOutputParam?: ReadonlyMap<number, readonly Recipe[]>,
+  variantParam?: 'normal' | 'fast',
 ): Gw2CraftsBenchmark {
+  let discipline: DisciplineId;
+  let fromRank: number;
+  let toRank: number;
+  let prices: ReadonlyMap<number, PriceInfo>;
+  let recipesByOutput: ReadonlyMap<number, readonly Recipe[]>;
+  let variant: 'normal' | 'fast';
+
+  if (typeof disciplineOrInput === 'object') {
+    discipline = disciplineOrInput.discipline;
+    fromRank = disciplineOrInput.fromRank;
+    toRank = disciplineOrInput.toRank;
+    prices = disciplineOrInput.prices;
+    recipesByOutput = disciplineOrInput.recipesByOutput ?? new Map();
+    variant = disciplineOrInput.variant ?? 'normal';
+  } else {
+    discipline = disciplineOrInput;
+    fromRank = fromRankParam ?? 0;
+    toRank = toRankParam ?? 500;
+    prices = pricesParam ?? new Map();
+    recipesByOutput = recipesByOutputParam ?? new Map();
+    variant = variantParam ?? 'normal';
+  }
+
+  const discParam = discipline.toLowerCase();
+  const referenceUrl = `https://gw2crafts.net/${discParam}.html`;
+
   const templates = DISCIPLINE_TIER_TEMPLATES[discipline] ?? [];
   const relevantTiers = templates.filter((t) => t.maxRank > fromRank && t.minRank < toRank);
 
-  let totalCost = 0;
-  let totalSteps = 0;
-  let totalCrafts = 0;
+  let templateCost = 0;
+  let templateSteps = 0;
+  let templateCrafts = 0;
 
   const tierBreakdown = relevantTiers.map((t) => {
     let tierCost = 0;
     for (const need of t.sampleNeeds) {
       const u = unitPrice(prices.get(need.itemId), need.itemId) ?? 20;
       tierCost += u * need.count;
-      totalCrafts += Math.round(need.count / 2);
+      templateCrafts += Math.round(need.count / 2);
     }
-
-    // Scaling factor if user is starting/stopping inside the tier
     const tierSpan = t.maxRank - t.minRank;
     const effectiveFrom = Math.max(t.minRank, fromRank);
     const effectiveTo = Math.min(t.maxRank, toRank);
     const fraction = tierSpan > 0 ? (effectiveTo - effectiveFrom) / tierSpan : 1;
     const scaledCost = Math.round(tierCost * Math.max(0.2, fraction));
 
-    totalCost += scaledCost;
-    totalSteps += Math.max(2, Math.round(6 * fraction));
+    templateCost += scaledCost;
+    templateSteps += Math.max(2, Math.round(6 * fraction));
 
     return {
       tierNumber: t.tier,
@@ -411,41 +597,206 @@ export function computeGw2CraftsBenchmark(
     };
   });
 
-  const discParam = discipline.toLowerCase();
-  const referenceUrl = `https://gw2crafts.net/${discParam}.html`;
-
-  return {
+  const base: Gw2CraftsBenchmark = {
     discipline,
     fromRank,
     toRank,
-    guideType: 'normal',
-    estimatedCostCopper: totalCost,
-    estimatedStepsCount: Math.max(1, totalSteps),
-    estimatedCraftRuns: Math.max(1, totalCrafts),
+    guideType: variant,
+    variant,
+    status: 'unavailable',
+    guideIds: [],
+    urls: [referenceUrl],
+    snapshotDate: GW2CRAFTS_SNAPSHOT_DATE,
+    guideUpdatedAt: null,
+    coveredFromRank: fromRank,
+    coveredToRank: fromRank,
+    materials: [],
+    costCopper: templateCost,
+    estimatedCostCopper: templateCost,
+    estimatedStepsCount: Math.max(1, templateSteps),
+    estimatedCraftRuns: Math.max(1, templateCrafts),
     referenceUrl,
     tierBreakdown,
+    unpricedItemIds: [],
+    discoveryRecipeIds: [],
+    discoveryCount: 0,
+    makeCrafts: 0,
+    tiers: [],
+    reportedInitialCopper: 0,
+  };
+
+  const guides = selectGuides(discipline, fromRank, toRank, variant);
+  if (guides.length === 0) {
+    let reason: BenchmarkUnavailableReason = 'no_guide_for_range';
+    if (discipline === 'Jeweler' && fromRank >= 400) reason = 'discipline_max_rank';
+    else if (discipline === 'Chef' && fromRank >= 450) reason = 'cooking_quest_range';
+    else if (variant === 'fast' && fromRank >= 400) reason = 'guide_not_published';
+    return { ...base, unavailableReason: reason };
+  }
+
+  // If recipesByOutput is empty or has no entries for this discipline, return template-based benchmark
+  if (recipesByOutput.size === 0) {
+    return {
+      ...base,
+      status: 'ok',
+      guideIds: guides.map((g) => g.guideId),
+      urls: guides.map((g) => g.url),
+      coveredFromRank: fromRank,
+      coveredToRank: toRank,
+    };
+  }
+
+  const recipeById = buildRecipeIndex(recipesByOutput);
+  const demand = new Map<number, number>();
+  const tiers: BenchmarkTier[] = [];
+  const discoveryRecipeIds: number[] = [];
+  let discoveryCount = 0;
+  let makeCrafts = 0;
+  let coveredFrom = Infinity;
+  let coveredTo = 0;
+  let reportedInitial = 0;
+  let guideUpdatedAt: string | null = null;
+
+  for (const guide of guides) {
+    reportedInitial += guide.reportedInitialCopper;
+    if (guide.guideUpdatedAt && (!guideUpdatedAt || guide.guideUpdatedAt > guideUpdatedAt)) guideUpdatedAt = guide.guideUpdatedAt;
+
+    const discoveredRecipeByOutput = new Map<number, string>();
+    for (const b of guide.blocks) {
+      for (const d of b.discoveries) {
+        if (d.recipeId !== null) discoveredRecipeByOutput.set(d.outputItemId, String(d.recipeId));
+      }
+    }
+
+    const madeStock = new Map<number, number>();
+    for (const block of guide.blocks) {
+      const blockEnd = block.level + 25;
+      if (blockEnd <= fromRank || block.level >= toRank) continue;
+      coveredFrom = Math.min(coveredFrom, block.level);
+      coveredTo = Math.max(coveredTo, blockEnd);
+
+      const blockNeed = new Map<number, number>();
+      const addNeed = (id: number, n: number) => blockNeed.set(id, (blockNeed.get(id) ?? 0) + n);
+      let blockMakeCrafts = 0;
+
+      for (const mk of block.makes) {
+        const recipe = recipeForMake(mk.itemId, discipline, recipesByOutput, discoveredRecipeByOutput, recipeById);
+        if (!recipe) continue;
+        blockMakeCrafts += mk.qty;
+        madeStock.set(mk.itemId, (madeStock.get(mk.itemId) ?? 0) + mk.qty * Math.max(1, recipe.outputCount));
+        for (const ing of recipe.ingredients) addNeed(ing.itemId, ing.count * mk.qty);
+      }
+      for (const d of block.discoveries) {
+        discoveryCount++;
+        if (d.recipeId !== null) discoveryRecipeIds.push(d.recipeId);
+        for (const ing of d.ingredients) addNeed(ing.itemId, ing.count);
+      }
+
+      let blockCost = 0;
+      for (const [itemId, qty] of blockNeed) {
+        const have = madeStock.get(itemId) ?? 0;
+        const used = Math.min(have, qty);
+        if (used > 0) madeStock.set(itemId, have - used);
+        const rest = qty - used;
+        if (rest > 0) {
+          demand.set(itemId, (demand.get(itemId) ?? 0) + rest);
+          const u = unitPrice(prices.get(itemId), itemId);
+          if (u !== null) blockCost += u * rest;
+        }
+      }
+      makeCrafts += blockMakeCrafts;
+      tiers.push({ level: block.level, discoveries: block.discoveries.length, makeCrafts: blockMakeCrafts, costCopper: blockCost });
+    }
+  }
+
+  const materials: BenchmarkMaterial[] = [];
+  const unpriced: number[] = [];
+  let cost = 0;
+  for (const [itemId, qty] of [...demand].sort((a, b) => a[0] - b[0])) {
+    const u = unitPrice(prices.get(itemId), itemId);
+    if (u === null) unpriced.push(itemId);
+    else cost += u * qty;
+    materials.push({ itemId, qty, unitCost: u, totalCost: u === null ? null : u * qty });
+  }
+
+  const fullyCovered = coveredFrom <= fromRank && coveredTo >= toRank;
+  const finalCost = cost > 0 ? cost : templateCost;
+  return {
+    ...base,
+    status: fullyCovered ? 'ok' : 'partial',
+    guideIds: guides.map((g) => g.guideId),
+    urls: guides.map((g) => g.url),
+    guideUpdatedAt,
+    coveredFromRank: Number.isFinite(coveredFrom) ? coveredFrom : fromRank,
+    coveredToRank: coveredTo,
+    materials,
+    costCopper: finalCost,
+    estimatedCostCopper: finalCost,
+    estimatedStepsCount: tiers.length > 0 ? tiers.length * 3 : Math.max(1, templateSteps),
+    estimatedCraftRuns: makeCrafts + discoveryCount > 0 ? makeCrafts + discoveryCount : Math.max(1, templateCrafts),
+    unpricedItemIds: unpriced,
+    discoveryRecipeIds,
+    discoveryCount,
+    makeCrafts,
+    tiers,
+    reportedInitialCopper: reportedInitial,
   };
 }
 
+export const COMPARABLE_BAND = 0.05;
+
 /**
- * Compares Omnitria's calculated route with the GW2Crafts benchmark.
+ * Compares an Omnitria plan with the GW2Crafts benchmark.
+ * Supports both signatures:
+ * 1. compareWithGw2Crafts(benchmark, omnitriaCostCopper, omnitriaNetCostCopper, omnitriaStepsCount)
+ * 2. compareWithGw2Crafts(benchmark, comparablePlan)
  */
 export function compareWithGw2Crafts(
   benchmark: Gw2CraftsBenchmark,
-  omnitriaCostCopper: number,
-  omnitriaNetCostCopper: number,
-  omnitriaStepsCount: number,
+  planOrCost: ComparablePlan | number,
+  omnitriaNetCostParam?: number,
+  omnitriaStepsCountParam?: number,
 ): Gw2CraftsComparisonResult {
-  const diff = benchmark.estimatedCostCopper - omnitriaNetCostCopper;
-  const savingsPct =
-    benchmark.estimatedCostCopper > 0 ? Math.round((diff / benchmark.estimatedCostCopper) * 100) : 0;
+  let omnitriaGross = 0;
+  let omnitriaNet = 0;
+  let omnitriaSteps = 0;
+  let discoveryRecipeIds: readonly number[] = [];
+  let discoveryCount = 0;
+  let totalCrafts = 0;
 
+  if (typeof planOrCost === 'number') {
+    omnitriaGross = planOrCost;
+    omnitriaNet = omnitriaNetCostParam ?? planOrCost;
+    omnitriaSteps = omnitriaStepsCountParam ?? 1;
+  } else {
+    omnitriaGross = planOrCost.grossCostCopper;
+    omnitriaNet = planOrCost.grossCostCopper;
+    omnitriaSteps = planOrCost.operationCount ?? 1;
+    discoveryRecipeIds = planOrCost.discoveryRecipeIds ?? [];
+    discoveryCount = planOrCost.discoveryCount ?? discoveryRecipeIds.length;
+    totalCrafts = planOrCost.totalCrafts ?? 0;
+  }
+
+  const findings: ComparisonFinding[] = [];
   const advantages: { de: string; en: string }[] = [];
 
-  if (diff > 0) {
+  const benchCost = benchmark.estimatedCostCopper || benchmark.costCopper;
+  const diffCopper = benchCost - omnitriaNet;
+  const savingsPct = benchCost > 0 ? Math.round((diffCopper / benchCost) * 100) : 0;
+
+  const delta = omnitriaGross - benchCost;
+  const pct = benchCost > 0 ? (delta / benchCost) * 100 : 0;
+
+  let verdict: ComparisonVerdict = 'comparable';
+  if (benchCost > 0) {
+    if (delta < -benchCost * COMPARABLE_BAND) verdict = 'cheaper';
+    else if (delta > benchCost * COMPARABLE_BAND) verdict = 'dearer';
+  }
+
+  if (diffCopper > 0) {
     advantages.push({
-      de: `Omnitria spart ca. ${Math.round(diff / 10000)} Gold (${savingsPct}%) durch intelligente NPC-Händlerpreise, Lagerbestandsnutzung und Wiederverkaufserlöse.`,
-      en: `Omnitria saves ~${Math.round(diff / 10000)} gold (${savingsPct}%) via Master Craftsman vendor pricing, inventory stock, and resale deductions.`,
+      de: `Omnitria spart ca. ${Math.round(diffCopper / 10000)} Gold (${savingsPct}%) durch intelligente NPC-Händlerpreise, Lagerbestandsnutzung und Wiederverkaufserlöse.`,
+      en: `Omnitria saves ~${Math.round(diffCopper / 10000)} gold (${savingsPct}%) via Master Craftsman vendor pricing, inventory stock, and resale deductions.`,
     });
   } else {
     advantages.push({
@@ -465,24 +816,47 @@ export function compareWithGw2Crafts(
   });
 
   const summaryDe =
-    diff > 0
+    diffCopper > 0
       ? `Omnitria ist ca. ${savingsPct}% günstiger als der GW2Crafts-Standard-Leitfaden.`
       : `Omnitria erreicht die gleiche Effizienz wie GW2Crafts bei optimaler Berücksichtigung deines Accounts.`;
 
   const summaryEn =
-    diff > 0
+    diffCopper > 0
       ? `Omnitria is ~${savingsPct}% cheaper than the standard GW2Crafts guide.`
       : `Omnitria matches GW2Crafts efficiency while fully personalized to your account.`;
 
+  const guideSet = new Set(benchmark.discoveryRecipeIds);
+  const ourSet = new Set(discoveryRecipeIds);
+  let shared = 0;
+  for (const id of ourSet) if (guideSet.has(id)) shared++;
+  const onlyInGuide = guideSet.size - shared;
+  const onlyInOmnitria = ourSet.size - shared;
+
+  if (benchmark.status === 'unavailable') {
+    findings.push({ code: 'guide_unavailable', params: {} });
+  } else {
+    findings.push({
+      code: verdict === 'cheaper' ? 'cheaper_than_guide' : verdict === 'dearer' ? 'dearer_than_guide' : 'similar_to_guide',
+      params: { deltaCopper: Math.round(delta), percent: Math.round(pct) },
+    });
+  }
+
   return {
     benchmark,
-    omnitriaCostCopper,
-    omnitriaNetCostCopper,
-    omnitriaStepsCount,
-    differenceCopper: diff,
+    omnitriaCostCopper: omnitriaGross,
+    omnitriaNetCostCopper: omnitriaNet,
+    omnitriaStepsCount: omnitriaSteps,
+    differenceCopper: diffCopper,
     savingsPercentage: savingsPct,
+    deltaCopper: delta,
+    deltaPercent: pct,
+    verdict,
     summaryDe,
     summaryEn,
     advantages,
+    findings,
+    sharedDiscoveries: shared,
+    onlyInGuide,
+    onlyInOmnitria,
   };
 }

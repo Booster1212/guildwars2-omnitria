@@ -36,7 +36,13 @@ namespace Omnitria.Mumble {
 
                             byte[] idBytes = new byte[512];
                             accessor.ReadArray(592, idBytes, 0, 512);
-                            string identity = Encoding.Unicode.GetString(idBytes).TrimEnd('\0');
+                            string rawId = Encoding.Unicode.GetString(idBytes);
+                            int nullIdx = rawId.IndexOf('\0');
+                            string identity = (nullIdx >= 0 ? rawId.Substring(0, nullIdx) : rawId).Trim();
+                            int lastBrace = identity.LastIndexOf('}');
+                            if (identity.StartsWith("{") && lastBrace >= 0) {
+                                identity = identity.Substring(0, lastBrace + 1);
+                            }
 
                             uint mapId = accessor.ReadUInt32(1136);
                             uint mapType = accessor.ReadUInt32(1140);

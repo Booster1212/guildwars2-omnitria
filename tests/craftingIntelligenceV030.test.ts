@@ -369,10 +369,165 @@ test('7.2 All 8 crafting disciplines run cleanly and sanely in Max Cost Efficien
 test('7.3 README.md changelog is collapsible with <details> and shows at most 3 latest versions', () => {
   const readme = fs.readFileSync('README.md', 'utf8');
   assert.ok(readme.includes('<details open>'));
+  assert.ok(readme.includes('<summary><b>v0.3.1'));
   assert.ok(readme.includes('<summary><b>v0.3.0'));
   assert.ok(readme.includes('<summary><b>v0.2.9'));
-  assert.ok(readme.includes('<summary><b>v0.2.8'));
   // Ensure older versions like v0.2.7 are NOT expanded as top-level sections
   assert.ok(!readme.includes('<summary><b>v0.2.7'));
+});
+
+test('8.1 Grouped Discovery & Subsequent Production unites discovery and repeat crafting without double counting', () => {
+  const daggerRecipe: Recipe = {
+    id: 'dagger-mighty-bronze',
+    outputId: 11111,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Weaponsmith'],
+    rating: 25,
+    ingredients: [
+      { itemId: 19679, count: 2 }, // Bronze Ingot
+      { itemId: 12988, count: 1 }, // Mighty Bronze Inscription
+    ],
+    source: 'official',
+    flags: [], // Undiscovered recipe!
+    type: 'Dagger',
+  };
+
+  const byOut = new Map<number, Recipe[]>([[11111, [daggerRecipe]]]);
+  const prices = new Map<number, PriceInfo>([
+    [19679, { sell: 20, buy: 15, sellQty: 100, buyQty: 100 }],
+    [12988, { sell: 50, buy: 35, sellQty: 100, buyQty: 100 }],
+    [11111, { sell: 40, buy: 25, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  const plan = planLevelRoute({
+    discipline: 'Weaponsmith',
+    fromRank: 25,
+    toRank: 35,
+    recipes: [daggerRecipe],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: false,
+      mode: 'cost',
+    },
+  });
+
+  // Exactly ONE grouped operation step must be generated
+  assert.equal(plan.steps.length, 1, 'Discovery and repeat production must be unified into ONE step');
+  const step = plan.steps[0];
+  assert.equal(step.isDiscoveryCombined, true, 'Step must be flagged as combined discovery operation');
+  assert.equal(step.needsDiscovery, true);
+  assert.equal(step.discoveryCrafts, 1, 'Initial discovery must be exactly 1 craft');
+  assert.ok(step.repeatCrafts !== undefined && step.repeatCrafts > 0, 'Must have repeat crafts');
+  assert.equal(
+    step.crafts,
+    step.discoveryCrafts + step.repeatCrafts,
+    'Total crafts must strictly equal discovery + repeat crafts',
+  );
+
+  // Material transparency without double counting:
+  assert.ok(step.discoveryIngredients && step.discoveryIngredients.length === 2);
+  assert.ok(step.repeatIngredients && step.repeatIngredients.length === 2);
+  assert.equal(
+    step.discoveryIngredients[0].qty,
+    2, // 1x discovery * 2 Bronze Ingots
+    'Discovery ingredients must reflect 1x craft',
+  );
+  assert.equal(
+    step.repeatIngredients[0].qty,
+    step.repeatCrafts * 2, // repeatCrafts * 2 Bronze Ingots
+    'Repeat ingredients must reflect repeatCrafts count',
+  );
+  assert.equal(
+    step.ingredients[0].qty,
+    step.crafts * 2,
+    'Combined ingredients must equal total crafts * per-craft count (zero double-counting)',
+  );
+  assert.equal(step.reasonKey, 'planner.reason.discoverAndCraft');
+});
+
+test('8.2 Discipline Maximum Ranks are enforced accurately (Jeweler 400)', () => {
+  const jewelerRecipe: Recipe = {
+    id: 'jeweler-exotic',
+    outputId: 99999,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Jeweler'],
+    rating: 375,
+    ingredients: [{ itemId: 19685, count: 2 }],
+    source: 'official',
+    flags: ['AutoLearned'],
+    type: 'Ring',
+  };
+
+  const byOut = new Map<number, Recipe[]>([[99999, [jewelerRecipe]]]);
+  const prices = new Map<number, PriceInfo>([
+    [19685, { sell: 100, buy: 80, sellQty: 100, buyQty: 100 }],
+    [99999, { sell: 150, buy: 100, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  const plan = planLevelRoute({
+    discipline: 'Jeweler',
+    fromRank: 400,
+    toRank: 500, // Requesting beyond maximum
+    recipes: [jewelerRecipe],
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+    },
+  });
+
+  // Jeweler does not support ranks above 400 in GW2; planner must cap at 400 and not fabricate steps
+  assert.equal(plan.steps.length, 0, 'No steps can be planned above Jeweler 400 cap');
+});
+
+test('8.3 Precursor weapon collection items and uncraftable account-bound components are excluded', () => {
+  const precursorRecipe: Recipe = {
+    id: 'cauterizer-rodgort',
+    outputId: 50605,
+    outputCount: 1,
+    kind: 'official',
+    disciplines: ['Weaponsmith'],
+    rating: 400,
+    ingredients: [
+      { itemId: 50342, count: 1 }, // 50342 Ineffable Inscription (unbuyable, uncraftable, not in stock)
+      { itemId: 19712, count: 3 },
+    ],
+    source: 'official',
+    flags: [],
+    type: 'Weapon',
+  };
+
+  const items = new Map<number, GameItem>([
+    [50605, { id: 50605, name: 'Handcrafted Cauterizer', rarity: 'Exotic' }],
+  ]);
+
+  const byOut = new Map<number, Recipe[]>([[50605, [precursorRecipe]]]);
+  const prices = new Map<number, PriceInfo>([
+    [19712, { sell: 200, buy: 150, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  const plan = planLevelRoute({
+    discipline: 'Weaponsmith',
+    fromRank: 425,
+    toRank: 450,
+    recipes: [precursorRecipe],
+    recipesByOutput: byOut,
+    prices,
+    items,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+      mode: 'cost',
+    },
+  });
+
+  // Precursor recipes must never be suggested as ordinary leveling steps!
+  const hasPrecursorStep = plan.steps.some((s) => s.recipe.id === 'cauterizer-rodgort');
+  assert.equal(hasPrecursorStep, false, 'Handcrafted Cauterizer precursor must be excluded from leveling route');
 });
 

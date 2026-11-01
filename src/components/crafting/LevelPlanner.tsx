@@ -1400,22 +1400,68 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
                             <div className="step-content-col">
                               <div className="step-title-line">
-                                <span
-                                  className="step-item-name font-serif cursor-pointer"
-                                  onClick={() => onOpenItem(st.recipe.outputId)}
-                                >
-                                  {outItem?.name ?? `#${st.recipe.outputId}`}
-                                </span>
-                                <span className="step-crafts-count font-mono">
-                                  {t('crafting.craftRunsBadge', { count: st.crafts })}
-                                </span>
-                                {st.needsDiscovery && (
-                                  <span
-                                    className="discovery-tag"
-                                    title={t('crafting.discoveryTooltip')}
-                                  >
-                                    {t('crafting.discoveryBadge')}
-                                  </span>
+                                {st.isDiscoveryCombined ? (
+                                  <>
+                                    <span className="step-operation-prefix font-serif text-amber-300 font-semibold">
+                                      {t('crafting.discoverAndCraftPrefix')}
+                                    </span>
+                                    <span
+                                      className="step-item-name font-serif cursor-pointer"
+                                      onClick={() => onOpenItem(st.recipe.outputId)}
+                                    >
+                                      {outItem?.name ?? `#${st.recipe.outputId}`}
+                                    </span>
+                                    <span
+                                      className="step-crafts-count combined font-mono"
+                                      title={t('crafting.totalProductionTip', {
+                                        total: st.crafts,
+                                        disc: st.discoveryCrafts ?? 1,
+                                        repeat: st.repeatCrafts ?? (st.crafts - 1),
+                                      })}
+                                    >
+                                      ({st.crafts}×)
+                                    </span>
+                                    <span
+                                      className="discovery-tag combined"
+                                      title={t('crafting.discoveryProducedOne')}
+                                    >
+                                      <Sparkles size={10} className="inline mr-1" />
+                                      {t('crafting.discoverSubCount', {
+                                        count: st.discoveryCrafts ?? 1,
+                                      })}
+                                    </span>
+                                    <span
+                                      className="repeat-craft-tag font-mono"
+                                      title={t('crafting.repeatCraftTip', {
+                                        count: st.repeatCrafts ?? (st.crafts - 1),
+                                      })}
+                                    >
+                                      <Hammer size={10} className="inline mr-1" />
+                                      {t('crafting.repeatSubCount', {
+                                        count: st.repeatCrafts ?? (st.crafts - 1),
+                                      })}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span
+                                      className="step-item-name font-serif cursor-pointer"
+                                      onClick={() => onOpenItem(st.recipe.outputId)}
+                                    >
+                                      {outItem?.name ?? `#${st.recipe.outputId}`}
+                                    </span>
+                                    <span className="step-crafts-count font-mono">
+                                      {t('crafting.craftRunsBadge', { count: st.crafts })}
+                                    </span>
+                                    {st.needsDiscovery && (
+                                      <span
+                                        className="discovery-tag"
+                                        title={t('crafting.discoveryTooltip')}
+                                      >
+                                        {t('crafting.discoveryBadge')}
+                                      </span>
+                                    )}
+                                  </>
                                 )}
                                 {isNextRecommended && (
                                   <span className="planner-status-pill next-rec">
@@ -1729,14 +1775,18 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                         <div className="pdr-title">
                                           <Sparkles size={13} className="text-amber-400" />
                                           <span className="font-semibold">
-                                            {t('crafting.discoveryRequired')}
+                                            {st.isDiscoveryCombined
+                                              ? t('crafting.initialDiscoveryStep')
+                                              : t('crafting.discoveryRequired')}
                                           </span>
                                           <span className="pdr-badge">
                                             {t('crafting.discoveryBonusPill')}
                                           </span>
                                         </div>
                                         <span className="pdr-subtitle">
-                                          {t('crafting.discoveryCombineInstruction')}
+                                          {st.isDiscoveryCombined
+                                            ? `${t('crafting.discoveryCombineInstruction')} (${t('crafting.initialDiscoveryDesc')})`
+                                            : t('crafting.discoveryCombineInstruction')}
                                         </span>
                                       </div>
 
@@ -1791,11 +1841,35 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                       </div>
 
                                       <div className="pdr-footer-note dim">
-                                        {st.crafts > 1
-                                          ? t('crafting.discoveryRepeatNote', {
-                                              count: st.crafts - 1,
-                                            })
-                                          : t('crafting.discoverySingleCraftNote')}
+                                        {st.isDiscoveryCombined ? (
+                                          <div className="combined-repeat-callout">
+                                            <div className="crc-line font-medium text-amber-200">
+                                              <Hammer size={12} className="inline mr-1 text-sky-400" />
+                                              {t('crafting.subsequentCraftStep', {
+                                                count: st.repeatCrafts ?? (st.crafts - 1),
+                                              })}
+                                            </div>
+                                            <div className="crc-sub text-xs text-slate-400 mt-0.5">
+                                              {t('crafting.subsequentCraftDesc', {
+                                                count: st.repeatCrafts ?? (st.crafts - 1),
+                                              })}{' '}
+                                              ·{' '}
+                                              <span className="text-amber-300 font-mono">
+                                                {t('crafting.totalProductionTip', {
+                                                  total: st.crafts,
+                                                  disc: st.discoveryCrafts ?? 1,
+                                                  repeat: st.repeatCrafts ?? (st.crafts - 1),
+                                                })}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ) : st.crafts > 1 ? (
+                                          t('crafting.discoveryRepeatNote', {
+                                            count: st.crafts - 1,
+                                          })
+                                        ) : (
+                                          t('crafting.discoverySingleCraftNote')
+                                        )}
                                       </div>
                                     </div>
                                   )}

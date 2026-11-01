@@ -175,6 +175,17 @@ export const MASTER_CRAFTSMAN_MATERIALS: readonly VendorMaterialOffer[] = [
 
   // --- Chef Basics (Meisterkoch & Händler) ---
   {
+    itemId: 12136,
+    nameDe: 'Beutel Mehl',
+    nameEn: 'Bag of Flour',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
     itemId: 12156,
     nameDe: 'Krug Wasser',
     nameEn: 'Jug of Water',
@@ -187,8 +198,19 @@ export const MASTER_CRAFTSMAN_MATERIALS: readonly VendorMaterialOffer[] = [
   },
   {
     itemId: 12155,
-    nameDe: 'Beutel Mehl',
-    nameEn: 'Bag of Flour',
+    nameDe: 'Beutel Zucker',
+    nameEn: 'Bag of Sugar',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12152,
+    nameDe: 'Paket Hefe',
+    nameEn: 'Packet of Yeast',
     costCopper: 16,
     disciplines: ['Chef'],
     minRank: 0,
@@ -198,8 +220,8 @@ export const MASTER_CRAFTSMAN_MATERIALS: readonly VendorMaterialOffer[] = [
   },
   {
     itemId: 12158,
-    nameDe: 'Paket Hefe',
-    nameEn: 'Packet of Yeast',
+    nameDe: 'Glas Pflanzenöl',
+    nameEn: 'Jar of Vegetable Oil',
     costCopper: 16,
     disciplines: ['Chef'],
     minRank: 0,
@@ -232,7 +254,7 @@ export const MASTER_CRAFTSMAN_MATERIALS: readonly VendorMaterialOffer[] = [
   {
     itemId: 12157,
     nameDe: 'Flasche Essig',
-    nameEn: 'Bottle of Vinegar',
+    nameEn: 'Jar of Vinegar',
     costCopper: 16,
     disciplines: ['Chef'],
     minRank: 0,
@@ -242,6 +264,17 @@ export const MASTER_CRAFTSMAN_MATERIALS: readonly VendorMaterialOffer[] = [
   },
   {
     itemId: 12159,
+    nameDe: 'Käsestück',
+    nameEn: 'Cheese Wedge',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12271,
     nameDe: 'Flasche Sojasoße',
     nameEn: 'Bottle of Soy Sauce',
     costCopper: 16,
@@ -252,7 +285,7 @@ export const MASTER_CRAFTSMAN_MATERIALS: readonly VendorMaterialOffer[] = [
     isAvailableOnTp: true,
   },
   {
-    itemId: 12240,
+    itemId: 12137,
     nameDe: 'Glas Buttermilch',
     nameEn: 'Glass of Buttermilk',
     costCopper: 16,
