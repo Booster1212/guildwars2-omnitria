@@ -60,6 +60,10 @@ import {
   Zap,
   Award,
   AlertCircle,
+  TrendingUp,
+  RotateCw,
+  ExternalLink,
+  Coins,
 } from 'lucide-react';
 import { useTranslation, type TranslationKey } from '../../i18n';
 import { MaterialDemandTable } from './MaterialDemandTable';
@@ -127,11 +131,11 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
       ? Math.min(maxRank, Math.max(effectiveStart + 25, rawTarget < 400 ? 400 : maxRank))
       : Math.min(maxRank, rawTarget);
 
-  const allowDiscovery = Boolean(discProgress.allowDiscovery);
+  const allowDiscovery = discProgress.allowDiscovery !== undefined ? Boolean(discProgress.allowDiscovery) : true;
   const craftIntermediates = Boolean(discProgress.craftIntermediates);
 
   const [activeTab, setActiveTab] = useState<
-    'steps' | 'materials' | 'tree' | 'intermediates' | 'shopping'
+    'steps' | 'optimizer' | 'materials' | 'tree' | 'intermediates' | 'shopping'
   >('steps');
 
   // Shopping list filtering & search
@@ -1082,6 +1086,20 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                 <Coin copper={displayCost} />
               </span>
             </div>
+            <div className="stat-box highlight-gold">
+              <span className="stat-label">{t('crafting.netCostLabel')}</span>
+              <span className="stat-value font-mono">
+                <Coin copper={plan.totalNetCost} />
+              </span>
+            </div>
+            {plan.totalNpcSavings > 0 && (
+              <div className="stat-box highlight-green">
+                <span className="stat-label">{t('crafting.npcSavingsLabel')}</span>
+                <span className="stat-value font-mono text-emerald-400">
+                  +{fmtInt(plan.totalNpcSavings)}c
+                </span>
+              </div>
+            )}
             <div className="stat-box">
               <span className="stat-label">{t('crafting.craftsCount')}</span>
               <span className="stat-value font-mono">
@@ -1105,6 +1123,25 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                   {t('crafting.resetCheckmarks')}
                 </button>
               )}
+            </div>
+            {/* Price Freshness Pill */}
+            <div className="stat-box price-freshness-box" title={t('crafting.priceFreshness')}>
+              <div className="flex items-center gap-1.5">
+                <span className="price-pulse-dot" />
+                <span className="text-xs dim font-mono">
+                  {prices.updatedAt > 0
+                    ? new Date(prices.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'Live API'}
+                </span>
+                <button
+                  type="button"
+                  className="btn-tiny price-refresh-icon-btn"
+                  onClick={prices.refresh}
+                  title={t('crafting.priceRefreshBtn')}
+                >
+                  <RotateCw size={10} />
+                </button>
+              </div>
             </div>
             {stepCounts.skipped > 0 && (
               <div className="stat-box">
@@ -1214,6 +1251,14 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             <span>
               {t('crafting.stepsTab')} ({plan?.steps.length ?? 0})
             </span>
+          </button>
+          <button
+            type="button"
+            className={`subtab-btn ${activeTab === 'optimizer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('optimizer')}
+          >
+            <TrendingUp size={13} />
+            <span>{t('crafting.optimizerTab')}</span>
           </button>
           <button
             type="button"
@@ -1825,6 +1870,213 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       )}
 
+      {/* Tab: Cost Optimization & GW2Crafts Benchmark (v0.3.0) */}
+      {activeTab === 'optimizer' && plan && (
+        <div className="planner-optimizer-view">
+          {/* Top 4 KPI Metrics Banner */}
+          <div className="optimizer-kpi-grid">
+            <div className="optimizer-kpi-card highlight-gold">
+              <span className="kpi-label">{t('crafting.netCostLabel')}</span>
+              <div className="kpi-value font-mono">
+                <Coin copper={plan.totalNetCost} />
+              </div>
+              <span className="kpi-sub dim">
+                {lang === 'en'
+                  ? `Net investment after expected liquidation proceeds (-${fmtInt(plan.totalResaleValue)}c)`
+                  : `Netto-Aufwand nach Abzug erwarteter Handelserlöse (-${fmtInt(plan.totalResaleValue)}c)`}
+              </span>
+            </div>
+
+            <div className="optimizer-kpi-card">
+              <span className="kpi-label">{t('crafting.grossCostLabel')}</span>
+              <div className="kpi-value font-mono">
+                <Coin copper={plan.totalCost} />
+              </div>
+              <span className="kpi-sub dim">
+                {lang === 'en' ? 'Gross material purchase expenditure' : 'Brutto-Materialaufwand aller Einkäufe'}
+              </span>
+            </div>
+
+            <div className="optimizer-kpi-card highlight-green">
+              <span className="kpi-label">{t('crafting.npcSavingsLabel')}</span>
+              <div className="kpi-value font-mono text-emerald-400">
+                +{fmtInt(plan.totalNpcSavings)}c
+              </div>
+              <span className="kpi-sub dim">
+                {lang === 'en' ? 'Saved via Master Craftsman vs Trading Post' : 'Gespart durch Meisterhandwerker statt Handelsposten'}
+              </span>
+            </div>
+
+            <div className="optimizer-kpi-card">
+              <span className="kpi-label">{t('crafting.opportunityCostLabel')}</span>
+              <div className="kpi-value font-mono">
+                <Coin copper={plan.opportunityCostStock} />
+              </div>
+              <span className="kpi-sub dim">
+                {lang === 'en' ? 'Liquidation value of owned materials' : 'Gegenwert vorhandener Lagermaterialien'}
+              </span>
+            </div>
+          </div>
+
+          {/* Special Discipline Advisories */}
+          {discipline === 'Chef' && effectiveTarget >= 425 && (
+            <Notice tone="info" title="Sonderweg Koch (Stufe 400–500)">
+              {t('crafting.chefSpecialNote')}
+            </Notice>
+          )}
+
+          {discipline === 'Jeweler' && (
+            <Notice tone="info" title="Maximalstufe Juwelier (Stufe 400)">
+              {t('crafting.jewelerMaxNote')}
+            </Notice>
+          )}
+
+          {/* Section 1: 4-Way Multi-Option Cost Comparison Table (Section 7) */}
+          <div className="optimizer-section-card">
+            <div className="optimizer-section-header">
+              <div className="flex items-center gap-2">
+                <Sliders size={16} className="text-amber-400" />
+                <h3 className="font-serif text-sm font-semibold">
+                  {lang === 'en' ? 'Comprehensive Cost Comparison Matrix' : 'Kostenvergleich nach Beschaffungsweg'}
+                </h3>
+              </div>
+              <span className="dim text-xs">
+                {lang === 'en' ? 'Direct calculation across all 4 procurement routes' : 'Tatsächlicher Vergleich der 4 Leveling-Wege'}
+              </span>
+            </div>
+
+            <div className="optimizer-table-container">
+              <table className="gw2-dense-table optimizer-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '240px' }}>{t('crafting.colOption')}</th>
+                    <th style={{ width: '130px', textAlign: 'right' }}>{t('crafting.colCost')}</th>
+                    <th>{t('crafting.colEvaluation')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plan.costComparison.rows.map((row) => (
+                    <tr key={row.id} className={row.isRecommended ? 'row-highlight' : ''}>
+                      <td className="font-semibold">
+                        <div className="flex items-center gap-2">
+                          {row.isRecommended ? (
+                            <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                          ) : (
+                            <div className="w-3.5 h-3.5 shrink-0" />
+                          )}
+                          <span>{lang === 'en' ? row.titleEn : row.titleDe}</span>
+                        </div>
+                      </td>
+                      <td className="num font-mono">
+                        <Coin copper={row.costCopper} />
+                      </td>
+                      <td>
+                        <span className={row.isRecommended ? 'text-emerald-300 font-semibold' : 'dim'}>
+                          {lang === 'en' ? row.evaluationEn : row.evaluationDe}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Section 2: GW2Crafts Benchmark Guide Comparison (Section 3) */}
+          <div className="optimizer-section-card">
+            <div className="optimizer-section-header">
+              <div className="flex items-center gap-2">
+                <Award size={16} className="text-amber-400" />
+                <h3 className="font-serif text-sm font-semibold">
+                  {t('crafting.gw2craftsBenchmarkTitle')}
+                </h3>
+              </div>
+              <a
+                href={plan.gw2craftsComparison.benchmark.referenceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-tiny flex items-center gap-1.5"
+                title="gw2crafts.net Guide öffnen"
+              >
+                <span>gw2crafts.net</span>
+                <ExternalLink size={11} />
+              </a>
+            </div>
+
+            <div className="gw2crafts-compare-card">
+              <div className="gcc-header-banner">
+                <div className="gcc-badge-col">
+                  <span className="gcc-pill-label">GW2Crafts Referenz</span>
+                  <div className="gcc-stat-val font-mono">
+                    <Coin copper={plan.gw2craftsComparison.benchmark.estimatedCostCopper} />
+                  </div>
+                  <span className="dim text-xs">
+                    {plan.gw2craftsComparison.benchmark.estimatedStepsCount} Schritte · {plan.gw2craftsComparison.benchmark.estimatedCraftRuns} Herstellungen
+                  </span>
+                </div>
+
+                <div className="gcc-vs-divider">
+                  <span className="gcc-vs-badge">VS</span>
+                  <span className="gcc-savings-badge">
+                    {plan.gw2craftsComparison.differenceCopper > 0
+                      ? `-${plan.gw2craftsComparison.savingsPercentage}% Kosten`
+                      : 'Echtzeit-Optimiert'}
+                  </span>
+                </div>
+
+                <div className="gcc-badge-col omnitria-col">
+                  <span className="gcc-pill-label text-gold">Omnitria Optimiert</span>
+                  <div className="gcc-stat-val font-mono text-gold">
+                    <Coin copper={plan.totalNetCost} />
+                  </div>
+                  <span className="dim text-xs">
+                    {plan.steps.length} Schritte · {plan.totalCrafts} Herstellungen
+                  </span>
+                </div>
+              </div>
+
+              <div className="gcc-advantages-list">
+                <span className="gcc-adv-title font-semibold text-xs">
+                  {lang === 'en' ? 'Why Omnitria optimizes this path:' : 'Warum Omnitria diesen Weg empfiehlt:'}
+                </span>
+                <div className="gcc-adv-items">
+                  {plan.gw2craftsComparison.advantages.map((adv, idx) => (
+                    <div key={idx} className="gcc-adv-item">
+                      <ShieldCheck size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                      <span className="text-xs">{lang === 'en' ? adv.en : adv.de}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* GW2Crafts Reference Tier Blueprint */}
+              <div className="gcc-blueprint-box">
+                <span className="dim text-xs font-semibold uppercase tracking-wider">
+                  {lang === 'en' ? 'GW2Crafts Tier Blueprint Breakdown:' : 'Ablaufplan des GW2Crafts-Standard-Leitfadens:'}
+                </span>
+                <div className="gcc-blueprint-grid">
+                  {plan.gw2craftsComparison.benchmark.tierBreakdown.map((t) => (
+                    <div key={t.tierNumber} className="gcc-tier-card">
+                      <div className="flex items-center justify-between">
+                        <span className="font-serif font-bold text-xs text-amber-300">
+                          Tier {t.tierNumber} ({t.range})
+                        </span>
+                        <span className="font-mono text-xs">
+                          <Coin copper={t.estimatedCostCopper} />
+                        </span>
+                      </div>
+                      <span className="dim text-xs mt-1">
+                        {lang === 'en' ? t.descriptionEn : t.descriptionDe}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tab 2: Total Material Demand (fully recursively resolved) */}
       {activeTab === 'materials' && (
         <MaterialDemandTable
@@ -2002,23 +2254,23 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                   <table className="gw2-dense-table shopping-table">
                     <thead>
                       <tr>
-                        <th className="col-icon" style={{ width: '44px', textAlign: 'center' }}>
+                        <th className="col-icon" style={{ width: '48px', textAlign: 'center' }}>
                           {t('legendary.colIcon')}
                         </th>
                         <th className="col-item">{t('crafting.colItem')}</th>
-                        <th className="col-gross" style={{ width: '85px', textAlign: 'right' }}>
+                        <th className="col-gross" style={{ width: '95px', textAlign: 'right' }}>
                           {t('crafting.colGross')}
                         </th>
-                        <th className="col-stock" style={{ width: '85px', textAlign: 'right' }}>
+                        <th className="col-stock" style={{ width: '90px', textAlign: 'right' }}>
                           {t('crafting.colStock')}
                         </th>
-                        <th className="col-missing" style={{ width: '95px', textAlign: 'right' }}>
+                        <th className="col-missing" style={{ width: '105px', textAlign: 'right' }}>
                           {t('crafting.colStillBuy')}
                         </th>
                         <th className="col-unit" style={{ width: '115px', textAlign: 'right' }}>
                           {t('crafting.colUnit')}
                         </th>
-                        <th className="col-total" style={{ width: '140px', textAlign: 'right', paddingRight: '16px' }}>
+                        <th className="col-total" style={{ width: '155px', minWidth: '150px', textAlign: 'right', paddingRight: '16px' }}>
                           {t('crafting.colTotal')}
                         </th>
                       </tr>
@@ -2077,11 +2329,11 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                 const { itemId, qty, stock, missing, isVendor, untradable, unit, totalLineCost, item } = row;
                                 return (
                                   <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
-                                    <td className="icon-cell" style={{ textAlign: 'center' }}>
+                                    <td className="icon-cell col-icon" style={{ textAlign: 'center' }}>
                                       <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
                                     </td>
                                     <td
-                                      className="name-cell font-serif cursor-pointer"
+                                      className="name-cell col-item font-serif cursor-pointer"
                                       onClick={() => onOpenItem(itemId)}
                                     >
                                       <div className="flex items-center gap-2">
@@ -2114,12 +2366,12 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                         )}
                                       </div>
                                     </td>
-                                    <td className="num font-mono">{fmtInt(qty)}</td>
-                                    <td className="num font-mono dim">
+                                    <td className="num font-mono col-gross">{fmtInt(qty)}</td>
+                                    <td className="num font-mono dim col-stock">
                                       {account.hasStockData ? fmtInt(stock) : '–'}
                                     </td>
                                     <td
-                                      className={`num font-mono ${
+                                      className={`num font-mono col-missing ${
                                         missing > 0
                                           ? untradable
                                             ? 'text-amber font-bold'

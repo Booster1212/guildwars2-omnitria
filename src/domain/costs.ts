@@ -7,6 +7,7 @@
  */
 import type { GameItem, PriceInfo } from './types.ts';
 import { isUntradable } from './types.ts';
+import { getVendorMaterialOffer } from '../data/crafting/masterCraftsmanVendors.ts';
 
 export interface CostLine {
   itemId: number;
@@ -65,11 +66,18 @@ export const KNOWN_VENDOR_PRICES: ReadonlyMap<number, number> = new Map([
 ]);
 
 export function unitPrice(price: PriceInfo | undefined, itemId?: number): number | null {
-  if (price && price.sell > 0) return price.sell;
-  if (itemId !== undefined && KNOWN_VENDOR_PRICES.has(itemId)) {
-    return KNOWN_VENDOR_PRICES.get(itemId)!;
+  const vendorOffer = itemId !== undefined ? getVendorMaterialOffer(itemId) : undefined;
+  const vendorPrice = vendorOffer ? vendorOffer.costCopper : (itemId !== undefined ? KNOWN_VENDOR_PRICES.get(itemId) ?? null : null);
+  const tpSell = price && price.sell > 0 ? price.sell : null;
+  const tpBuy = price && price.buy > 0 ? price.buy : null;
+
+  if (vendorPrice !== null && tpSell !== null) {
+    // Both available: take the truly cheaper option (NPC vs TP comparison)!
+    return Math.min(vendorPrice, tpSell);
   }
-  if (price && price.buy > 0) return price.buy;
+  if (vendorPrice !== null) return vendorPrice;
+  if (tpSell !== null) return tpSell;
+  if (tpBuy !== null) return tpBuy;
   return null;
 }
 

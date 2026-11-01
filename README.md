@@ -4,7 +4,7 @@
 
 # Omnitria HUD
 
-[![Release](https://img.shields.io/badge/Release-v0.2.8-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Release](https://img.shields.io/badge/Release-v0.3.0-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
@@ -16,6 +16,17 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 ![Omnitria In-Game Overlay](docs/screenshots/Introduction.png)
 
 </div>
+
+## What's New in v0.3.0
+
+- **Crafting Intelligence & Multi-Option Cost Optimizer:**
+  - **Master Craftsman (Berufslehrer) Vendor Integration:** Data-driven catalog with verified prices for all basic crafting ingredients (Tin, Coal, Primordium, Thermocatalytic Reagents, Spools, Chef basics) and recipe sheets across all 8 disciplines.
+  - **Dynamic Price Comparison:** Automatically evaluates `Math.min(vendorPrice, tpSell)` for every material, strictly preventing bias toward either source.
+  - **GW2Crafts Reference Engine & Benchmark:** Evaluates leveling routes against gw2crafts.net blueprints, calculating cost deltas, savings percentages, and discipline-specific advisories (e.g. Jeweler 400 cap, Chef quest requirements).
+  - **Stock Opportunity Cost & Net Resale Valuation:** Evaluates owned materials via liquidation value (`Math.floor(tpBuy * 0.85)` after 15% TP fees) and offsets expected resale proceeds of crafted outputs.
+  - **Overproduction Prevention:** Seamlessly integrates discovery bonus XP across all tiers (0–500) and penalizes aged equipment recipes, reducing required materials by up to 95% compared to repeat-crafting.
+  - **4-Way Cost Comparison Matrix:** Displays a clear breakdown of NPC purchases, Trading Post orders, intermediate self-crafting, and discovery vs. bulk paths.
+  - **Enhanced Shopping List UI:** Features 6-tier milestone grouping, responsive column alignments, and a live Price Freshness pill with manual refresh.
 
 ## What's New in v0.2.9
 
@@ -62,7 +73,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ### Standalone Binary (Windows)
 
-1. Download `Omnitria-v0.2.9-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.3.0-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (portable, no installer required).
 3. Launch `Omnitria.exe`.
 

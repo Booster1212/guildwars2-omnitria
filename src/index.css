@@ -1325,6 +1325,245 @@ button {
 }
 
 /* ========================================================
+   COST OPTIMIZER & GW2CRAFTS BENCHMARK (v0.3.0)
+   ======================================================== */
+.planner-optimizer-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.optimizer-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.optimizer-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #141720;
+  border: 1px solid var(--gw2-bronze-frame);
+  border-radius: 4px;
+  padding: 10px 14px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.optimizer-kpi-card.highlight-gold {
+  border-color: rgba(210, 178, 104, 0.6);
+  background: linear-gradient(180deg, #1d212b 0%, #141720 100%);
+  box-shadow: 0 0 10px rgba(210, 178, 104, 0.12);
+}
+
+.optimizer-kpi-card.highlight-green {
+  border-color: rgba(52, 211, 153, 0.5);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, #141720 100%);
+}
+
+.kpi-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: var(--gw2-text-dim);
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.kpi-sub {
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.optimizer-section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #12151c;
+  border: 1px solid var(--gw2-bronze-frame);
+  border-radius: 5px;
+  padding: 12px 16px;
+}
+
+.optimizer-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 8px;
+}
+
+.optimizer-table-container {
+  overflow-x: auto;
+  border-radius: 3px;
+  border: 1px solid #232733;
+}
+
+.optimizer-table {
+  width: 100%;
+}
+
+.optimizer-table th {
+  background: #181c25 !important;
+  color: var(--gw2-gold);
+  font-size: 11px;
+  padding: 8px 10px;
+}
+
+.optimizer-table td {
+  padding: 8px 10px;
+  font-size: 11.5px;
+}
+
+/* GW2Crafts Benchmark Card */
+.gw2crafts-compare-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #151822;
+  border: 1px solid #2d3342;
+  border-radius: 4px;
+  padding: 14px;
+}
+
+.gcc-header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.gcc-badge-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.gcc-pill-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: var(--gw2-text-muted);
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.gcc-stat-val {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gcc-vs-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.gcc-vs-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: #252a37;
+  color: var(--gw2-text-dim);
+  border: 1px solid #363c4d;
+}
+
+.gcc-savings-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #34d399;
+}
+
+.gcc-advantages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gcc-adv-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gcc-adv-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  padding: 6px 10px;
+}
+
+.gcc-blueprint-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 10px;
+}
+
+.gcc-blueprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.gcc-tier-card {
+  display: flex;
+  flex-direction: column;
+  background: #111319;
+  border: 1px solid #20242f;
+  border-radius: 3px;
+  padding: 6px 10px;
+}
+
+/* Price Freshness Pill in stats strip */
+.price-freshness-box {
+  background: #0f1218 !important;
+  border-color: #2b313e !important;
+}
+
+.price-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  flex-shrink: 0;
+}
+
+.price-refresh-icon-btn {
+  padding: 2px 4px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--gw2-text-dim);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.price-refresh-icon-btn:hover {
+  color: var(--gw2-gold);
+}
+
+/* ========================================================
    SHOPPING LIST & TIER GROUPING (Berufsplaner)
    ======================================================== */
 .planner-shopping-wrap {
@@ -1421,7 +1660,7 @@ button {
 
 .shopping-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 820px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
@@ -1461,9 +1700,14 @@ button {
   text-align: right;
 }
 
-.shopping-table thead th.col-total,
+.shopping-table thead th.col-total {
+  min-width: 150px;
+  padding-right: 18px !important;
+  white-space: nowrap;
+}
+
 .shopping-table tbody td.col-total {
-  padding-right: 16px !important;
+  padding-right: 18px !important;
   white-space: nowrap;
 }
 

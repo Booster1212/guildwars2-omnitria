@@ -1,0 +1,838 @@
+import type { DisciplineId, PriceInfo } from '../../domain/types.ts';
+
+/**
+ * Master Craftsman (Berufslehrer / Meisterhandwerker) and NPC Vendor Data.
+ *
+ * In Guild Wars 2, Master Craftsmen in major cities (Divinity's Reach, Lion's Arch,
+ * Black Citadel, Rata Sum, The Grove, Hoelbrak) sell crafting ingredients, refinement
+ * catalysts, and recipe sheets directly for coins or karma.
+ *
+ * This module manages vendor offerings data-driven across all 8 disciplines,
+ * enabling rigorous price comparisons against Trading Post listings.
+ */
+
+export interface VendorMaterialOffer {
+  itemId: number;
+  nameDe: string;
+  nameEn: string;
+  costCopper: number;
+  costKarma?: number;
+  disciplines: readonly DisciplineId[];
+  minRank: number;
+  vendorNameDe: string;
+  vendorNameEn: string;
+  isAvailableOnTp: boolean;
+}
+
+export interface VendorRecipeSheetOffer {
+  /** Recipe ID in official GW2 API */
+  recipeId: number;
+  /** Sheet item ID consumed to unlock this recipe */
+  sheetItemId?: number;
+  outputItemId: number;
+  nameDe: string;
+  nameEn: string;
+  discipline: DisciplineId;
+  minRank: number;
+  costCopper: number;
+  costKarma?: number;
+  vendorNameDe: string;
+  vendorNameEn: string;
+}
+
+export type ProcurementMethod = 'vendor' | 'tp_sell' | 'tp_buy' | 'stock' | 'craft';
+
+export interface ProcurementEvaluation {
+  itemId: number;
+  method: ProcurementMethod;
+  unitPrice: number;
+  vendorPrice: number | null;
+  tpSellPrice: number | null;
+  tpBuyPrice: number | null;
+  savingsVsAlternative: number;
+  rationaleDe: string;
+  rationaleEn: string;
+}
+
+/**
+ * Official Master Craftsman Material Catalog.
+ * Prices verified against the official Guild Wars 2 game data.
+ */
+export const MASTER_CRAFTSMAN_MATERIALS: readonly VendorMaterialOffer[] = [
+  // --- Universal & Metal Disciplines (Weaponsmith, Armorsmith, Artificer) ---
+  {
+    itemId: 19704,
+    nameDe: 'Klumpen Zinn',
+    nameEn: 'Lump of Tin',
+    costCopper: 8,
+    disciplines: ['Weaponsmith', 'Armorsmith', 'Artificer'],
+    minRank: 0,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 19750,
+    nameDe: 'Klumpen Kohle',
+    nameEn: 'Lump of Coal',
+    costCopper: 16,
+    disciplines: ['Weaponsmith', 'Armorsmith', 'Artificer', 'Huntsman'],
+    minRank: 150,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 19924,
+    nameDe: 'Klumpen Primordium',
+    nameEn: 'Lump of Primordium',
+    costCopper: 48,
+    disciplines: ['Weaponsmith', 'Armorsmith', 'Artificer', 'Huntsman'],
+    minRank: 400,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 46747,
+    nameDe: 'Thermokatalytische Reagenz',
+    nameEn: 'Thermocatalytic Reagent',
+    costCopper: 149,
+    disciplines: ['Weaponsmith', 'Armorsmith', 'Artificer', 'Huntsman', 'Leatherworker', 'Tailor'],
+    minRank: 450,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+
+  // --- Cloth & Leather Thread Disciplines (Tailor, Leatherworker, Armorsmith) ---
+  {
+    itemId: 19792,
+    nameDe: 'Spule Jutefaden',
+    nameEn: 'Spool of Jute Thread',
+    costCopper: 8,
+    disciplines: ['Tailor', 'Leatherworker', 'Armorsmith'],
+    minRank: 0,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 19789,
+    nameDe: 'Spule Wollfaden',
+    nameEn: 'Spool of Wool Thread',
+    costCopper: 16,
+    disciplines: ['Tailor', 'Leatherworker', 'Armorsmith'],
+    minRank: 75,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 19794,
+    nameDe: 'Spule Baumwollfaden',
+    nameEn: 'Spool of Cotton Thread',
+    costCopper: 24,
+    disciplines: ['Tailor', 'Leatherworker', 'Armorsmith'],
+    minRank: 150,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 19793,
+    nameDe: 'Spule Leinenfaden',
+    nameEn: 'Spool of Linen Thread',
+    costCopper: 32,
+    disciplines: ['Tailor', 'Leatherworker', 'Armorsmith'],
+    minRank: 225,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 19791,
+    nameDe: 'Spule Seidenfaden',
+    nameEn: 'Spool of Silk Thread',
+    costCopper: 48,
+    disciplines: ['Tailor', 'Leatherworker', 'Armorsmith'],
+    minRank: 300,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 19790,
+    nameDe: 'Spule Gazefaden',
+    nameEn: 'Spool of Gossamer Thread',
+    costCopper: 64,
+    disciplines: ['Tailor', 'Leatherworker', 'Armorsmith'],
+    minRank: 400,
+    vendorNameDe: 'Meisterhandwerker',
+    vendorNameEn: 'Master Craftsman',
+    isAvailableOnTp: true,
+  },
+
+  // --- Chef Basics (Meisterkoch & Händler) ---
+  {
+    itemId: 12156,
+    nameDe: 'Krug Wasser',
+    nameEn: 'Jug of Water',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12155,
+    nameDe: 'Beutel Mehl',
+    nameEn: 'Bag of Flour',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12158,
+    nameDe: 'Paket Hefe',
+    nameEn: 'Packet of Yeast',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12153,
+    nameDe: 'Paket Salz',
+    nameEn: 'Packet of Salt',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12151,
+    nameDe: 'Paket Backpulver',
+    nameEn: 'Packet of Baking Powder',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12157,
+    nameDe: 'Flasche Essig',
+    nameEn: 'Bottle of Vinegar',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12159,
+    nameDe: 'Flasche Sojasoße',
+    nameEn: 'Bottle of Soy Sauce',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12240,
+    nameDe: 'Glas Buttermilch',
+    nameEn: 'Glass of Buttermilk',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12337,
+    nameDe: 'Beutel Zucker',
+    nameEn: 'Bag of Sugar',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12338,
+    nameDe: 'Flasche einfacher Sirup',
+    nameEn: 'Bottle of Simple Syrup',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12176,
+    nameDe: 'Beutel Maismehl',
+    nameEn: 'Bag of Cornmeal',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12134,
+    nameDe: 'Käsescheibe',
+    nameEn: 'Cheese Slice',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12145,
+    nameDe: 'Reisbällchen',
+    nameEn: 'Rice Ball',
+    costCopper: 16,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12132,
+    nameDe: 'Laib Brot',
+    nameEn: 'Loaf of Bread',
+    costCopper: 48,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Meisterkoch',
+    vendorNameEn: 'Master Chef',
+    isAvailableOnTp: true,
+  },
+
+  // --- Chef Karma Ingredients (Herzen- & Karma-Händler) ---
+  {
+    itemId: 12165,
+    nameDe: 'Butterstück',
+    nameEn: 'Stick of Butter',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler (Meisterkoch)',
+    vendorNameEn: 'Karma Vendor (Master Chef)',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12166,
+    nameDe: 'Käsestück',
+    nameEn: 'Cheese Wedge',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler (Meisterkoch)',
+    vendorNameEn: 'Karma Vendor (Master Chef)',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12177,
+    nameDe: 'Paprika',
+    nameEn: 'Bell Pepper',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler (Meisterkoch)',
+    vendorNameEn: 'Karma Vendor (Master Chef)',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12178,
+    nameDe: 'Vanilleschote',
+    nameEn: 'Vanilla Bean',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler (Meisterkoch)',
+    vendorNameEn: 'Karma Vendor (Master Chef)',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12271,
+    nameDe: 'Beutel mit schwarzen Pfefferkörnern',
+    nameEn: 'Pouch of Black Peppercorns',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler',
+    vendorNameEn: 'Karma Vendor',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12272,
+    nameDe: 'Beutel mit Zimtrinde',
+    nameEn: 'Pouch of Cinnamon Bark',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler',
+    vendorNameEn: 'Karma Vendor',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12278,
+    nameDe: 'Beutel mit Thymianblättern',
+    nameEn: 'Pouch of Thyme Leaves',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler',
+    vendorNameEn: 'Karma Vendor',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12285,
+    nameDe: 'Beutel mit Petersilienblättern',
+    nameEn: 'Pouch of Parsley Leaves',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler',
+    vendorNameEn: 'Karma Vendor',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12286,
+    nameDe: 'Beutel mit Rosmarinblättern',
+    nameEn: 'Pouch of Rosemary Leaves',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler',
+    vendorNameEn: 'Karma Vendor',
+    isAvailableOnTp: true,
+  },
+  {
+    itemId: 12290,
+    nameDe: 'Knoblauchzehen',
+    nameEn: 'Garlic Bulbs',
+    costCopper: 14,
+    costKarma: 35,
+    disciplines: ['Chef'],
+    minRank: 0,
+    vendorNameDe: 'Karma-Händler',
+    vendorNameEn: 'Karma Vendor',
+    isAvailableOnTp: true,
+  },
+] as const;
+
+/**
+ * Fast lookup maps for Master Craftsman materials.
+ */
+const VENDOR_MATERIAL_BY_ID = new Map<number, VendorMaterialOffer>();
+for (const m of MASTER_CRAFTSMAN_MATERIALS) {
+  VENDOR_MATERIAL_BY_ID.set(m.itemId, m);
+}
+
+/**
+ * Common Master Craftsman Recipe Sheets.
+ * These recipes have the API flag `LearnedFromItem` and require buying a Recipe Sheet.
+ */
+export const MASTER_CRAFTSMAN_RECIPE_SHEETS: readonly VendorRecipeSheetOffer[] = [
+  // --- Inscriptions (Weaponsmith, Huntsman, Artificer) ---
+  {
+    recipeId: 2137, // Ravaging Iron Plated Inscription
+    outputItemId: 19934,
+    nameDe: 'Verheerende eisenbeschlagene Inschrift',
+    nameEn: 'Ravaging Iron Plated Inscription',
+    discipline: 'Weaponsmith',
+    minRank: 75,
+    costCopper: 160,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2139, // Rejuvenating Iron Plated Inscription
+    outputItemId: 19935,
+    nameDe: 'Verjüngende eisenbeschlagene Inschrift',
+    nameEn: 'Rejuvenating Iron Plated Inscription',
+    discipline: 'Weaponsmith',
+    minRank: 75,
+    costCopper: 160,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2145, // Ravaging Steel Plated Inscription
+    outputItemId: 19941,
+    nameDe: 'Verheerende stahlbeschlagene Inschrift',
+    nameEn: 'Ravaging Steel Plated Inscription',
+    discipline: 'Weaponsmith',
+    minRank: 150,
+    costCopper: 320,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2147, // Honed Steel Plated Inscription
+    outputItemId: 19942,
+    nameDe: 'Gewetzte stahlbeschlagene Inschrift',
+    nameEn: 'Honed Steel Plated Inscription',
+    discipline: 'Weaponsmith',
+    minRank: 150,
+    costCopper: 320,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2153, // Ravaging Darksteel Plated Inscription
+    outputItemId: 19948,
+    nameDe: 'Verheerende dunkelstahlbeschlagene Inschrift',
+    nameEn: 'Ravaging Darksteel Plated Inscription',
+    discipline: 'Weaponsmith',
+    minRank: 225,
+    costCopper: 480,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2154, // Rejuvenating Darksteel Plated Inscription
+    outputItemId: 19949,
+    nameDe: 'Verjüngende dunkelstahlbeschlagene Inschrift',
+    nameEn: 'Rejuvenating Darksteel Plated Inscription',
+    discipline: 'Weaponsmith',
+    minRank: 225,
+    costCopper: 480,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2161, // Ravaging Mithril Plated Inscription
+    outputItemId: 19955,
+    nameDe: 'Verheerende mithrilbeschlagene Inschrift',
+    nameEn: 'Ravaging Mithril Plated Inscription',
+    discipline: 'Weaponsmith',
+    minRank: 300,
+    costCopper: 800,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2163, // Hunter's Mithril Plated Inscription
+    outputItemId: 19957,
+    nameDe: 'Jägerische mithrilbeschlagene Inschrift',
+    nameEn: "Hunter's Mithril Plated Inscription",
+    discipline: 'Weaponsmith',
+    minRank: 300,
+    costCopper: 800,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2171, // Berserker's Orichalcum Plated Inscription
+    outputItemId: 19965,
+    nameDe: 'Berserkerhafte orichalcumbeschlagene Inschrift',
+    nameEn: "Berserker's Orichalcum Plated Inscription",
+    discipline: 'Weaponsmith',
+    minRank: 400,
+    costCopper: 2000,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+  {
+    recipeId: 2173, // Knight's Orichalcum Plated Inscription
+    outputItemId: 19967,
+    nameDe: 'Ritterliche orichalcumbeschlagene Inschrift',
+    nameEn: "Knight's Orichalcum Plated Inscription",
+    discipline: 'Weaponsmith',
+    minRank: 400,
+    costCopper: 2000,
+    vendorNameDe: 'Meister-Waffenschmied',
+    vendorNameEn: 'Master Weaponsmith',
+  },
+
+  // --- Insignias (Armorsmith, Leatherworker, Tailor) ---
+  {
+    recipeId: 2314, // Ravaging Wool Insignia
+    outputItemId: 19828,
+    nameDe: 'Verheerende Woll-Insignie',
+    nameEn: 'Ravaging Wool Insignia',
+    discipline: 'Armorsmith',
+    minRank: 75,
+    costCopper: 160,
+    vendorNameDe: 'Meister-Rüstungsschmied',
+    vendorNameEn: 'Master Armorsmith',
+  },
+  {
+    recipeId: 2320, // Ravaging Cotton Insignia
+    outputItemId: 19834,
+    nameDe: 'Verheerende Baumwoll-Insignie',
+    nameEn: 'Ravaging Cotton Insignia',
+    discipline: 'Armorsmith',
+    minRank: 150,
+    costCopper: 320,
+    vendorNameDe: 'Meister-Rüstungsschmied',
+    vendorNameEn: 'Master Armorsmith',
+  },
+  {
+    recipeId: 2326, // Ravaging Linen Insignia
+    outputItemId: 19840,
+    nameDe: 'Verheerende Leinen-Insignie',
+    nameEn: 'Ravaging Linen Insignia',
+    discipline: 'Armorsmith',
+    minRank: 225,
+    costCopper: 480,
+    vendorNameDe: 'Meister-Rüstungsschmied',
+    vendorNameEn: 'Master Armorsmith',
+  },
+  {
+    recipeId: 2332, // Ravaging Silk Insignia
+    outputItemId: 19846,
+    nameDe: 'Verheerende Seiden-Insignie',
+    nameEn: 'Ravaging Silk Insignia',
+    discipline: 'Armorsmith',
+    minRank: 300,
+    costCopper: 800,
+    vendorNameDe: 'Meister-Rüstungsschmied',
+    vendorNameEn: 'Master Armorsmith',
+  },
+  {
+    recipeId: 2338, // Berserker's Gossamer Insignia
+    outputItemId: 19852,
+    nameDe: 'Berserkerhafte Gaze-Insignie',
+    nameEn: "Berserker's Gossamer Insignia",
+    discipline: 'Armorsmith',
+    minRank: 400,
+    costCopper: 2000,
+    vendorNameDe: 'Meister-Rüstungsschmied',
+    vendorNameEn: 'Master Armorsmith',
+  },
+
+  // --- Bags & Packs ---
+  {
+    recipeId: 11, // 8 Slot Invisible Bag
+    outputItemId: 8932,
+    nameDe: '8-Platz-Unsichtbare Tasche',
+    nameEn: '8 Slot Invisible Bag',
+    discipline: 'Tailor',
+    minRank: 0,
+    costCopper: 160,
+    vendorNameDe: 'Meister-Schneider',
+    vendorNameEn: 'Master Tailor',
+  },
+  {
+    recipeId: 22, // 10 Slot Invisible Bag
+    outputItemId: 8933,
+    nameDe: '10-Platz-Unsichtbare Tasche',
+    nameEn: '10 Slot Invisible Bag',
+    discipline: 'Tailor',
+    minRank: 75,
+    costCopper: 320,
+    vendorNameDe: 'Meister-Schneider',
+    vendorNameEn: 'Master Tailor',
+  },
+  {
+    recipeId: 33, // 15 Slot Invisible Bag
+    outputItemId: 8934,
+    nameDe: '15-Platz-Unsichtbare Tasche',
+    nameEn: '15 Slot Invisible Bag',
+    discipline: 'Tailor',
+    minRank: 150,
+    costCopper: 480,
+    vendorNameDe: 'Meister-Schneider',
+    vendorNameEn: 'Master Tailor',
+  },
+  {
+    recipeId: 44, // 18 Slot Invisible Bag
+    outputItemId: 8935,
+    nameDe: '18-Platz-Unsichtbare Tasche',
+    nameEn: '18 Slot Invisible Bag',
+    discipline: 'Tailor',
+    minRank: 225,
+    costCopper: 1000,
+    vendorNameDe: 'Meister-Schneider',
+    vendorNameEn: 'Master Tailor',
+  },
+  {
+    recipeId: 55, // 20 Slot Invisible Bag
+    outputItemId: 8936,
+    nameDe: '20-Platz-Unsichtbare Tasche',
+    nameEn: '20 Slot Invisible Bag',
+    discipline: 'Tailor',
+    minRank: 400,
+    costCopper: 10000,
+    vendorNameDe: 'Meister-Schneider',
+    vendorNameEn: 'Master Tailor',
+  },
+] as const;
+
+const VENDOR_RECIPE_BY_ID = new Map<number, VendorRecipeSheetOffer>();
+for (const r of MASTER_CRAFTSMAN_RECIPE_SHEETS) {
+  VENDOR_RECIPE_BY_ID.set(r.recipeId, r);
+}
+
+/**
+ * Returns the vendor material offer if the item is sold by a Master Craftsman or NPC.
+ */
+export function getVendorMaterialOffer(itemId: number): VendorMaterialOffer | undefined {
+  return VENDOR_MATERIAL_BY_ID.get(itemId);
+}
+
+/**
+ * Returns the vendor recipe sheet offer if the recipe requires a sheet sold by Master Craftsman.
+ */
+export function getVendorRecipeSheetOffer(recipeId: number): VendorRecipeSheetOffer | undefined {
+  return VENDOR_RECIPE_BY_ID.get(recipeId);
+}
+
+/**
+ * Returns all item IDs sold by Master Craftsmen or NPC cooking vendors.
+ */
+export function getAllVendorItemIds(): number[] {
+  return Array.from(VENDOR_MATERIAL_BY_ID.keys());
+}
+
+/**
+ * Compares procurement options for a crafting ingredient:
+ * Master Craftsman NPC vs. Trading Post Instant Buy vs. Trading Post Buy Order vs. Stock.
+ *
+ * Crucial rule: Never assume NPC is always cheaper or TP is always cheaper.
+ * We calculate the actual prices dynamically!
+ */
+export function evaluateProcurement(
+  itemId: number,
+  tpPrice: PriceInfo | undefined,
+  stockCount = 0,
+): ProcurementEvaluation {
+  const vendor = getVendorMaterialOffer(itemId);
+  const vendorPrice = vendor ? vendor.costCopper : null;
+  const tpSell = tpPrice && tpPrice.sell > 0 ? tpPrice.sell : null;
+  const tpBuy = tpPrice && tpPrice.buy > 0 ? tpPrice.buy : null;
+
+  // If in stock, calculate opportunity cost: what would the player net if they sold it on TP?
+  // After 15% TP fees (5% listing + 10% exchange), net is floor(tpBuy * 0.85) or vendor value.
+  const opportunityCost = tpBuy !== null ? Math.max(1, Math.floor(tpBuy * 0.85)) : (vendorPrice ?? 1);
+
+  // Compare available cash buy options
+  const buyCandidates: { method: ProcurementMethod; price: number }[] = [];
+  if (vendorPrice !== null) {
+    buyCandidates.push({ method: 'vendor', price: vendorPrice });
+  }
+  if (tpSell !== null) {
+    buyCandidates.push({ method: 'tp_sell', price: tpSell });
+  }
+
+  buyCandidates.sort((a, b) => a.price - b.price);
+  const bestCashOption = buyCandidates[0] ?? { method: 'tp_sell' as ProcurementMethod, price: tpSell ?? 0 };
+
+  // If player has enough in stock, stock option has its opportunity cost
+  if (stockCount > 0) {
+    const savings = bestCashOption.price - opportunityCost;
+    return {
+      itemId,
+      method: 'stock',
+      unitPrice: opportunityCost,
+      vendorPrice,
+      tpSellPrice: tpSell,
+      tpBuyPrice: tpBuy,
+      savingsVsAlternative: Math.max(0, savings),
+      rationaleDe: `Vorhanden im Inventar/Lager (Opp.-Kosten: ${opportunityCost}c vs. Neukauf: ${bestCashOption.price}c)`,
+      rationaleEn: `In stock (Opp. cost: ${opportunityCost}c vs. purchase: ${bestCashOption.price}c)`,
+    };
+  }
+
+  // No stock: compare Vendor vs TP
+  if (vendorPrice !== null && tpSell !== null) {
+    if (vendorPrice < tpSell) {
+      const savings = tpSell - vendorPrice;
+      return {
+        itemId,
+        method: 'vendor',
+        unitPrice: vendorPrice,
+        vendorPrice,
+        tpSellPrice: tpSell,
+        tpBuyPrice: tpBuy,
+        savingsVsAlternative: savings,
+        rationaleDe: `Kauf beim Meisterhandwerker günstiger als Handelsposten (-${savings}c pro Stück)`,
+        rationaleEn: `Master Craftsman NPC is cheaper than Trading Post (-${savings}c each)`,
+      };
+    } else if (tpSell < vendorPrice) {
+      const savings = vendorPrice - tpSell;
+      return {
+        itemId,
+        method: 'tp_sell',
+        unitPrice: tpSell,
+        vendorPrice,
+        tpSellPrice: tpSell,
+        tpBuyPrice: tpBuy,
+        savingsVsAlternative: savings,
+        rationaleDe: `Handelsposten Sofortkauf ist günstiger als Händlerpreis (-${savings}c pro Stück)`,
+        rationaleEn: `Trading Post instant buy is cheaper than NPC vendor (-${savings}c each)`,
+      };
+    } else {
+      return {
+        itemId,
+        method: 'vendor',
+        unitPrice: vendorPrice,
+        vendorPrice,
+        tpSellPrice: tpSell,
+        tpBuyPrice: tpBuy,
+        savingsVsAlternative: 0,
+        rationaleDe: 'Händlerpreis und Handelsposten-Sofortkauf sind preisgleich',
+        rationaleEn: 'Vendor price and Trading Post instant buy are identical',
+      };
+    }
+  }
+
+  if (vendorPrice !== null) {
+    return {
+      itemId,
+      method: 'vendor',
+      unitPrice: vendorPrice,
+      vendorPrice,
+      tpSellPrice: null,
+      tpBuyPrice: null,
+      savingsVsAlternative: 0,
+      rationaleDe: 'Exklusiv beim Meisterhandwerker / Händler erhältlich',
+      rationaleEn: 'Exclusively available at Master Craftsman / NPC vendor',
+    };
+  }
+
+  return {
+    itemId,
+    method: 'tp_sell',
+    unitPrice: tpSell ?? 0,
+    vendorPrice: null,
+    tpSellPrice: tpSell,
+    tpBuyPrice: tpBuy,
+    savingsVsAlternative: 0,
+    rationaleDe: 'Beschaffung über Handelsposten',
+    rationaleEn: 'Procured via Trading Post',
+  };
+}

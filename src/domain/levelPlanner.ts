@@ -22,11 +22,25 @@
  *     recommendations, deprioritizes deferred tasks, and surfaces the #1 Next Recommended Action
  *     with a transparent explanation, effort estimate, and expected progression benefit.
  */
-import type { PriceInfo, Recipe } from './types.ts';
+import type { PriceInfo, Recipe, GameItem, DisciplineId } from './types.ts';
 import { categoryOf, ranksPerCraft, XP_MODEL } from './craftingXp.ts';
 import type { XpCategory } from './craftingXp.ts';
 import { unitPrice } from './costs.ts';
 import type { PlannerMode, TaskOrStepStatus } from '../data/progressStore.ts';
+import { getVendorRecipeSheetOffer } from '../data/crafting/masterCraftsmanVendors.ts';
+import {
+  calculateExpectedResaleValue,
+  calculateStockOpportunityCost,
+  getRecipeUnlockCost,
+  buildCostComparisonSummary,
+  type CostOptimizationSummary,
+} from './costOptimizer.ts';
+import {
+  computeGw2CraftsBenchmark,
+  compareWithGw2Crafts,
+  type Gw2CraftsBenchmark,
+  type Gw2CraftsComparisonResult,
+} from './gw2craftsReference.ts';
 
 export type { PlannerMode, TaskOrStepStatus };
 
@@ -65,6 +79,7 @@ export interface PlannerInput {
   recipesByOutput: ReadonlyMap<number, readonly Recipe[]>;
   prices: ReadonlyMap<number, PriceInfo>;
   options: PlannerOptions;
+  items?: ReadonlyMap<number, GameItem>;
 }
 
 export interface StepMaterial {
@@ -114,6 +129,12 @@ export interface PlanStep {
   cost: number;
   unpricedCount: number;
   needsDiscovery: boolean;
+  /** Expected liquidation proceeds from selling outputs (TP buy order - 15% or vendor sell) */
+  expectedResaleValue: number;
+  /** Net cost in copper after deducting resale proceeds */
+  netCost: number;
+  /** Recipe sheet unlock cost in copper (0 if already unlocked or auto-learned) */
+  unlockCost: number;
   /** Tier stage grouping */
   stageId?: CraftingStageId;
   /** Transparent recommendation reason key */
@@ -144,7 +165,14 @@ export interface PlanResult {
   intermediates: IntermediateCraft[];
   totalCrafts: number;
   totalCost: number;
+  totalResaleValue: number;
+  totalNetCost: number;
+  totalNpcSavings: number;
+  opportunityCostStock: number;
+  cashOutlayNeeded: number;
   unpricedItems: number[];
+  costComparison: CostOptimizationSummary;
+  gw2craftsComparison: Gw2CraftsComparisonResult;
 }
 
 export interface CraftingStageGroup {
@@ -267,8 +295,14 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     if (r.ingredients.some((ing) => ASCENDED_ACCOUNT_BOUND_INGREDIENTS.has(ing.itemId))) {
       return false;
     }
+    // LearnedFromItem: Must be already known or have an available Master Craftsman vendor / TP sheet
+    if (r.flags?.includes('LearnedFromItem') && !isLearned(r)) {
+      const sheet = getVendorRecipeSheetOffer(Number(r.id));
+      if (!sheet) return false;
+    }
     return (
       isLearned(r) ||
+      Boolean(r.flags?.includes('LearnedFromItem')) ||
       (isDiscovery(r) && (options.allowDiscovery || fromRank >= 450 || toRank > 450))
     );
   };
@@ -366,10 +400,11 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
             hasPricedIngredient = true;
           }
         }
-        const unit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
-        // Bevorzuge Eigenherstellung ('craft') vor Kauf ('buy'), solange herstellbar
-        if (best.via !== 'craft' || (unit !== null && (best.unit === null || unit < best.unit))) {
-          best = { unit, via: 'craft', recipe: r };
+        const craftUnit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
+        // When craftIntermediates is enabled, prefer self-crafting ('craft') over buying ('buy')
+        // to gain crafting experience, utilize basic materials, and fulfill preparation chains.
+        if (best.via !== 'craft' || (craftUnit !== null && (best.unit === null || craftUnit < best.unit))) {
+          best = { unit: craftUnit, via: 'craft', recipe: r };
         }
       }
       stack.delete(itemId);
@@ -392,9 +427,8 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const evalCandidate = (c: { recipe: Recipe; category: XpCategory }, rank: number): Choice | null => {
     const isAlreadyPlanned = plannedDiscoveries.has(String(c.recipe.id));
     const isDisc = !isLearned(c.recipe) && !isAlreadyPlanned && isDiscovery(c.recipe);
-    // Below 450 (standard bulk progression), do not inflate undiscovered items with discovery bonus
-    // unless in completionist mode or Chef, so that refinements & components maintain priority.
-    const useDiscMultiplier = isDisc && (rank >= 450 || mode === 'completionist' || discipline === 'Chef');
+    // In GW2, recipe discoveries grant bonus XP (~2.5x multiplier) across all ranks (0-500)
+    const useDiscMultiplier = isDisc;
     const rpc = ranksPerCraft(c.category, rank, c.recipe.rating, useDiscMultiplier);
     if (rpc <= 0 || !Number.isFinite(rpc)) return null;
     let cost = 0;
@@ -420,13 +454,30 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         cost += a.unit * ing.count;
       }
     }
-    // Efficient Leveling: Recipes crafted more than 25 ranks above unlock
-    // lose experience rapidly in GW2 (yellow/green recipes). Age penalty encourages new tier recipes:
+    // Efficient Leveling: Recipes crafted more than 15-20 ranks above unlock
+    // lose experience rapidly in GW2 (yellow/green recipes). Strong age penalty avoids overproduction:
     const age = rank - c.recipe.rating;
-    const agePenalty = (age > 25 && !isDisc) ? 1 + (age - 25) * 0.2 : 1;
-    let effectiveCostPerRank = (cost * agePenalty) / rpc;
+    const agePenalty = (age > 15 && !isDisc) ? 1 + (age - 15) * 0.4 : 1;
 
-    // Ab Level 470: Prioritize discovery bonus!
+    // Deduct expected resale proceeds and amortize recipe sheet unlock costs
+    const resale = calculateExpectedResaleValue(c.recipe.outputId, c.recipe.outputCount || 1, prices, input.items);
+    const unlockCost = getRecipeUnlockCost(c.recipe, known, prices);
+    const netCraftCost = Math.max(0, cost - resale.unit);
+    const amortizedUnlock = unlockCost > 0 ? unlockCost / 3 : 0;
+
+    let effectiveCostPerRank = ((netCraftCost + amortizedUnlock) * agePenalty) / rpc;
+
+    // Avoid grinding aged non-discovery equipment recipes
+    if (!isDisc && age > 25 && c.category === 'item') {
+      effectiveCostPerRank *= 3.0;
+    }
+
+    // Discovery bonus: Prioritize fresh discoveries during leveling
+    if (isDisc) {
+      effectiveCostPerRank *= 0.65;
+    }
+
+    // Ab Level 470: Prioritize exotic discovery bonus!
     if (rank >= 470 && isDisc) {
       effectiveCostPerRank *= 0.45;
     }
@@ -600,6 +651,15 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         unpriced.add(itemId);
       } else cost += u * qty;
     }
+    const resale = calculateExpectedResaleValue(
+      rs.recipe.outputId,
+      crafts * (rs.recipe.outputCount || 1),
+      prices,
+      input.items,
+    );
+    const unlockCost = getRecipeUnlockCost(rs.recipe, known, prices);
+    const netCost = Math.max(0, cost + unlockCost - resale.total);
+
     const base = rs.recipe.id;
     const n = (usedKeys.get(base) ?? 0) + 1;
     usedKeys.set(base, n);
@@ -639,6 +699,9 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       cost,
       unpricedCount,
       needsDiscovery,
+      expectedResaleValue: resale.total,
+      netCost,
+      unlockCost,
       stageId: getCraftingStageId(rs.fromRank),
       reasonKey,
       estimatedMinutes,
@@ -667,6 +730,22 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     steps.reduce((s, st) => s + (Number.isFinite(st.crafts) ? st.crafts : 1), 0) +
     [...intermediateMap.values()].reduce((s, i) => s + (Number.isFinite(i.crafts) ? i.crafts : 1), 0);
 
+  const costComparison = buildCostComparisonSummary(
+    steps,
+    prices,
+    stock,
+    known,
+    input.items,
+  );
+
+  const gw2craftsBenchmark = computeGw2CraftsBenchmark(discipline as DisciplineId, fromRank, toRank, prices);
+  const gw2craftsComparison = compareWithGw2Crafts(
+    gw2craftsBenchmark,
+    totalCost,
+    costComparison.totalNetCost,
+    steps.length,
+  );
+
   return {
     steps,
     gaps,
@@ -674,6 +753,13 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     intermediates: [...intermediateMap.values()],
     totalCrafts,
     totalCost,
+    totalResaleValue: costComparison.totalResaleValue,
+    totalNetCost: costComparison.totalNetCost,
+    totalNpcSavings: costComparison.totalNpcSavings,
+    opportunityCostStock: costComparison.opportunityCostStock,
+    cashOutlayNeeded: costComparison.cashOutlayNeeded,
+    costComparison,
+    gw2craftsComparison,
     unpricedItems: [...unpriced],
   };
 }

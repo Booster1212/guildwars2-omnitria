@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-11-01
+
+### Added & Improved
+
+#### Crafting Intelligence & Multi-Option Cost Optimizer (`src/domain/costOptimizer.ts`, `src/domain/costs.ts`, `src/domain/levelPlanner.ts`)
+* **Economic Cost Optimization Engine:**
+  * Re-architected the Crafting Level Planner from a simple greedy rank solver into a multi-option economic cost optimizer.
+  * Evaluates 4 distinct procurement and production pathways for every crafting rank:
+    1. Direct Trading Post instant buy vs buy orders.
+    2. Master Craftsman / NPC Vendor purchase.
+    3. Self-crafting intermediate components vs purchasing finished components.
+    4. Discovery recipe combos vs bulk repeat manufacturing.
+* **Opportunity Cost Calculation for Owned Materials:**
+  * Accurately factors in the economic opportunity cost of owned storage/bank materials (`Math.floor(tpBuy * 0.85)` net liquidation value after 15% Trading Post fees or vendor sell value) rather than treating in-stock items as arbitrarily 0 copper.
+  * Reports both **Gross Material Outlay** and **Economic Net Cost** across all plan summaries.
+* **Liquidation & Resale Value Deduction:**
+  * Automatically calculates expected resale proceeds for crafted weapons, armor, and intermediate products (TP instant sell minus 15% exchange fees or NPC vendor value).
+  * Deducts expected resale proceeds to surface the true **Net Leveling Cost** of reaching the target crafting rank.
+* **Intermediate Self-Craft vs Purchase Decision:**
+  * Fixed an issue where intermediate self-crafting was prioritized unconditionally; the planner now computes the exact sum of sub-ingredients and only recommends self-crafting when it is genuinely cheaper than buying finished components on the Trading Post or when extra crafting XP is desired.
+
+#### Master Craftsman & NPC Vendor Integration (`src/data/crafting/masterCraftsmanVendors.ts`)
+* **Comprehensive Data-Driven NPC Catalog:**
+  * Integrated complete vendor material lists for all 8 disciplines (Lump of Tin, Lump of Coal, Lump of Primordium, Thermocatalytic Reagent, Spool of Thread from Jute to Gossamer, and Chef base/karma cooking ingredients).
+  * Manages vendor pricing data-driven in a dedicated module rather than hardcoded component decisions.
+* **Master Craftsman Recipe Sheets & Unlock Costs:**
+  * Cataloged Master Craftsman recipe sheets for inscriptions, insignias, and bags requiring recipe sheets (`flags: ['LearnedFromItem']`).
+  * Cross-references the player's account unlocked recipes (`/v2/account/recipes`). If not yet known, incorporates the exact purchase cost of the recipe sheet into the leveling comparison.
+* **Dynamic NPC vs. Trading Post Price Comparison:**
+  * Updated `unitPrice()` to dynamically compare live TP prices against fixed vendor costs, strictly avoiding assumptions that one is always cheaper or more expensive.
+
+#### GW2Crafts Reference Engine & Benchmark Comparison (`src/domain/gw2craftsReference.ts`)
+* **Algorithmic Reference Integration:**
+  * Modeled the standard proven leveling blueprint of `gw2crafts.net` for all 8 disciplines (0–75, 75–150, 150–225, 225–300, 300–400, 400–500).
+  * Computes the real-time benchmark cost of the GW2Crafts standard guide at current Trading Post prices.
+* **Comparative Analysis & Transparency:**
+  * Added side-by-side comparison displaying cost difference, savings percentage, and specific reasons why Omnitria's plan optimizes the route (e.g. account inventory utilization, Master Craftsman fixed prices, and resale value deductions).
+  * Direct one-click link to the official `gw2crafts.net` guide for external verification.
+
+#### Interactive UI & Level Planner Expansion (`src/components/crafting/LevelPlanner.tsx`, `src/index.css`)
+* **New "Kosten & GW2Crafts" Subtab:**
+  * Added a dedicated subtab featuring 4 KPI metric cards: *Netto-Leveling-Kosten*, *Brutto-Materialaufwand*, *Händler-Ersparnis*, and *Lagerbestands-Wert*.
+  * Interactive 4-way Cost Comparison Matrix table (`Möglichkeit | Berechnete Kosten | Bewertung & Einsparung`).
+  * Full GW2Crafts Comparative Card with benchmark statistics, advantage bullets, and tier-by-tier blueprint breakdown.
+* **Discipline Special Handling:**
+  * **Jeweler (Juwelier):** Hard-capped at rank 400 with an informative notice that Jeweler has no rank 500 in Guild Wars 2.
+  * **Chef (Koch):** Special advisory notice for ranks 400–500 explaining feast discoveries (400–425) and the Seimur Oxbone Sous Chef questline (450–500).
+* **Price Freshness & Timestamp Indicator:**
+  * Live status pill in the summary strip displaying a pulsing green indicator, time since last Trading Post price fetch, and an instant manual refresh button.
+* **Overproduction Elimination & Discovery Bonus Progression:**
+  * Activated discovery XP bonus across all tiers (0–500) and penalized aged non-discovery equipment recipes (>15–20 ranks decayed).
+  * Prevents bulk repeat-crafting of decaying recipes (eliminating massive demand spikes like 14,000 logs down to ~100 logs per tier).
+  * Discovery toggle in the Level Planner now defaults to active (`true`), matching standard Guild Wars 2 leveling mechanics.
+* **Shopping List Layout & Header Realignment:**
+  * Aligned table header and body column classes (`col-icon`, `col-item`, `col-gross`, `col-stock`, `col-missing`, `col-unit`, `col-total`) with fixed minimum column widths.
+  * Protected the `col-total` header so that "Gesamtkosten" is never truncated by the responsive container scrollbar.
+
+#### Automated Testing Suite (`tests/craftingIntelligenceV030.test.ts`)
+* Added 10 new automated unit tests covering vendor catalog verification, NPC vs TP dynamic price comparison, recipe sheet unlock costs, resale liquidation deductions, 4-way comparison summary output, GW2Crafts benchmark calculation, overproduction avoidance, shopping list table layout parity, and full planner route optimization. Total test count increased to 136 passing tests.
+
+---
+
 ## [0.2.9] - 2026-11-01
 
 ### Added & Improved
