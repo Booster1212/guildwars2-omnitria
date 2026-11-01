@@ -75,7 +75,7 @@ interface LevelPlannerProps {
   onOpenItem: (id: number) => void;
 }
 
-const PLANNER_MODES: readonly PlannerMode[] = ['fast', 'balanced', 'completionist', 'goal'];
+const PLANNER_MODES: readonly PlannerMode[] = ['cost', 'fast', 'balanced', 'completionist', 'goal'];
 
 export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank, onOpenItem }) => {
   const { t, lang } = useTranslation();
@@ -85,7 +85,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const plannerPrefs = progress.plannerPreferences;
   const selectedCharacter = plannerPrefs?.selectedCharacter ?? null;
-  const planningMode: PlannerMode = plannerPrefs?.mode ?? 'balanced';
+  const planningMode: PlannerMode = plannerPrefs?.mode ?? 'cost';
 
   // Character-specific progress & discipline state
   const charProg = progressActions.getCharacterProgress(selectedCharacter);
@@ -131,7 +131,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
       ? Math.min(maxRank, Math.max(effectiveStart + 25, rawTarget < 400 ? 400 : maxRank))
       : Math.min(maxRank, rawTarget);
 
-  const allowDiscovery = discProgress.allowDiscovery !== undefined ? Boolean(discProgress.allowDiscovery) : true;
+  const allowDiscovery = Boolean(discProgress.allowDiscovery);
   const craftIntermediates = Boolean(discProgress.craftIntermediates);
 
   const [activeTab, setActiveTab] = useState<
@@ -639,10 +639,11 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                 <button
                   key={m}
                   type="button"
-                  className={`planner-mode-pill ${isAct ? 'active' : ''}`}
+                  className={`planner-mode-pill ${isAct ? 'active' : ''} ${m === 'cost' ? 'mode-cost-btn' : ''}`}
                   onClick={() => handleSelectMode(m)}
                   title={t(descKey)}
                 >
+                  {m === 'cost' && <Coins size={11} className="text-amber-400" />}
                   {m === 'fast' && <Zap size={11} />}
                   {m === 'balanced' && <Compass size={11} />}
                   {m === 'completionist' && <Award size={11} />}
@@ -2254,23 +2255,23 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                   <table className="gw2-dense-table shopping-table">
                     <thead>
                       <tr>
-                        <th className="col-icon" style={{ width: '48px', textAlign: 'center' }}>
+                        <th className="col-icon" style={{ width: '44px', textAlign: 'center' }}>
                           {t('legendary.colIcon')}
                         </th>
                         <th className="col-item">{t('crafting.colItem')}</th>
-                        <th className="col-gross" style={{ width: '95px', textAlign: 'right' }}>
+                        <th className="col-gross" style={{ width: '85px', textAlign: 'right' }}>
                           {t('crafting.colGross')}
                         </th>
-                        <th className="col-stock" style={{ width: '90px', textAlign: 'right' }}>
+                        <th className="col-stock" style={{ width: '85px', textAlign: 'right' }}>
                           {t('crafting.colStock')}
                         </th>
-                        <th className="col-missing" style={{ width: '105px', textAlign: 'right' }}>
+                        <th className="col-missing" style={{ width: '95px', textAlign: 'right' }}>
                           {t('crafting.colStillBuy')}
                         </th>
                         <th className="col-unit" style={{ width: '115px', textAlign: 'right' }}>
                           {t('crafting.colUnit')}
                         </th>
-                        <th className="col-total" style={{ width: '155px', minWidth: '150px', textAlign: 'right', paddingRight: '16px' }}>
+                        <th className="col-total" style={{ width: '140px', textAlign: 'right', paddingRight: '16px' }}>
                           {t('crafting.colTotal')}
                         </th>
                       </tr>
@@ -2329,11 +2330,11 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                 const { itemId, qty, stock, missing, isVendor, untradable, unit, totalLineCost, item } = row;
                                 return (
                                   <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
-                                    <td className="icon-cell col-icon" style={{ textAlign: 'center' }}>
+                                    <td className="icon-cell" style={{ textAlign: 'center' }}>
                                       <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
                                     </td>
                                     <td
-                                      className="name-cell col-item font-serif cursor-pointer"
+                                      className="name-cell font-serif cursor-pointer"
                                       onClick={() => onOpenItem(itemId)}
                                     >
                                       <div className="flex items-center gap-2">
@@ -2366,12 +2367,12 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                         )}
                                       </div>
                                     </td>
-                                    <td className="num font-mono col-gross">{fmtInt(qty)}</td>
-                                    <td className="num font-mono dim col-stock">
+                                    <td className="num font-mono">{fmtInt(qty)}</td>
+                                    <td className="num font-mono dim">
                                       {account.hasStockData ? fmtInt(stock) : '–'}
                                     </td>
                                     <td
-                                      className={`num font-mono col-missing ${
+                                      className={`num font-mono ${
                                         missing > 0
                                           ? untradable
                                             ? 'text-amber font-bold'

@@ -270,10 +270,19 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   }
 
   // Accurately detect learned or already discovered recipes:
-  // 1. AutoLearned recipes
-  // 2. Unlocked / discovered recipes returned by the official GW2 API (/v2/account/recipes)
-  // 3. Steps already marked done by the user in this session / progress store
+  // 1. Basic material refinements are intrinsically auto-learned in GW2 upon reaching their rating
+  // 2. AutoLearned recipes
+  // 3. Unlocked / discovered recipes returned by the official GW2 API (/v2/account/recipes)
+  // 4. Steps already marked done by the user in this session / progress store
+  const isAutoRefinement = (r: Recipe): boolean => {
+    const cat = categoryOf(r.type);
+    if (cat !== 'refinement') return false;
+    if (r.ingredients.some((ing) => ASCENDED_ACCOUNT_BOUND_INGREDIENTS.has(ing.itemId))) return false;
+    return true;
+  };
+
   const isLearned = (r: Recipe): boolean =>
+    isAutoRefinement(r) ||
     Boolean(r.flags?.includes('AutoLearned')) ||
     (known !== null && (known.has(Number(r.id)) || known.has(r.id as any))) ||
     doneRecipeIds.has(String(r.id));
@@ -339,8 +348,9 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   // - Undiscovered recipes honor allowDiscovery: when allowDiscovery is false, they are blocked
   //   (except at rank >= 470 as gap fallback when no learned recipe exists).
   // - When allowDiscovery is true:
-  //   * Tier starts (ranks 0-25, 75-100, etc.) enforce refinements if available, ensuring ores are refined.
-  //   * Mid/end-tier (25-75, 100-150, etc.) allow discoveries with bonus XP (accumulated in bulk, not 1-craft spam).
+  //   * Tier starts (ranks 0-25, 75-100, 150-175, 225-250, 300-325, 400-425) enforce refinements strictly!
+  //     Ores, logs, cloth, and leather MUST be refined before components or equipment can be crafted.
+  //   * Mid/end-tier (25-75, 100-150, etc.): In Cost Mode, bulk recipes are strongly prioritized over discoveries.
   //   * Endgame (450/470-500) actively recommends unique 1-craft exotic discoveries.
   const isUsableAtRank = (r: Recipe, rank: number): boolean => {
     if (isLearned(r)) return true;
@@ -427,10 +437,23 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const evalCandidate = (c: { recipe: Recipe; category: XpCategory }, rank: number): Choice | null => {
     const isAlreadyPlanned = plannedDiscoveries.has(String(c.recipe.id));
     const isDisc = !isLearned(c.recipe) && !isAlreadyPlanned && isDiscovery(c.recipe);
-    // In GW2, recipe discoveries grant bonus XP (~2.5x multiplier) across all ranks (0-500)
-    const useDiscMultiplier = isDisc;
+    // Below 450 (standard bulk progression), do not inflate undiscovered items with discovery bonus
+    // unless in completionist mode or Chef, so that refinements & components maintain priority.
+    const useDiscMultiplier = isDisc && (rank >= 450 || mode === 'completionist' || discipline === 'Chef');
     const rpc = ranksPerCraft(c.category, rank, c.recipe.rating, useDiscMultiplier);
     if (rpc <= 0 || !Number.isFinite(rpc)) return null;
+
+    const effectiveSpan = (isDisc && c.category === 'item' && c.recipe.rating >= 400) ? 120 : XP_MODEL[c.category].span;
+    const f = 1 - (rank - c.recipe.rating) / effectiveSpan;
+    if (f <= 0.02) return null;
+
+    // Terminal decay cutoff: When a non-discovery recipe has consumed >= 80% of its XP span (f < 0.20),
+    // crafting it yields negligible XP and causes catastrophic overproduction (e.g. 77x inscriptions, 84x shields).
+    // In Cost and Fast modes, stop grinding decayed recipes.
+    if (!isDisc && f < 0.20 && (mode === 'cost' || mode === 'fast')) {
+      return null;
+    }
+
     let cost = 0;
     let unknown = 0;
     let stockCoveredCount = 0;
@@ -454,10 +477,6 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         cost += a.unit * ing.count;
       }
     }
-    // Efficient Leveling: Recipes crafted more than 15-20 ranks above unlock
-    // lose experience rapidly in GW2 (yellow/green recipes). Strong age penalty avoids overproduction:
-    const age = rank - c.recipe.rating;
-    const agePenalty = (age > 15 && !isDisc) ? 1 + (age - 15) * 0.4 : 1;
 
     // Deduct expected resale proceeds and amortize recipe sheet unlock costs
     const resale = calculateExpectedResaleValue(c.recipe.outputId, c.recipe.outputCount || 1, prices, input.items);
@@ -465,28 +484,40 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const netCraftCost = Math.max(0, cost - resale.unit);
     const amortizedUnlock = unlockCost > 0 ? unlockCost / 3 : 0;
 
-    let effectiveCostPerRank = ((netCraftCost + amortizedUnlock) * agePenalty) / rpc;
+    // Escalating decay penalty: In GW2, recipes in the yellow/green zone (past 60% of span)
+    // give severely diminished returns. When f < 0.40, apply an escalating penalty so the planner
+    // switches to fresh tier recipes instead of grinding exhausted crafts (e.g. 77x inscriptions).
+    const decayPenalty = (!isDisc && f < 0.40) ? Math.pow(0.40 / Math.max(0.04, f), 2) : 1;
 
-    // Avoid grinding aged non-discovery equipment recipes
-    if (!isDisc && age > 25 && c.category === 'item') {
-      effectiveCostPerRank *= 3.0;
-    }
+    let effectiveCostPerRank = ((netCraftCost + amortizedUnlock) * decayPenalty) / rpc;
 
-    // Discovery bonus: Prioritize fresh discoveries during leveling
-    if (isDisc) {
-      effectiveCostPerRank *= 0.65;
-    }
-
-    // Ab Level 470: Prioritize exotic discovery bonus!
+    // Ab Level 470: Prioritize discovery bonus!
     if (rank >= 470 && isDisc) {
       effectiveCostPerRank *= 0.45;
     }
 
-    // Apply transparent mode-specific weighting when mode is specified
-    if (mode === 'fast') {
-      // Fast mode prioritizes high XP gain per craft (fewer craft runs, discovery bonus, item/component tier)
-      const speedFactor = 1 / Math.max(0.15, rpc * rpc);
-      effectiveCostPerRank = (Math.max(10, cost * 0.15) * agePenalty) * speedFactor;
+    // Apply transparent mode-specific weighting:
+    // 1. Höchste Kosteneffizienz (Cost Mode - Günstigster Weg von 0–500):
+    if (mode === 'cost') {
+      if (rank < 450) {
+        // Refinements at tier start are the absolute cheapest way to gain early tier ranks:
+        if (c.category === 'refinement') {
+          effectiveCostPerRank *= 0.25;
+        } else if (!isDisc && f >= 0.35) {
+          // Below 450: Strongly prioritize healthy bulk recipes (components, bulk items)
+          // over discoveries, avoiding fine-material price spikes and discovery window friction
+          effectiveCostPerRank *= 0.55;
+        }
+      } else {
+        // 450–500: Discoveries of exotics are the most economical path (avoiding ascended gates)
+        if (isDisc) {
+          effectiveCostPerRank *= 0.45;
+        }
+      }
+    } else if (mode === 'fast') {
+      // Fast mode prioritizes fewer steps while respecting realistic costs
+      const speedMultiplier = Math.max(0.25, rpc);
+      effectiveCostPerRank = (netCraftCost + amortizedUnlock) / (speedMultiplier * speedMultiplier);
     } else if (mode === 'completionist') {
       // Completionist mode prioritizes undiscovered recipes and equipment/item unlocks
       if (isDisc) {
@@ -507,7 +538,10 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         effectiveCostPerRank *= 1 - stockRatio * 0.45;
       }
     } else if (mode === 'balanced') {
-      // Balanced mode rewards stock coverage moderately while keeping low cost & discovery value
+      // Balanced mode rewards stock coverage moderately while keeping bulk efficiency under 450
+      if (rank < 450 && !isDisc) {
+        effectiveCostPerRank *= 0.75;
+      }
       if (stockCoveredCount > 0 && c.recipe.ingredients.length > 0) {
         const stockRatio = stockCoveredCount / c.recipe.ingredients.length;
         effectiveCostPerRank *= 1 - stockRatio * 0.2;
@@ -670,7 +704,9 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const estimatedMinutes = Math.max(1, Math.ceil((totalStationCrafts * 2 + (needsDiscovery ? 15 : 0)) / 60));
 
     let reasonKey = 'planner.reason.costOptimal';
-    if (needsDiscovery && mode === 'completionist') {
+    if ((mode === 'cost' || !mode) && !needsDiscovery && rs.category !== 'refinement') {
+      reasonKey = 'planner.reason.costOptimalBulk';
+    } else if (needsDiscovery && mode === 'completionist') {
       reasonKey = 'planner.reason.completionistDiscovery';
     } else if (needsDiscovery) {
       reasonKey = 'planner.reason.discoveryBonusXp';
@@ -943,9 +979,9 @@ export interface ProgressionTaskDefinition {
   requiredExpansion?: ExpansionAccessFlag;
   milestoneId?: string;
   /** Base priority weights per planning mode (transparent, explainable) */
-  modeWeights: Record<PlannerMode, number>;
+  modeWeights: Partial<Record<PlannerMode, number>>;
   /** Reason key per mode explaining why this task is prioritized */
-  modeReasonKeys: Record<PlannerMode, string>;
+  modeReasonKeys: Partial<Record<PlannerMode, string>>;
 }
 
 export interface EvaluatedProgressionTask {
@@ -1707,7 +1743,7 @@ export function buildCharacterProgressionPlan(input: CharacterProgressionInput):
       (def.minLevel <= cleanLevel && def.recommendedMaxLevel >= cleanLevel && Boolean(def.milestoneId));
 
     // Calculate transparent priority score
-    let score = def.modeWeights[mode] ?? 85;
+    let score = def.modeWeights[mode] ?? def.modeWeights.balanced ?? 85;
 
     // Prerequisite unblocking check: does this task unblock a downstream task in the character's current level band?
     const unblocksActiveDownstream = CHARACTER_PROGRESSION_TASKS.some(
@@ -1763,7 +1799,7 @@ export function buildCharacterProgressionPlan(input: CharacterProgressionInput):
     const reasonKey =
       contributesToNextMilestone && mode === 'goal'
         ? 'planner.taskReason.unlockNextMilestone'
-        : (def.modeReasonKeys[mode] ?? 'planner.taskReason.balancedDefault');
+        : (def.modeReasonKeys[mode] ?? def.modeReasonKeys.balanced ?? 'planner.taskReason.balancedDefault');
 
     return {
       definition: def,

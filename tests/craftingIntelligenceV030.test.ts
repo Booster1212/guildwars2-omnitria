@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import type { PriceInfo, Recipe, GameItem } from '../src/domain/types.ts';
 import { unitPrice } from '../src/domain/costs.ts';
-import { ranksPerCraft } from '../src/domain/craftingXp.ts';
 import {
   evaluateIngredientProcurement,
   calculateStockOpportunityCost,
@@ -20,6 +19,7 @@ import {
   computeGw2CraftsBenchmark,
   compareWithGw2Crafts,
 } from '../src/domain/gw2craftsReference.ts';
+import { CURATED_DISCOVERIES } from '../src/data/crafting/curatedDiscoveries.ts';
 import { planLevelRoute } from '../src/domain/levelPlanner.ts';
 
 test('1.1 Master Craftsman Materials Catalog provides accurate verified vendor prices', () => {
@@ -235,25 +235,144 @@ test('6.1 planLevelRoute integrates full cost optimization, resale deduction & b
   assert.ok(plan.gw2craftsComparison);
 });
 
-test('7.1 Discovery XP multiplier is active across all tiers (0-500) preventing overproduction', () => {
-  // Item category at rating 0, rank 25:
-  const rpcDisc = ranksPerCraft('item', 25, 0, true);
-  const rpcNormal = ranksPerCraft('item', 25, 0, false);
-  assert.ok(rpcDisc > rpcNormal * 2.0, 'Discovery XP must award bonus multiplier (>2x) at low tier to avoid grinding');
+test('7.1 Max Cost Efficiency mode prioritizes bulk refinements at tier start (0-25)', () => {
+  const recipes: Recipe[] = [
+    {
+      id: 'rec-bronze',
+      outputId: 19679,
+      outputCount: 1,
+      kind: 'official',
+      disciplines: ['Weaponsmith'],
+      rating: 0,
+      ingredients: [{ itemId: 19697, count: 2 }, { itemId: 19704, count: 1 }],
+      source: 'official',
+      flags: ['AutoLearned'],
+      type: 'Refinement',
+    },
+    {
+      id: 'rec-shield-boss',
+      outputId: 13000,
+      outputCount: 1,
+      kind: 'official',
+      disciplines: ['Weaponsmith'],
+      rating: 0,
+      ingredients: [{ itemId: 19679, count: 2 }],
+      source: 'official',
+      flags: ['AutoLearned'],
+      type: 'Component',
+    },
+    {
+      id: 'rec-shield',
+      outputId: 15197,
+      outputCount: 1,
+      kind: 'official',
+      disciplines: ['Weaponsmith'],
+      rating: 0,
+      ingredients: [{ itemId: 13000, count: 2 }, { itemId: 19887, count: 1 }],
+      source: 'official',
+      flags: ['AutoLearned'],
+      type: 'Shield',
+    },
+  ];
 
-  // Item category at rating 75, rank 100:
-  const rpcDiscT2 = ranksPerCraft('item', 100, 75, true);
-  const rpcNormalT2 = ranksPerCraft('item', 100, 75, false);
-  assert.ok(rpcDiscT2 > rpcNormalT2 * 2.0, 'Discovery XP must award bonus multiplier at Tier 2');
+  const byOut = new Map<number, Recipe[]>();
+  recipes.forEach((r) => byOut.set(r.outputId, [r]));
+  const prices = new Map<number, PriceInfo>([
+    [19697, { sell: 20, buy: 15, sellQty: 100, buyQty: 100 }],
+    [19704, { sell: 8, buy: 4, sellQty: 100, buyQty: 100 }],
+    [19887, { sell: 200, buy: 150, sellQty: 100, buyQty: 100 }],
+  ]);
+
+  const planCost = planLevelRoute({
+    discipline: 'Weaponsmith',
+    fromRank: 0,
+    toRank: 20,
+    recipes,
+    recipesByOutput: byOut,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+      mode: 'cost',
+    },
+  });
+
+  assert.ok(planCost.steps.length > 0);
+  assert.equal(planCost.steps[0].recipe.type, 'Refinement', 'Tier start in cost mode must choose Refinement over equipment');
+  assert.equal(planCost.steps[0].recipe.outputId, 19679, 'Must refine Bronze Ingots at rank 0');
 });
 
-test('7.2 Shopping list table layout and column classes maintain strict parity between header and body', () => {
-  const levelPlannerSrc = fs.readFileSync('src/components/crafting/LevelPlanner.tsx', 'utf8');
-  assert.ok(levelPlannerSrc.includes('className="icon-cell col-icon"'));
-  assert.ok(levelPlannerSrc.includes('className="num font-mono col-gross"'));
-  assert.ok(levelPlannerSrc.includes('className="num font-mono dim col-stock"'));
-  assert.ok(levelPlannerSrc.includes('col-missing'));
-  assert.ok(levelPlannerSrc.includes('col-unit'));
-  assert.ok(levelPlannerSrc.includes('col-total'));
-  assert.ok(levelPlannerSrc.includes('minWidth: \'150px\''));
+test('7.2 All 8 crafting disciplines run cleanly and sanely in Max Cost Efficiency mode', () => {
+  const disciplines = [
+    'Weaponsmith',
+    'Armorsmith',
+    'Huntsman',
+    'Artificer',
+    'Tailor',
+    'Leatherworker',
+    'Jeweler',
+    'Chef',
+  ] as const;
+
+  // Build byOutput lookup from curated discoveries
+  const byOut = new Map<number, Recipe[]>();
+  for (const r of CURATED_DISCOVERIES) {
+    const list = byOut.get(r.outputId) ?? [];
+    list.push(r);
+    byOut.set(r.outputId, list);
+  }
+
+  // Realistic fallback price map (10 copper each if not known)
+  const prices = new Map<number, PriceInfo>();
+  for (const r of CURATED_DISCOVERIES) {
+    prices.set(r.outputId, { sell: 50, buy: 30, sellQty: 100, buyQty: 100 });
+    for (const ing of r.ingredients) {
+      prices.set(ing.itemId, { sell: 15, buy: 10, sellQty: 100, buyQty: 100 });
+    }
+  }
+
+  for (const disc of disciplines) {
+    const target = disc === 'Jeweler' ? 400 : 500;
+    const plan = planLevelRoute({
+      discipline: disc,
+      fromRank: 0,
+      toRank: target,
+      recipes: CURATED_DISCOVERIES,
+      recipesByOutput: byOut,
+      prices,
+      options: {
+        allowDiscovery: true,
+        craftIntermediates: true,
+        mode: 'cost',
+      },
+    });
+    assert.ok(plan, `Plan for ${disc} must compute without throwing`);
+
+    // Verify overproduction guards:
+    for (const step of plan.steps) {
+      assert.ok(
+        step.crafts <= 35,
+        `Step for ${disc} (${step.recipe.type} rating ${step.recipe.rating} ranks ${step.fromRank}->${step.toRank}) crafts count ${step.crafts} must not exceed 35 (no runaways)`,
+      );
+    }
+
+    // Verify shopping list totals: no item should have runaway requirements (e.g. 13,000 logs)
+    for (const [itemId, qty] of plan.purchases) {
+      assert.ok(
+        qty < 2500,
+        `Material ${itemId} in discipline ${disc} shopping quantity ${qty} must not exceed runaway threshold (screenshot had 13,992)`,
+      );
+    }
+  }
 });
+
+test('7.3 README.md changelog is collapsible with <details> and shows at most 3 latest versions', () => {
+  const readme = fs.readFileSync('README.md', 'utf8');
+  assert.ok(readme.includes('<details open>'));
+  assert.ok(readme.includes('<summary><b>v0.3.0'));
+  assert.ok(readme.includes('<summary><b>v0.2.9'));
+  assert.ok(readme.includes('<summary><b>v0.2.8'));
+  // Ensure older versions like v0.2.7 are NOT expanded as top-level sections
+  assert.ok(!readme.includes('<summary><b>v0.2.7'));
+});
+

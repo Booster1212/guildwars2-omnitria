@@ -699,6 +699,8 @@ export const TRANSLATIONS = {
 
     // Interactive Level & Progression Planner Overhaul
     'planner.mode.label': 'Planungsmodus:',
+    'planner.mode.cost': 'Höchste Kosteneffizienz (0–500)',
+    'planner.mode.costDesc': 'Günstigster Weg von 0–500: Bevorzugt günstige Massenfertigung (Bulk) & Veredelungen unter 450 und minimiert Goldaufwand strikt.',
     'planner.mode.fast': 'Schnelles Leveln',
     'planner.mode.fastDesc': 'Priorisiert maximale EP-Effizienz, Entdeckungsboni und schnelle Meilensteine.',
     'planner.mode.balanced': 'Ausgewogen',
@@ -767,6 +769,7 @@ export const TRANSLATIONS = {
     'planner.stage.adept': 'Adept (Rang 300–400)',
     'planner.stage.master': 'Meister (Rang 400–500)',
     'planner.reason.costOptimal': 'Niedrigste Goldkosten pro Handwerksrang bei aktuellen Handelsposten-Preisen.',
+    'planner.reason.costOptimalBulk': 'Günstigste Massenfertigung (Bulk) mit minimalen Materialkosten.',
     'planner.reason.completionistDiscovery': 'Schaltet ein noch unentdecktes Rezept dauerhaft frei (+100–200 % Entdeckungs-Bonus-EP).',
     'planner.reason.discoveryBonusXp': 'Hoher Entdeckungs-EP-Bonus halbiert die benötigten Herstellungsvorgänge in diesem Rangfenster.',
     'planner.reason.fastXpGain': 'Schnellster Rangaufstieg mit minimaler Anzahl an Herstellungsvorgängen.',
@@ -1559,6 +1562,8 @@ export const TRANSLATIONS = {
 
     // Interactive Level & Progression Planner Overhaul
     'planner.mode.label': 'Planning Mode:',
+    'planner.mode.cost': 'Max Cost Efficiency (0–500)',
+    'planner.mode.costDesc': 'Cheapest path from 0–500: Prioritizes cost-effective bulk crafting & refinements below 450, strictly minimizing gold outlay.',
     'planner.mode.fast': 'Fast Leveling',
     'planner.mode.fastDesc': 'Prioritizes maximum XP efficiency, discovery bonuses, and rapid milestones.',
     'planner.mode.balanced': 'Balanced Progression',
@@ -1627,6 +1632,7 @@ export const TRANSLATIONS = {
     'planner.stage.adept': 'Adept (Rank 300–400)',
     'planner.stage.master': 'Master (Rank 400–500)',
     'planner.reason.costOptimal': 'Lowest gold cost per crafting rank at current Trading Post prices.',
+    'planner.reason.costOptimalBulk': 'Cheapest bulk manufacturing with minimal material costs.',
     'planner.reason.completionistDiscovery': 'Permanently unlocks an undiscovered recipe (+100–200% discovery bonus XP).',
     'planner.reason.discoveryBonusXp': 'High discovery XP bonus halves the required crafting runs in this rank bracket.',
     'planner.reason.fastXpGain': 'Fastest rank progression with minimal crafting runs required.',

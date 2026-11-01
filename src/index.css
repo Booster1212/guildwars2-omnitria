@@ -1660,7 +1660,7 @@ button {
 
 .shopping-table {
   width: 100%;
-  min-width: 820px;
+  min-width: 720px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
@@ -1700,14 +1700,9 @@ button {
   text-align: right;
 }
 
-.shopping-table thead th.col-total {
-  min-width: 150px;
-  padding-right: 18px !important;
-  white-space: nowrap;
-}
-
+.shopping-table thead th.col-total,
 .shopping-table tbody td.col-total {
-  padding-right: 18px !important;
+  padding-right: 16px !important;
   white-space: nowrap;
 }
 
@@ -9021,6 +9016,18 @@ button {
   border-color: var(--gw2-gold);
   color: var(--gw2-gold-bright);
   box-shadow: inset 0 1px 0 rgba(244, 227, 168, 0.18);
+}
+
+.planner-mode-pill.mode-cost-btn {
+  border-color: rgba(210, 178, 104, 0.45);
+  background: rgba(210, 178, 104, 0.08);
+}
+
+.planner-mode-pill.mode-cost-btn.active {
+  background: linear-gradient(180deg, #322513 0%, #1e1509 100%);
+  border-color: #ffd700;
+  color: #fff2a8;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.25), inset 0 1px 0 rgba(255, 242, 168, 0.3);
 }
 
 .planner-mode-hint-bar {

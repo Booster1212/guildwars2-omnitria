@@ -15,7 +15,7 @@ const KEY = 'gw2_overlay_progress_v1';
 const BACKUP_KEY = 'gw2_overlay_progress_backup';
 export const SCHEMA_VERSION = 1;
 
-export type PlannerMode = 'fast' | 'balanced' | 'completionist' | 'goal';
+export type PlannerMode = 'cost' | 'fast' | 'balanced' | 'completionist' | 'goal';
 export type TaskOrStepStatus = 'open' | 'completed' | 'skipped' | 'deferred';
 
 export interface PlannerPreferences {
@@ -230,10 +230,10 @@ function sanitize(raw: unknown): ProgressState | null {
   }
   if (o.plannerPreferences && typeof o.plannerPreferences === 'object') {
     const pp = o.plannerPreferences as Partial<PlannerPreferences>;
-    const validModes: PlannerMode[] = ['fast', 'balanced', 'completionist', 'goal'];
+    const validModes: PlannerMode[] = ['cost', 'fast', 'balanced', 'completionist', 'goal'];
     const validStrategies = ['all_craft', 'all_buy', 'custom'] as const;
     s.plannerPreferences = {
-      mode: validModes.includes(pp.mode as PlannerMode) ? (pp.mode as PlannerMode) : 'balanced',
+      mode: validModes.includes(pp.mode as PlannerMode) ? (pp.mode as PlannerMode) : 'cost',
       selectedCharacter: typeof pp.selectedCharacter === 'string' && pp.selectedCharacter.trim() ? pp.selectedCharacter.trim() : null,
       onlyOpenSteps: Boolean(pp.onlyOpenSteps),
       strategy: validStrategies.includes(pp.strategy as any) ? (pp.strategy as any) : 'all_craft',

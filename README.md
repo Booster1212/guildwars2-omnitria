@@ -17,40 +17,51 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 </div>
 
-## What's New in v0.3.0
+## Release Changelog
 
-- **Crafting Intelligence & Multi-Option Cost Optimizer:**
-  - **Master Craftsman (Berufslehrer) Vendor Integration:** Data-driven catalog with verified prices for all basic crafting ingredients (Tin, Coal, Primordium, Thermocatalytic Reagents, Spools, Chef basics) and recipe sheets across all 8 disciplines.
-  - **Dynamic Price Comparison:** Automatically evaluates `Math.min(vendorPrice, tpSell)` for every material, strictly preventing bias toward either source.
-  - **GW2Crafts Reference Engine & Benchmark:** Evaluates leveling routes against gw2crafts.net blueprints, calculating cost deltas, savings percentages, and discipline-specific advisories (e.g. Jeweler 400 cap, Chef quest requirements).
-  - **Stock Opportunity Cost & Net Resale Valuation:** Evaluates owned materials via liquidation value (`Math.floor(tpBuy * 0.85)` after 15% TP fees) and offsets expected resale proceeds of crafted outputs.
-  - **Overproduction Prevention:** Seamlessly integrates discovery bonus XP across all tiers (0–500) and penalizes aged equipment recipes, reducing required materials by up to 95% compared to repeat-crafting.
-  - **4-Way Cost Comparison Matrix:** Displays a clear breakdown of NPC purchases, Trading Post orders, intermediate self-crafting, and discovery vs. bulk paths.
-  - **Enhanced Shopping List UI:** Features 6-tier milestone grouping, responsive column alignments, and a live Price Freshness pill with manual refresh.
+<details open>
+<summary><b>v0.3.0 · Crafting Intelligence, Cost Optimizer & Master Craftsman NPC Integration</b> (Latest Release)</summary>
 
-## What's New in v0.2.9
+- **Neuer Planungsmodus: Höchste Kosteneffizienz (0–500):**
+  - Dedizierter Schnellwahl-Button im Berufsplaner, der unter Stufe 450 gezielt kostengünstige Massenfertigung (Bulk) und Veredelungen priorisiert, statt teurer Entdeckungsflut.
+  - Veredelungen an Stufenübergängen (0–25, 75–100 usw.) werden stark priorisiert (Kupfer, Eisen, Holz, Stoff, Leder), sodass die ersten 25 Ränge jedes Tiers für wenige Kupfer abgeschlossen werden.
+  - Erst ab Stufe 450–500 werden exotische Entdeckungen aktiv empfohlen, um teure zeitbegrenzte Aufgestiegene Barren/Planken zu umgehen.
+- **Master Craftsman (Berufslehrer) Vendor Integration:**
+  - Datengetriebener Katalog mit verifizierten NPC-Preisen für Grundmaterialien (Zinn, Kohle, Primordium, Thermokatalytische Reagenzien, Faden, Koch-Zutaten) und Rezeptblätter.
+  - Dynamischer Preisvergleich `min(NPC, Handelsposten)` ohne Vorabannahmen.
+- **GW2Crafts Referenz-Engine & Benchmark:**
+  - Berechnet den Vergleichswert gegen die offiziellen Standard-Leitfäden von `gw2crafts.net` und schlüsselt die Ersparnis transparent auf.
+- **Opportunitätskosten & Netto-Verkaufserlöse:**
+  - Berücksichtigt den wirtschaftlichen Wert vorhandener Materialien (abzüglich 15 % Handelspostengebühren) und zieht erwartete Wiederverkaufserlöse hergestellter Gegenstände von den Gesamtkosten ab.
+- **Überarbeitete Einkaufsliste & Spalten-Ausrichtung:**
+  - Saubere Gruppierung nach 6 Meilenstein-Tiers, konsistente Spaltenbreiten, kein Abschneiden von "Gesamtkosten" und Live-Preisaktualitätsanzeige mit Refresh-Button.
+
+</details>
+
+<details>
+<summary><b>v0.2.9 · MumbleLink Live-Telemetrie & Kampf-Ausblendung</b></summary>
 
 - **MumbleLink Live Telemetry (Shared Memory Integration):**
-  - **Live Game Telemetry:** Standalone reader worker connects to Tyria's `MumbleLink` shared memory (read-only, zero DLL injection or keystroke simulation).
-  - **Automatic Character Synchronization:** Automatically switches active character context in the Level Planner and Inventory views to match the character currently logged in and active in Guild Wars 2.
-  - **Current Map Meta-Event Highlighting:** Displays an emerald `📍 ON YOUR MAP` (`📍 DEINE KARTE`) badge and illuminated card border whenever a World Boss or Meta-Event is active on the player's current map.
-  - **In-Combat Full Auto-Stealth:** Completely hides the overlay (`opacity: 0, visibility: hidden`) and passes mouse clicks directly to the game window during combat (`uiState & 0x40`), restoring visibility and controls immediately upon leaving combat.
-  - **MumbleLink Settings & Live Status Panel:** Dedicated settings card with live telemetry indicators (character name, profession, current zone, combat state) and customizable toggles.
+  - Standalone-Reader verbindet sich direkt mit Tyrias `MumbleLink` Shared Memory (streng read-only, 100 % ArenaNet-TOS-konform).
+  - Synchronisiert automatisch den aktiven Charakter im Berufsplaner und Inventar mit dem im Spiel eingeloggten Charakter.
+  - Hebt aktive Weltbosse und Meta-Events auf der aktuellen Karte mit smaragdgrünem `📍 DEINE KARTE`-Badge hervor.
+  - **Vollständige Kampf-Ausblendung (In-Combat Auto-Stealth):** Blendet das Overlay im Kampf vollständig aus (`opacity: 0, visibility: hidden`) und leitet Mausklicks direkt an das Spielfenster durch.
 
-## What's New in v0.2.8
+</details>
+
+<details>
+<summary><b>v0.2.8 · 450–500 Endgame & Performance</b></summary>
 
 - **Crafting Level Planner (450–500 Endgame & Discovery Routes):**
-  - **Active Discovery Recommendations (450/470+):** Prioritizes exotic armor and weapon discoveries for bonus XP, reducing total material and gold costs from rank 450/470 to 500.
-  - **Single-Craft Discovery Enforcement:** Discovery steps are strictly bounded to 1 craft (`crafts: 1`) and marked as known, preventing accidental bulk crafting of undiscovered recipes.
-  - **Preserved 0–450 Tier Progression:** Basic material refinements (ores, wood, cloth, leather) remain prioritized at each tier start (ranks 0–25, 75–100, etc.) before intermediate components or discoveries.
-  - **Accurate Recipe Tracking:** Automatically synchronizes unlocked recipes from `/v2/account/recipes`, character-specific discoveries, and manual step checkmarks.
-- **Crafting Calculation Stability & Fixes:**
-  - **Excluded Time-Gated Ascended Recipes:** Ascended daily crafts (e.g. *Bolt of Damask*, *Glob of Elder Spirit Residue*) and account-bound ingredients are excluded from bulk leveling routes.
-  - **Prevented `Infinity` / `NaN` Displays:** Added strict finite-number guards across recursive ingredient calculations, procurement costs, and progress totals.
-  - **Trading Post Price Reactivity:** Added dynamic store versioning to `usePrices` so that total costs and shopping lists calculate immediately as Trading Post data arrives on startup, without requiring a manual toggle of the discovery checkbox.
-  - **Performance Optimization:** Precomputed rank capabilities using typed arrays; all 9 crafting disciplines calculate full 0–500 routes in under 50ms without UI lag.
-- **Update Notification Indicator:**
-  - Added an update badge on the Settings gear button and a direct version pill in the top header bar when a newer release is published on GitHub.
+  - Gezielte Entdeckungsempfehlungen für exotische Rüstungen und Waffen für 100 % Bonus-XP von Rang 450 auf 500.
+  - Strikte Begrenzung von Entdeckungsschritten auf 1x Herstellung (`crafts: 1`), um versehentliche Mehrfachproduktion zu verhindern.
+  - Ausschluss zeitbegrenzter aufgestiegener Rezepte (Damast, Geisterholz) aus Massenleveling-Routen.
+  - Performance-Optimierung: Alle 8 Berufe berechnen vollständige 0–500-Routen in unter 50 ms.
+  - Update-Benachrichtigungs-Indikator im Header bei neuen GitHub-Releases.
+
+</details>
+
+> Vollständige Versionshistorie siehe [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ## Features
 

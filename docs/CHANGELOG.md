@@ -56,16 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * **Chef (Koch):** Special advisory notice for ranks 400–500 explaining feast discoveries (400–425) and the Seimur Oxbone Sous Chef questline (450–500).
 * **Price Freshness & Timestamp Indicator:**
   * Live status pill in the summary strip displaying a pulsing green indicator, time since last Trading Post price fetch, and an instant manual refresh button.
-* **Overproduction Elimination & Discovery Bonus Progression:**
-  * Activated discovery XP bonus across all tiers (0–500) and penalized aged non-discovery equipment recipes (>15–20 ranks decayed).
-  * Prevents bulk repeat-crafting of decaying recipes (eliminating massive demand spikes like 14,000 logs down to ~100 logs per tier).
-  * Discovery toggle in the Level Planner now defaults to active (`true`), matching standard Guild Wars 2 leveling mechanics.
-* **Shopping List Layout & Header Realignment:**
-  * Aligned table header and body column classes (`col-icon`, `col-item`, `col-gross`, `col-stock`, `col-missing`, `col-unit`, `col-total`) with fixed minimum column widths.
-  * Protected the `col-total` header so that "Gesamtkosten" is never truncated by the responsive container scrollbar.
 
 #### Automated Testing Suite (`tests/craftingIntelligenceV030.test.ts`)
-* Added 10 new automated unit tests covering vendor catalog verification, NPC vs TP dynamic price comparison, recipe sheet unlock costs, resale liquidation deductions, 4-way comparison summary output, GW2Crafts benchmark calculation, overproduction avoidance, shopping list table layout parity, and full planner route optimization. Total test count increased to 136 passing tests.
+* Added 8 new automated unit tests covering vendor catalog verification, NPC vs TP dynamic price comparison, recipe sheet unlock costs, resale liquidation deductions, 4-way comparison summary output, GW2Crafts benchmark calculation, and full planner route optimization. Total test count increased to 134 passing tests.
 
 ---
 
