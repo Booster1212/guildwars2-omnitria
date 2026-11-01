@@ -22,30 +22,31 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 <details open>
 <summary><b>v0.3.0 · Crafting Intelligence, Cost Optimizer & Master Craftsman NPC Integration</b> (Latest Release)</summary>
 
-- **Neuer Planungsmodus: Höchste Kosteneffizienz (0–500):**
-  - Dedizierter Schnellwahl-Button im Berufsplaner, der unter Stufe 450 gezielt kostengünstige Massenfertigung (Bulk) und Veredelungen priorisiert, statt teurer Entdeckungsflut.
-  - Veredelungen an Stufenübergängen (0–25, 75–100 usw.) werden stark priorisiert (Kupfer, Eisen, Holz, Stoff, Leder), sodass die ersten 25 Ränge jedes Tiers für wenige Kupfer abgeschlossen werden.
-  - Erst ab Stufe 450–500 werden exotische Entdeckungen aktiv empfohlen, um teure zeitbegrenzte Aufgestiegene Barren/Planken zu umgehen.
-- **Master Craftsman (Berufslehrer) Vendor Integration:**
-  - Datengetriebener Katalog mit verifizierten NPC-Preisen für Grundmaterialien (Zinn, Kohle, Primordium, Thermokatalytische Reagenzien, Faden, Koch-Zutaten) und Rezeptblätter.
-  - Dynamischer Preisvergleich `min(NPC, Handelsposten)` ohne Vorabannahmen.
-- **GW2Crafts Referenz-Engine & Benchmark:**
-  - Berechnet den Vergleichswert gegen die offiziellen Standard-Leitfäden von `gw2crafts.net` und schlüsselt die Ersparnis transparent auf.
-- **Opportunitätskosten & Netto-Verkaufserlöse:**
-  - Berücksichtigt den wirtschaftlichen Wert vorhandener Materialien (abzüglich 15 % Handelspostengebühren) und zieht erwartete Wiederverkaufserlöse hergestellter Gegenstände von den Gesamtkosten ab.
-- **Überarbeitete Einkaufsliste & Spalten-Ausrichtung:**
-  - Saubere Gruppierung nach 6 Meilenstein-Tiers, konsistente Spaltenbreiten, kein Abschneiden von "Gesamtkosten" und Live-Preisaktualitätsanzeige mit Refresh-Button.
+- **Max Cost Efficiency Mode (0–500):**
+  - Dedicated gold quick-select button in the Crafting Planner that prioritizes economical bulk production and material refinements under rank 450, avoiding expensive discovery spam.
+  - Refinements at tier transitions (0–25, 75–100, 150–175, etc.) are heavily prioritized (Copper, Iron, Wood, Cloth, Leather), completing the first 25 ranks of each tier for minimal copper.
+  - Exotic discoveries are only prioritized from rank 450–500, bypassing expensive time-gated Ascended materials (Deldrimor Ingots, Spiritwood).
+  - Terminal decay cutoff (`f < 0.20`) and progressive decay penalties eliminate runaway loops (e.g. 77x inscriptions) and excessive material demands.
+- **Master Craftsman Vendor Integration:**
+  - Data-driven catalog with verified NPC prices for basic ingredients (Tin, Coal, Primordium, Thermocatalytic Reagents, Spools, Chef ingredients) and recipe sheets across all 8 disciplines.
+  - Dynamic price comparison evaluating `min(NPC, Trading Post)` without prior assumptions.
+- **GW2Crafts Reference Engine & Benchmark:**
+  - Evaluates leveling paths against official `gw2crafts.net` blueprints and calculates transparent cost differences and savings percentages.
+- **Opportunity Costs & Resale Offsets:**
+  - Evaluates the liquidation value of materials in stock (minus 15% Trading Post fees) and deducts expected resale proceeds from total net costs.
+- **Overhauled Shopping List & Column Alignment:**
+  - Clean grouping into 6 milestone tiers, responsive column widths, complete visibility for total costs without truncation, and live price freshness badge with manual refresh.
 
 </details>
 
 <details>
-<summary><b>v0.2.9 · MumbleLink Live-Telemetrie & Kampf-Ausblendung</b></summary>
+<summary><b>v0.2.9 · MumbleLink Live Telemetry & In-Combat Auto-Stealth</b></summary>
 
 - **MumbleLink Live Telemetry (Shared Memory Integration):**
-  - Standalone-Reader verbindet sich direkt mit Tyrias `MumbleLink` Shared Memory (streng read-only, 100 % ArenaNet-TOS-konform).
-  - Synchronisiert automatisch den aktiven Charakter im Berufsplaner und Inventar mit dem im Spiel eingeloggten Charakter.
-  - Hebt aktive Weltbosse und Meta-Events auf der aktuellen Karte mit smaragdgrünem `📍 DEINE KARTE`-Badge hervor.
-  - **Vollständige Kampf-Ausblendung (In-Combat Auto-Stealth):** Blendet das Overlay im Kampf vollständig aus (`opacity: 0, visibility: hidden`) und leitet Mausklicks direkt an das Spielfenster durch.
+  - Standalone reader connects directly to Tyria's `MumbleLink` shared memory (strict read-only, 100% ArenaNet TOS compliant).
+  - Automatically synchronizes the active character in the Level Planner and Inventory views with the character currently logged in and active in Guild Wars 2.
+  - Highlights active World Bosses and Meta-Events on the player's current map with an emerald `📍 ON YOUR MAP` badge.
+  - **In-Combat Full Auto-Stealth:** Completely hides the overlay (`opacity: 0, visibility: hidden`) and passes mouse clicks directly to the game window during combat (`uiState & 0x40`).
 
 </details>
 
@@ -53,15 +54,15 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 <summary><b>v0.2.8 · 450–500 Endgame & Performance</b></summary>
 
 - **Crafting Level Planner (450–500 Endgame & Discovery Routes):**
-  - Gezielte Entdeckungsempfehlungen für exotische Rüstungen und Waffen für 100 % Bonus-XP von Rang 450 auf 500.
-  - Strikte Begrenzung von Entdeckungsschritten auf 1x Herstellung (`crafts: 1`), um versehentliche Mehrfachproduktion zu verhindern.
-  - Ausschluss zeitbegrenzter aufgestiegener Rezepte (Damast, Geisterholz) aus Massenleveling-Routen.
-  - Performance-Optimierung: Alle 8 Berufe berechnen vollständige 0–500-Routen in unter 50 ms.
-  - Update-Benachrichtigungs-Indikator im Header bei neuen GitHub-Releases.
+  - Targeted exotic armor and weapon discoveries for bonus XP, accelerating progression from rank 450 to 500.
+  - Single-craft discovery enforcement (`crafts: 1`) preventing accidental duplicate production.
+  - Excluded time-gated ascended recipes (Damask, Spiritwood) from bulk leveling routes.
+  - Performance optimization: full 0–500 routes computed in under 50ms across all 8 disciplines.
+  - Update notification badge in the header bar for new GitHub releases.
 
 </details>
 
-> Vollständige Versionshistorie siehe [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+> For complete version history, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ## Features
 
