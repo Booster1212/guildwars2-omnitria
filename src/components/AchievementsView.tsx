@@ -53,6 +53,7 @@ import {
   getCategoriesAndGroups,
   achievementEmitter,
 } from '../data/gw2/achievements/achievementService';
+import { openExternal, wikiSearchUrl } from '../data/external';
 
 interface AchievementsViewProps {
   upcomingInstances: EventInstance[];
@@ -1702,6 +1703,19 @@ export const AchievementsView: React.FC<AchievementsViewProps> = React.memo(({
                 </span>
               </button>
             )}
+
+            <button
+              type="button"
+              className="btn-card-waypoint flex items-center gap-1"
+              onClick={() => {
+                const title = lang === 'en' ? (ach.definition.nameEn || ach.definition.name) : ach.definition.name;
+                openExternal(wikiSearchUrl(title, lang));
+              }}
+              title={lang === 'en' ? 'Lookup in GW2 Wiki' : 'Im GW2-Wiki nachschlagen'}
+            >
+              <ExternalLink size={11} />
+              <span>Wiki</span>
+            </button>
           </div>
 
           {/* Expanded Objectives Drawer */}

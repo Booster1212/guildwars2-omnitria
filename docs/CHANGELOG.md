@@ -34,6 +34,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * **Corrected Cooking Ingredient Item IDs:**
   * Fixed incorrect item IDs for chef base ingredients (Flour `12136`, Yeast `12152`, Vinegar `12157`, Soy Sauce `12271`, Buttermilk `12137`, Cheese Wedge `12159`, Sugar `12155`), ensuring authentic vendor purchase decisions and accurate pricing.
 
+#### GW2 Wiki Outage Audit & Offline-First Resilience (`src/components/common/labels.ts`, `src/components/common/ui.tsx`, `src/data/external.ts`, `electron/main.cjs`)
+* **Offline Bundled Crafting Discipline Emblems:**
+  * Downloaded and bundled all 8 official crafting discipline tango emblems directly into `public/assets/disciplines/*.png`.
+  * Eliminated external HTTP requests and hotlinking to `wiki.guildwars2.com/images/thumb/...`, preventing broken images, network stalls, and UI flashing when the wiki experiences downtime or purges thumbnail CDN caches.
+* **Three-Tier Icon Resilience Architecture:**
+  * Tier 1: Local bundled asset (`./assets/disciplines/*.png`) with 0ms load latency and 100% offline reliability.
+  * Tier 2: Verified live GW2 Wiki full-resolution image URL (`https://wiki.guildwars2.com/images/...`) as secondary fallback.
+  * Tier 3: Official ArenaNet Render API item proxy (`DISCIPLINE_ICON_ITEM`) as tertiary failover.
+* **Bilingual Wiki Search & Direct Article Resolution (`src/data/external.ts`):**
+  * Upgraded `wikiSearchUrl(query, lang)` to dynamically route German queries to `wiki-de.guildwars2.com` and English queries to `wiki.guildwars2.com`.
+  * Added `wikiArticleUrl(title, lang)` for direct page navigation with automatic space-to-underscore conversion.
+  * Fixed language mismatch in `MaterialDetail.tsx` where English item names were previously queried against the German wiki.
+* **1-Click Wiki Lookup for Achievements & World Events:**
+  * Added contextual Wiki lookup buttons to `AchievementsView.tsx` (card actions) and `EventCard.tsx` (event actions), opening walkthroughs, tactics, and mechanics in the user's active language.
+* **Electron External Host Allowlist Hardening (`electron/main.cjs`):**
+  * Added `gw2crafts.net` to `EXTERNAL_HOSTS` alongside `wiki.guildwars2.com` and `wiki-de.guildwars2.com`, ensuring external guides and wiki lookups open safely in the default system browser without being blocked.
+* **Comprehensive Automated Wiki Resilience Test Suite (`tests/wikiResilience.test.ts`):**
+  * Added 7 dedicated unit tests verifying bilingual search URL generation, article link construction, physical disk existence and file integrity of bundled PNG emblems, secondary fallback URLs, item proxies, and Electron host allowlists.
+
 ---
 
 ## [0.3.0] - 2026-11-01

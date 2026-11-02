@@ -110,6 +110,17 @@ try {
   log('Custom userData setup failed:', e.message);
 }
 
+// Open external links (Wiki, ArenaNet account, GW2Crafts) in default browser - strictly https and known hosts
+const EXTERNAL_HOSTS = new Set([
+  'wiki.guildwars2.com',
+  'wiki-de.guildwars2.com',
+  'account.arena.net',
+  'www.guildwars2.com',
+  'api.guildwars2.com',
+  'gw2crafts.net',
+  'github.com',
+]);
+
 let mainWindow = null;
 let tray = null;
 let currentMode = 'mini';
@@ -658,15 +669,7 @@ ipcMain.on('store-write', async (_event, name, json) => {
   }
 });
 
-// Open external links (Wiki, ArenaNet account) in default browser - strictly https and known hosts
-const EXTERNAL_HOSTS = new Set([
-  'wiki.guildwars2.com',
-  'wiki-de.guildwars2.com',
-  'account.arena.net',
-  'www.guildwars2.com',
-  'api.guildwars2.com',
-  'github.com',
-]);
+// Open external links (Wiki, ArenaNet account, GW2Crafts) in default browser
 ipcMain.on('open-external', (_event, url) => {
   try {
     const u = new URL(url);

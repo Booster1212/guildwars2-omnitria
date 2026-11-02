@@ -38,6 +38,11 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
   - Dynamic price comparison evaluating `min(NPC, Trading Post)` without prior assumptions.
 - **GW2Crafts Independent Validation & Benchmark Engine:**
   - Complete offline structural snapshot across all disciplines with live Trading Post re-pricing, comparing Omnitria routes against GW2Crafts normal guides across all tiers (0–75, 75–150, 150–225, 225–300, 300–400, 400–500).
+- **GW2 Wiki Outage Audit & Offline-First Resilience:**
+  - Bundled all 8 crafting discipline tango emblems locally in `public/assets/disciplines/`, eliminating external network dependencies and thumbnail 404s.
+  - Three-tier icon resilience: Local Asset (0ms) -> Restored Verified Wiki CDN -> Official Render API Item Proxy.
+  - Bilingual Wiki integration: routes `wiki-de.guildwars2.com` (German) and `wiki.guildwars2.com` (English) dynamically with direct 1-click lookup buttons for Materials, Achievements, and World Boss / Meta Events.
+  - Added `gw2crafts.net` to Electron's external host allowlist alongside the official wikis.
 
 </details>
 

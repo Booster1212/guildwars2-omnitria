@@ -317,7 +317,7 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
           ) : (
             <p className="hint">{lang === 'en' ? 'No known restrictions for this material.' : 'Keine bekannten Einschränkungen für dieses Material.'}</p>
           )}
-          <button className="btn sm" onClick={() => openExternal(wikiSearchUrl(item?.name ?? String(itemId)))}>
+          <button className="btn sm" onClick={() => openExternal(wikiSearchUrl(item?.name ?? String(itemId), lang))}>
             <ExternalLink size={12} /> {lang === 'en' ? 'Lookup in Wiki' : 'Im Wiki nachschlagen'}
           </button>
         </section>

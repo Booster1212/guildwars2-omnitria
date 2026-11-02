@@ -26,8 +26,10 @@ import {
   Swords,
   Plane,
   Radio,
+  ExternalLink,
   LucideIcon,
 } from 'lucide-react';
+import { openExternal, wikiSearchUrl } from '../data/external';
 import { EventInstance, IconType } from '../types';
 import {
   formatCountdown,
@@ -530,6 +532,19 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
             >
               <Check size={13} className={isCompletedToday ? 'text-green' : ''} />
               <span>{t('events.logCompletion')}</span>
+            </button>
+
+            {/* Wiki Lookup */}
+            <button
+              className="gw2-gw-btn wiki-lookup-btn"
+              onClick={() => {
+                const rawName = lang === 'en' ? (event.nameEn || event.name) : event.name;
+                openExternal(wikiSearchUrl(rawName, lang));
+              }}
+              title={lang === 'en' ? 'Lookup Event in GW2 Wiki' : 'Event im GW2-Wiki nachschlagen'}
+            >
+              <ExternalLink size={12} />
+              <span>Wiki</span>
             </button>
 
             {/* Accordion Toggle for Taktik & Beute with Info Icon */}

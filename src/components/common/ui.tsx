@@ -19,6 +19,7 @@ import {
   RARITY_DE,
   fmtInt,
   DISCIPLINE_ICONS,
+  DISCIPLINE_WIKI_ICONS,
   DISCIPLINE_ICON_ITEM,
   DISCIPLINE_DE,
   DISCIPLINE_EN,
@@ -273,38 +274,65 @@ export const ItemIcon: React.FC<{
   );
 });
 
-/* ---------- Discipline symbol (Official discipline emblem with fallback) ---------- */
+/* ---------- Discipline symbol (Official discipline emblem with multi-tier fallback) ---------- */
 export const DisciplineIcon: React.FC<{
   discipline: DisciplineId;
   size?: 's' | 'm' | 'l';
   onClick?: () => void;
 }> = React.memo(({ discipline, size = 'm', onClick }) => {
-  const iconUrl = DISCIPLINE_ICONS[discipline];
-  const [imgFailed, setImgFailed] = useState<boolean>(() => isIconUrlFailed(iconUrl));
+  const localUrl = DISCIPLINE_ICONS[discipline];
+  const wikiUrl = DISCIPLINE_WIKI_ICONS[discipline];
   const repItemId = DISCIPLINE_ICON_ITEM[discipline];
+
+  // Multi-tier resilience:
+  // 1. Locally bundled asset (instant, 0ms, 100% offline & wiki-outage proof)
+  // 2. Verified live GW2 Wiki URL (restored CDN)
+  // 3. Official ArenaNet Render API item icon fallback
+  const [activeUrl, setActiveUrl] = useState<string | null>(() => {
+    if (localUrl && !isIconUrlFailed(localUrl)) return localUrl;
+    if (wikiUrl && !isIconUrlFailed(wikiUrl)) return wikiUrl;
+    return null;
+  });
+
   const pxDim = ICON_SIZE_PX[size] ?? 34;
   const isEn = getItemLanguage() === 'en';
   const discLabel = isEn ? DISCIPLINE_EN[discipline] : DISCIPLINE_DE[discipline];
 
   useEffect(() => {
-    setImgFailed(isIconUrlFailed(iconUrl));
-  }, [discipline, iconUrl]);
+    if (localUrl && !isIconUrlFailed(localUrl)) {
+      setActiveUrl(localUrl);
+    } else if (wikiUrl && !isIconUrlFailed(wikiUrl)) {
+      setActiveUrl(wikiUrl);
+    } else {
+      setActiveUrl(null);
+    }
+  }, [discipline, localUrl, wikiUrl]);
 
-  if (!imgFailed && iconUrl) {
+  const handleError = () => {
+    if (activeUrl === localUrl) {
+      markIconUrlFailed(localUrl);
+      if (wikiUrl && !isIconUrlFailed(wikiUrl)) {
+        setActiveUrl(wikiUrl);
+        return;
+      }
+    } else if (activeUrl === wikiUrl) {
+      markIconUrlFailed(wikiUrl);
+    }
+    setActiveUrl(null);
+  };
+
+  if (activeUrl) {
     const cls = `gi gi-${size} r-Ascended disc-emblem-wrap ${onClick ? 'clickable' : ''}`;
     const imgEl = (
       <img
-        src={iconUrl}
+        src={activeUrl}
         alt={discLabel}
         width={pxDim - 4}
         height={pxDim - 4}
         loading="lazy"
         decoding="async"
         draggable={false}
-        onError={() => {
-          markIconUrlFailed(iconUrl);
-          setImgFailed(true);
-        }}
+        onError={handleError}
         className="disc-emblem-img"
       />
     );

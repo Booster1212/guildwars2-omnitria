@@ -55,16 +55,28 @@ export const DISCIPLINE_ICON_ITEM: Record<DisciplineId, number> = {
   Huntsman: 47012,
 };
 
-/** Official emblems of the crafting disciplines */
+/** Official emblems of the crafting disciplines (bundled locally for 100% offline & wiki-outage resilience) */
 export const DISCIPLINE_ICONS: Record<DisciplineId, string> = {
-  Armorsmith: 'https://wiki.guildwars2.com/images/thumb/a/a2/Armorsmith_tango_icon_200px.png/64px-Armorsmith_tango_icon_200px.png',
-  Weaponsmith: 'https://wiki.guildwars2.com/images/thumb/f/f3/Weaponsmith_tango_icon_200px.png/64px-Weaponsmith_tango_icon_200px.png',
-  Artificer: 'https://wiki.guildwars2.com/images/thumb/7/77/Artificer_tango_icon_200px.png/64px-Artificer_tango_icon_200px.png',
-  Jeweler: 'https://wiki.guildwars2.com/images/thumb/6/6a/Jeweler_tango_icon_200px.png/64px-Jeweler_tango_icon_200px.png',
-  Leatherworker: 'https://wiki.guildwars2.com/images/thumb/7/7a/Leatherworker_tango_icon_200px.png/64px-Leatherworker_tango_icon_200px.png',
-  Tailor: 'https://wiki.guildwars2.com/images/thumb/d/df/Tailor_tango_icon_200px.png/64px-Tailor_tango_icon_200px.png',
-  Chef: 'https://wiki.guildwars2.com/images/thumb/9/91/Chef_tango_icon_200px.png/64px-Chef_tango_icon_200px.png',
-  Huntsman: 'https://wiki.guildwars2.com/images/thumb/b/b3/Huntsman_tango_icon_200px.png/64px-Huntsman_tango_icon_200px.png',
+  Armorsmith: './assets/disciplines/armorsmith.png',
+  Weaponsmith: './assets/disciplines/weaponsmith.png',
+  Artificer: './assets/disciplines/artificer.png',
+  Jeweler: './assets/disciplines/jeweler.png',
+  Leatherworker: './assets/disciplines/leatherworker.png',
+  Tailor: './assets/disciplines/tailor.png',
+  Chef: './assets/disciplines/chef.png',
+  Huntsman: './assets/disciplines/huntsman.png',
+};
+
+/** Restored official GW2 Wiki tango icon URLs (used as secondary fallback if local asset is inaccessible) */
+export const DISCIPLINE_WIKI_ICONS: Record<DisciplineId, string> = {
+  Armorsmith: 'https://wiki.guildwars2.com/images/6/68/Armorsmith_tango_icon_200px.png',
+  Weaponsmith: 'https://wiki.guildwars2.com/images/f/f5/Weaponsmith_tango_icon_200px.png',
+  Artificer: 'https://wiki.guildwars2.com/images/2/2e/Artificer_tango_icon_200px.png',
+  Jeweler: 'https://wiki.guildwars2.com/images/a/a5/Jeweler_tango_icon_200px.png',
+  Leatherworker: 'https://wiki.guildwars2.com/images/5/5c/Leatherworker_tango_icon_200px.png',
+  Tailor: 'https://wiki.guildwars2.com/images/c/c6/Tailor_tango_icon_200px.png',
+  Chef: 'https://wiki.guildwars2.com/images/2/25/Chef_tango_icon_200px.png',
+  Huntsman: 'https://wiki.guildwars2.com/images/3/32/Huntsman_tango_icon_200px.png',
 };
 
 export const RECIPE_TYPE_DE: Record<string, string> = {
