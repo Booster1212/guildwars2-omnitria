@@ -874,7 +874,14 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     input.items,
   );
 
-  const gw2craftsBenchmark = computeGw2CraftsBenchmark(discipline as DisciplineId, fromRank, toRank, prices);
+  const gw2craftsBenchmark = computeGw2CraftsBenchmark({
+    discipline: discipline as DisciplineId,
+    fromRank,
+    toRank,
+    prices,
+    recipesByOutput,
+    variant: mode === 'fast' ? 'fast' : 'normal',
+  });
   const gw2craftsComparison = compareWithGw2Crafts(
     gw2craftsBenchmark,
     totalCost,

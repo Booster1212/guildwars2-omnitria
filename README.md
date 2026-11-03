@@ -4,7 +4,7 @@
 
 # Omnitria HUD
 
-[![Release](https://img.shields.io/badge/Release-v0.3.1-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Release](https://img.shields.io/badge/Release-v0.3.2-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
@@ -20,7 +20,28 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 ## Release Changelog
 
 <details open>
-<summary><b>v0.3.1 · Crafting Route Intelligence, Unified Discovery Operations & GW2Crafts Validation</b> (Latest Release)</summary>
+<summary><b>v0.3.2 · Security Hardening, Vendor Catalog Overhaul, MumbleLink Map Telemetry & ESM Modernization</b> (Latest Release)</summary>
+
+- **Credential Security Hardening (DPAPI Isolation):**
+  - Eliminated plain-text API key serialization in `localStorage`.
+  - Added startup migration that strips residual API keys from legacy storage and isolates secret storage exclusively to Windows DPAPI (`safeStorage` via Electron IPC).
+- **Master Craftsman Vendor Catalog Overhaul:**
+  - Fully verified and corrected item IDs and costs for Chef basic and karma ingredients (Stick of Butter `12138`, Bell Pepper `12235`, Vanilla Bean `12234`, Black Peppercorn `12236`, Thyme Leaf `12248`, Parsley Leaf `12246`, Celery Stalk `12240`, Snow Truffle `12144`).
+  - Aligned Master Craftsman recipe sheets with verified official recipe IDs (Iron Inscriptions `204`, `205`; Steel Inscriptions `211`, `212`; Darksteel Inscriptions `218`, `219`; Insignias `225`, `227`, `235`, `237`) and removed auto-learned entries.
+- **Cost Optimizer Phantom Savings Correction:**
+  - Resolved intermediate self-craft cost aggregation in `costOptimizer.ts`, ensuring ingredient procurement costs are accurately summed and compared against direct Trading Post purchases.
+- **MumbleLink Map Telemetry & Event Binding:**
+  - Replaced corrupted map ID entries in `GW2_MAP_ZONE_MAP` with official Tyrian zone IDs covering Core Tyria, HoT, PoF, EoD, SotO, and Janthir Wilds.
+  - Linked explicit `mapId` bindings across all 58 meta-events and world bosses in `EVENTS`, enabling 100% reliable `📍 ON YOUR MAP` badge highlights.
+- **Project Modernization & Build Tooling:**
+  - Configured `"type": "module"` in `package.json`, eliminating typeless ESM warnings across Node.js 22/24 test runners.
+  - Removed unused `cross-env` dependency.
+  - Added formal root `LICENSE` (MIT).
+
+</details>
+
+<details>
+<summary><b>v0.3.1 · Crafting Route Intelligence, Unified Discovery Operations & GW2Crafts Validation</b></summary>
 
 - **Unified Discovery & Subsequent Production Operations:**
   - Combines recipe discovery and subsequent repeat crafting into ONE single coherent leveling operation (e.g. *Discover & Craft Mighty Bronze Dagger (17x)*).
@@ -87,7 +108,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ## Features
 
-- **Event Timers & World Bosses:** Live countdowns for 57 world bosses and expansion meta-events based on Tyria's deterministic 2-hour UTC rotation cycle, with one-click Clipboard copying for fast-travel waypoints (`[&...]`).
+- **Event Timers & World Bosses:** Live countdowns for 58 world bosses and expansion meta-events based on Tyria's deterministic 2-hour UTC rotation cycle, with one-click Clipboard copying for fast-travel waypoints (`[&...]`).
 - **Account-Wide Item Search:** Indexed lookup across Material Storage, Bank tabs, Shared Inventory slots, Character Bags, and Equipped Gear without double-counting items stored across multiple locations.
 - **Achievement Recommendations & Total AP:** Deterministic ranking of achievements by obtainable points, completion progress, and remaining objectives across five strategies (*Best Next*, *Best Efficiency*, *Quick Wins*, *Highest Reward*, *Continue Progress*). Enforces point caps on repeatable achievements (e.g. *Agent of Entropy* at 250 AP) and calculates total account AP according to official cap rules (`min(15000, daily + monthly) + permanent`). Public metadata is browsable in Guest Mode without an API key.
 - **0–500 Crafting Level Planner:** Computes lowest-cost leveling paths across all 8 crafting disciplines using community XP formulas, with automatic deductions for materials already in your account inventory.
@@ -106,7 +127,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ### Standalone Binary (Windows)
 
-1. Download `Omnitria-v0.3.1-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.3.2-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (portable, no installer required).
 3. Launch `Omnitria.exe`.
 
@@ -118,11 +139,14 @@ Public event timers, crafting recipes, and achievement definitions are available
 
 ## Development
 
-Prerequisites: **Node.js 20+** and **npm**.
+Prerequisites: **Node.js 20+**, **npm**, and **Windows .NET Framework 4.0+** (for compiling MumbleLink telemetry reader).
 
 ```bash
 # Install dependencies
 npm ci
+
+# Compile MumbleLink C# native reader binary (optional, pre-built binary included)
+npm run build:mumble
 
 # Start Vite dev server and Electron overlay concurrently
 npm run overlay

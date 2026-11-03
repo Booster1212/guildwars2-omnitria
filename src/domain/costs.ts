@@ -40,18 +40,18 @@ export const KNOWN_VENDOR_PRICES: ReadonlyMap<number, number> = new Map([
   [12159, 16], // Käsestück (Cheese Wedge)
   [12271, 16], // Flasche Sojasoße (Bottle of Soy Sauce)
   [12137, 16], // Glas Buttermilch (Glass of Buttermilk)
-  [12240, 16], // Glas Buttermilch (Glass of Buttermilk - legacy id)
-  [12337, 16], // Beutel Zucker (Bag of Sugar - legacy id)
-  [12338, 16], // Flasche einfacher Sirup (Bottle of Simple Syrup)
-  [12176, 16], // Beutel Maismehl (Bag of Cornmeal)
-  [12165, 35], // Stick of Butter (Karma/Vendor)
-  [12166, 35], // Cheese Wedge (Karma/Vendor)
-  [12177, 35], // Paprika (Bell Pepper - Karma/Vendor)
-  [12178, 35], // Vanilleschote (Vanilla Bean - Karma/Vendor)
-  [12134, 16], // Cheese Slice
-  [12144, 40], // Snow Truffle
-  [12145, 16], // Rice Ball
-  [12132, 48], // Loaf of Bread (self-crafting from 16c Water + 16c Flour + 16c Yeast)
+  [12145, 16], // Reisbällchen (Rice Ball)
+  [12132, 48], // Laib Brot (Loaf of Bread - self-crafting or vendor)
+  [12144, 40], // Schneetrüffel (Snow Truffle)
+
+  // Chef Karma & NPC ingredients
+  [12138, 14], // Butterstück (Stick of Butter)
+  [12235, 14], // Paprika (Bell Pepper)
+  [12234, 14], // Vanilleschote (Vanilla Bean)
+  [12236, 14], // Schwarzes Pfefferkorn (Black Peppercorn)
+  [12248, 14], // Thymianblatt (Thyme Leaf)
+  [12246, 14], // Petersilienblatt (Parsley Leaf)
+  [12240, 14], // Selleriestange (Celery Stalk)
 
   // Master Craftsman basic ingredients (all disciplines)
   [19704, 8],   // Klumpen Zinn (Lump of Tin)
@@ -66,7 +66,7 @@ export const KNOWN_VENDOR_PRICES: ReadonlyMap<number, number> = new Map([
   [19790, 64],  // Spule Gazefaden (Spool of Gossamer Thread)
 
   // Legendary components with fixed vendor prices (official vendor prices in copper)
-  [19676, 10000], // Icy Runestone – 1 Gold (10,000 copper) from Rojan the Penitent
+  [19676, 10000], // Eisiger Runenstein (Icy Runestone – 1 Gold from Rojan the Penitent)
 ]);
 
 export function unitPrice(price: PriceInfo | undefined, itemId?: number): number | null {

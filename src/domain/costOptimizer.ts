@@ -290,7 +290,7 @@ export function buildCostComparisonSummary(
     crafts: number;
     cost: number;
     purchases: readonly { itemId: number; qty: number }[];
-    prepSteps: readonly { crafts: number; outputId: number }[];
+    prepSteps: readonly { crafts: number; outputId: number; recipe?: Recipe }[];
     needsDiscovery: boolean;
   }[],
   prices: ReadonlyMap<number, PriceInfo>,
@@ -353,6 +353,14 @@ export function buildCostComparisonSummary(
       const buyPrice = price && price.sell > 0 ? price.sell : 0;
       if (buyPrice > 0) {
         intermediateBuyCost += buyPrice * prep.crafts;
+        let selfCost = 0;
+        if (prep.recipe) {
+          for (const ing of prep.recipe.ingredients) {
+            const u = unitPrice(prices.get(ing.itemId), ing.itemId) ?? 0;
+            selfCost += u * ing.count * prep.crafts;
+          }
+        }
+        intermediateSelfCraftCost += selfCost;
       }
     }
 

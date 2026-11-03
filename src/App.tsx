@@ -11,6 +11,7 @@ import { EventInstance, OverlaySettings, SortMode, OverlayTab } from './types';
 import {
   loadCachedApiData,
   fetchAllAccountProgression,
+  retrieveApiKeySecurely,
   Gw2AccountInfo,
   Gw2AccountAchievement,
   Gw2DailyProgression,
@@ -87,6 +88,14 @@ export const App: React.FC = () => {
       const saved = localStorage.getItem('gw2_overlay_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Security: Purge plain-text apiKey from legacy localStorage settings
+        if (parsed.apiKey) {
+          const { apiKey: _purged, ...sanitized } = parsed;
+          try {
+            localStorage.setItem('gw2_overlay_settings', JSON.stringify(sanitized));
+          } catch (_) {}
+          delete parsed.apiKey;
+        }
         const rawWidget = parsed.widgetMode;
         const normalizedWidgetMode =
           rawWidget === true || rawWidget === 'mini' || rawWidget === 'compact';
@@ -108,6 +117,16 @@ export const App: React.FC = () => {
     }
     return DEFAULT_SETTINGS;
   });
+
+  // Load API key securely on startup via OS DPAPI safeStorage
+  useEffect(() => {
+    void retrieveApiKeySecurely().then((key) => {
+      if (key && key.trim()) {
+        const clean = key.trim();
+        setSettings((prev) => (prev.apiKey === clean ? prev : { ...prev, apiKey: clean }));
+      }
+    });
+  }, []);
 
   // Live MumbleLink telemetry (Shared memory reading from Guild Wars 2)
   const mumble = useMumbleLink();
@@ -240,7 +259,9 @@ export const App: React.FC = () => {
     setSettings((prev) => {
       const updated = { ...prev, ...partial };
       try {
-        localStorage.setItem('gw2_overlay_settings', JSON.stringify(updated));
+        // Security: Never serialize plain-text API key to localStorage
+        const { apiKey: _omittedKey, ...safeToPersist } = updated;
+        localStorage.setItem('gw2_overlay_settings', JSON.stringify(safeToPersist));
       } catch (e) {
         console.error('Failed to save settings', e);
       }

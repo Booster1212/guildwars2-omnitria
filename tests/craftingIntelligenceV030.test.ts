@@ -79,14 +79,14 @@ test('1.3 evaluateIngredientProcurement calculates transparent procurement decis
 });
 
 test('2.1 Master Craftsman Recipe Sheets are properly detected and priced', () => {
-  const sheet = getVendorRecipeSheetOffer(2137); // Ravaging Iron Plated Inscription
+  const sheet = getVendorRecipeSheetOffer(204); // Ravaging Iron Imbued Inscription
   assert.ok(sheet);
   assert.equal(sheet.costCopper, 160);
   assert.equal(sheet.discipline, 'Weaponsmith');
   assert.equal(sheet.minRank, 75);
 
   const mockRecipe: Recipe = {
-    id: '2137',
+    id: '204',
     outputId: 19934,
     outputCount: 1,
     kind: 'official',
@@ -103,7 +103,7 @@ test('2.1 Master Craftsman Recipe Sheets are properly detected and priced', () =
   assert.equal(unlockCostUnknown, 160);
 
   // When recipe IS known, unlock cost is 0c
-  const unlockCostKnown = getRecipeUnlockCost(mockRecipe, new Set([2137]), new Map());
+  const unlockCostKnown = getRecipeUnlockCost(mockRecipe, new Set([204]), new Map());
   assert.equal(unlockCostKnown, 0);
 });
 

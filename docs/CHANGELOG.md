@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.2] - 2026-11-04
+
+### Added & Improved
+
+#### Security & Credential Isolation (`src/App.tsx`, `src/data/gw2Api.ts`)
+* **Plain-Text API Key Elimination:**
+  * Purged plain-text `apiKey` storage from `localStorage.getItem('gw2_overlay_settings')` on application bootstrap.
+  * Sanitized `updateSettings` to ensure plain-text API keys are never serialized to browser `localStorage`.
+  * API keys are now exclusively persisted and loaded using Windows DPAPI encryption via Electron `safeStorage` IPC.
+
+#### Master Craftsman Vendor Catalog Overhaul (`src/data/crafting/masterCraftsmanVendors.ts`, `src/domain/costs.ts`)
+* **Item ID Verification & Catalog Cleanup:**
+  * Resolved 14 corrupted and mismatched item IDs in `MASTER_CRAFTSMAN_MATERIALS` and `KNOWN_VENDOR_PRICES` against the official Guild Wars 2 items database:
+    * Stick of Butter: corrected to item ID `12138` (was miscoded as Apple `12165`).
+    * Bell Pepper: corrected to item ID `12235` (was miscoded as Cinnamon Sugar `12177`).
+    * Vanilla Bean: corrected to item ID `12234` (was miscoded as Salt & Pepper `12178`).
+    * Black Peppercorn: corrected to item ID `12236` (was duplicate Soy Sauce `12271`).
+    * Thyme Leaf: corrected to item ID `12248` (was Chili Seasoning `12278`).
+    * Parsley Leaf: corrected to item ID `12246` (was Zucchini Bread `12285`).
+    * Celery Stalk: added official item ID `12240`.
+    * Snow Truffle: added official item ID `12144`.
+    * Icy Runestone: confirmed official item ID `19676` (10,000c from Rojan the Penitent).
+  * Removed obsolete and duplicate entries (`12337`, `12338`, `12176`, `12134`, `12286`, `12290`).
+* **Official Master Craftsman Recipe Sheets:**
+  * Overhauled `MASTER_CRAFTSMAN_RECIPE_SHEETS` with verified official Guild Wars 2 recipe IDs:
+    * Ravaging Iron Imbued Inscription: recipe ID `204`.
+    * Rejuvenating Iron Imbued Inscription: recipe ID `205`.
+    * Ravaging Steel Imbued Inscription: recipe ID `211`.
+    * Rejuvenating Steel Imbued Inscription: recipe ID `212`.
+    * Carrion Darksteel Imbued Inscription: recipe ID `218`.
+    * Cleric's Darksteel Imbued Inscription: recipe ID `219`.
+    * Ravaging Intricate Wool Insignia: recipe ID `225`.
+    * Honed Intricate Wool Insignia: recipe ID `227`.
+    * Hunter's Intricate Cotton Insignia: recipe ID `235`.
+    * Vigorous Intricate Cotton Insignia: recipe ID `237`.
+  * Removed auto-learned recipes (`19828`, `19834`, etc.) and non-sheet containers that do not require recipe purchase.
+
+#### Cost Optimizer & Level Planner Fixes (`src/domain/costOptimizer.ts`, `src/domain/levelPlanner.ts`)
+* **Intermediate Component Self-Craft Cost Aggregation:**
+  * Fixed phantom savings calculation bug in `buildCostComparisonSummary`: ingredient purchase costs for preparation crafts are now accurately summed in `intermediateSelfCraftCost` and compared against direct Trading Post purchases.
+* **GW2Crafts Benchmark Integration:**
+  * Updated benchmark call in `planDisciplineLeveling` to pass `recipesByOutput` and planning `variant` to `computeGw2CraftsBenchmark`, ensuring accurate real-time reference comparisons.
+
+#### MumbleLink Telemetry & Map Awareness (`src/data/gw2/mumble.ts`, `src/data/events.ts`)
+* **Verified Tyrian Map Zone Catalog:**
+  * Overhauled `GW2_MAP_ZONE_MAP` with official map IDs covering Core Tyria, Heart of Thorns, Path of Fire, End of Dragons, Secrets of the Obscure, and Janthir Wilds.
+* **100% Meta-Event Map ID Coverage:**
+  * Bound explicit official `mapId` values across all 58 meta-events and world bosses in `EVENTS`, enabling instant and reliable `📍 ON YOUR MAP` telemetry highlights when traveling through Tyria.
+
+#### Project & Tooling Modernization (`package.json`, `LICENSE`, `README.md`)
+* **ESM Modernization:** Added `"type": "module"` to `package.json`, completely eliminating typeless ESM warnings across Node.js 22/24 runners.
+* **Dependency Pruning:** Removed unused `cross-env` dependency.
+* **License Compliance:** Added standard root `LICENSE` (MIT).
+* **Documentation:** Updated `README.md` with v0.3.2 notes and .NET CSC build documentation.
+
+---
+
 ## [0.3.1] - 2026-11-01
 
 ### Added & Improved

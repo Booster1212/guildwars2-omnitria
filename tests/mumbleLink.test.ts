@@ -73,10 +73,10 @@ test('1.3 isEventOnMap handles multi-zone metas (e.g. Ley-Line Anomaly)', () => 
     times: ['00:20'],
   };
 
-  // Map 24: Gendarran Fields, Map 25: Iron Marches, Map 27: Timberline Falls
+  // Map 24: Gendarran Fields, Map 25: Iron Marches, Map 29: Timberline Falls
   assert.equal(isEventOnMap(anomaly, 24), true, 'Should match Gendarran Fields');
   assert.equal(isEventOnMap(anomaly, 25), true, 'Should match Iron Marches');
-  assert.equal(isEventOnMap(anomaly, 27), true, 'Should match Timberline Falls');
+  assert.equal(isEventOnMap(anomaly, 29), true, 'Should match Timberline Falls');
   // Map 1043: Auric Basin
   assert.equal(isEventOnMap(anomaly, 1043), false, 'Should not match Auric Basin');
 });
