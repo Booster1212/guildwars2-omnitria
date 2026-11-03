@@ -34,7 +34,7 @@ import {
 } from '../../data/progressStore';
 import { getItem, useItems } from '../../data/gw2/items';
 import { fmtInt, getDisciplineName } from '../common/labels';
-import { Coin, ItemIcon, Notice, Check, ProgressBar } from '../common/ui';
+import { Coin, DisciplineIcon, ItemIcon, Notice, Check, ProgressBar } from '../common/ui';
 import {
   Search,
   ChevronRight,
@@ -75,7 +75,16 @@ interface LevelPlannerProps {
   onOpenItem: (id: number) => void;
 }
 
-const PLANNER_MODES: readonly PlannerMode[] = ['cost', 'fast', 'balanced', 'completionist', 'goal'];
+const CRAFTING_STRATEGIES: readonly {
+  id: PlannerMode;
+  icon: typeof Sparkles;
+  isRecommended?: boolean;
+}[] = [
+  { id: 'cost', icon: Sparkles, isRecommended: true },
+  { id: 'fast', icon: Zap },
+  { id: 'goal', icon: Target },
+  { id: 'completionist', icon: Award },
+];
 
 export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank, onOpenItem }) => {
   const { t, lang } = useTranslation();
@@ -564,608 +573,292 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   return (
     <div className="level-planner-wrap">
-      {/* Character Context & Planning Mode Bar */}
-      <div className="planner-context-bar">
-        <div className="planner-char-selector-group">
-          <label className="control-label">
-            <User size={12} className="inline mr-1 text-amber-400" />
-            {t('planner.char.selectLabel')}
-          </label>
-          <select
-            className="gw2-select planner-char-select"
-            value={selectedCharacter ?? ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              progressActions.setSelectedCharacter(val ? val : null);
-            }}
-          >
-            <option value="">{t('planner.char.manualGuest')}</option>
-            {(account.data?.characters ?? []).map((ch) => {
-              const chDisc = ch.crafting.find((c) => c.discipline === discipline);
-              const discSuffix = chDisc ? ` · ${discName} ${chDisc.rating}` : '';
-              return (
-                <option key={ch.name} value={ch.name}>
-                  {ch.name} (Lv {ch.level} {ch.profession}{discSuffix})
-                </option>
-              );
-            })}
-          </select>
+      {/* 1. Crafting Suite Header & Target Control */}
+      <div className="planner-suite-header">
+        <div className="psh-discipline-info">
+          <DisciplineIcon discipline={discipline} size="l" />
+          <div className="psh-discipline-details">
+            <div className="psh-disc-name-row">
+              <h2 className="psh-disc-name font-serif">{discName}</h2>
+              <span className="psh-disc-max-badge font-mono">
+                {discipline === 'Jeweler' ? '0–400' : '0–500'}
+              </span>
+            </div>
+            <div className="psh-char-context-row">
+              <User size={12} className="inline mr-1 text-amber-400" />
+              <select
+                className="gw2-select planner-char-select-compact"
+                value={selectedCharacter ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  progressActions.setSelectedCharacter(val ? val : null);
+                }}
+              >
+                <option value="">{t('planner.char.manualGuest')}</option>
+                {(account.data?.characters ?? []).map((ch) => {
+                  const chDisc = ch.crafting.find((c) => c.discipline === discipline);
+                  const discSuffix = chDisc ? ` · ${discName} ${chDisc.rating}` : '';
+                  return (
+                    <option key={ch.name} value={ch.name}>
+                      {ch.name} (Lv {ch.level} {ch.profession}{discSuffix})
+                    </option>
+                  );
+                })}
+              </select>
+              {isLevelApiVerified ? (
+                <span className="planner-verify-badge api-verified" title={t('planner.verify.apiVerifiedTip')}>
+                  <ShieldCheck size={11} />
+                  <span>{t('planner.verify.apiVerified')}</span>
+                </span>
+              ) : (
+                <span className="planner-verify-badge local-tracked" title={t('planner.verify.localTrackedTip')}>
+                  <BookmarkCheck size={11} />
+                  <span>{t('planner.verify.localTracked')}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
 
-          {!selectedCharObj && (
-            <div className="planner-manual-level-group">
-              <label className="control-label">{t('planner.char.manualLevelLabel')}</label>
+        {/* Level Span Range Controls */}
+        <div className="psh-target-controls">
+          <div className="target-rank-stepper">
+            <div className="rank-input-field">
+              <span className="rank-field-label">{t('crafting.fromRank')}</span>
               <input
                 type="number"
-                className="gw2-num-input sm"
-                min={1}
-                max={80}
-                value={effectiveCharLevel}
-                onChange={(e) =>
-                  progressActions.setCharacterManualLevel(selectedCharacter, Number(e.target.value))
-                }
+                className="gw2-num-input"
+                min={0}
+                max={maxRank}
+                value={effectiveStart}
+                onChange={(e) => handleStartChange(Number(e.target.value))}
+              />
+              {charRating !== undefined && effectiveStart !== charRating && (
+                <button
+                  type="button"
+                  className="btn-tiny"
+                  onClick={() => handleStartChange(charRating)}
+                  title={t('crafting.resetToCharRank', { rank: charRating })}
+                >
+                  Char ({charRating})
+                </button>
+              )}
+            </div>
+
+            <ChevronRight size={16} className="rank-step-arrow text-amber-400" />
+
+            <div className="rank-input-field">
+              <span className="rank-field-label">{t('crafting.toRank')}</span>
+              <input
+                type="number"
+                className="gw2-num-input"
+                min={effectiveStart < maxRank ? effectiveStart + 1 : maxRank}
+                max={maxRank}
+                value={effectiveTarget}
+                onChange={(e) => handleTargetChange(Number(e.target.value))}
               />
             </div>
-          )}
 
-          {/* Verification Status Badge */}
-          {isLevelApiVerified ? (
-            <span
-              className="planner-verify-badge api-verified"
-              title={t('planner.verify.apiVerifiedTip')}
-            >
-              <ShieldCheck size={11} />
-              <span>{t('planner.verify.apiVerified')}</span>
-            </span>
-          ) : (
-            <span
-              className="planner-verify-badge local-tracked"
-              title={t('planner.verify.localTrackedTip')}
-            >
-              <BookmarkCheck size={11} />
-              <span>{t('planner.verify.localTracked')}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Planning Modes Selector */}
-        <div className="planner-mode-selector-group">
-          <span className="control-label">{t('planner.mode.label')}</span>
-          <div className="planner-mode-pills">
-            {PLANNER_MODES.map((m) => {
-              const isAct = planningMode === m;
-              const labelKey = `planner.mode.${m}` as TranslationKey;
-              const descKey = `planner.mode.${m}Desc` as TranslationKey;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  className={`planner-mode-pill ${isAct ? 'active' : ''} ${m === 'cost' ? 'mode-cost-btn' : ''}`}
-                  onClick={() => handleSelectMode(m)}
-                  title={t(descKey)}
-                >
-                  {m === 'cost' && <Coins size={11} className="text-amber-400" />}
-                  {m === 'fast' && <Zap size={11} />}
-                  {m === 'balanced' && <Compass size={11} />}
-                  {m === 'completionist' && <Award size={11} />}
-                  {m === 'goal' && <Target size={11} />}
-                  <span>{t(labelKey)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Mode Description & Honest Data / Access State Sub-bar */}
-      <div className="planner-mode-hint-bar">
-        <span className="mode-desc-text">
-          {t(`planner.mode.${planningMode}Desc` as TranslationKey)}
-        </span>
-        <div className="planner-access-meta">
-          {!account.data && (
-            <span className="unknown-api-inline-hint dim">
-              {t('planner.verify.unknownApiNotice')}
-            </span>
-          )}
-          {charProgressionPlan.accessStatusSummary === 'free_to_play' && (
-            <span className="f2p-access-hint text-amber-300">
-              {t('planner.verify.f2pAccessNotice')}
-            </span>
-          )}
-          {charProgressionPlan.ownedExpansions.length > 0 && (
-            <span className="owned-exp-hint dim">
-              {t('planner.verify.expansionsOwned', {
-                list: charProgressionPlan.ownedExpansions.join(', '),
-              })}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* PROGRESSION OVERVIEW & PROMINENT NEXT RECOMMENDED ACTION */}
-      <div className="planner-next-action-overview">
-        <div className="pnao-metrics-col">
-          <div className="pnao-metric-row">
-            <div className="pnao-metric-block">
-              <span className="pnao-metric-label">{t('planner.overview.charLevel')}</span>
-              <div className="pnao-metric-val font-serif">
-                <span>Lv {effectiveCharLevel}</span>
-                {selectedCharObj && (
-                  <span className="pnao-char-sub dim">{selectedCharObj.name}</span>
-                )}
-              </div>
-              <span className="pnao-milestone-sub" title={t(charProgressionPlan.nextMilestone.benefitKey as TranslationKey)}>
-                {t('planner.overview.nextCharMilestone', {
-                  level: charProgressionPlan.nextMilestone.level,
-                })}
-                : {t(charProgressionPlan.nextMilestone.titleKey as TranslationKey)}
-              </span>
-            </div>
-
-            <div className="pnao-metric-block">
-              <span className="pnao-metric-label">{t('planner.overview.craftingRank')}</span>
-              <div className="pnao-metric-val font-mono">
-                <span>
-                  {effectiveStart} / {effectiveTarget}
-                </span>
-                {isCraftingApiVerified && (
-                  <span className="pnao-mini-verified" title={t('planner.verify.apiVerifiedTip')}>
-                    API
-                  </span>
-                )}
-              </div>
-              <span className="pnao-milestone-sub">
-                {t('planner.overview.nextCraftMilestone', { rank: nextCraftMilestoneRank })}
-              </span>
-            </div>
-          </div>
-
-          <div className="pnao-overall-progress-block">
-            <div className="pnao-progress-header">
-              <span className="pnao-metric-label">{t('planner.overview.overallProgress')}</span>
-              <span className="pnao-summary-counts font-mono">
-                {t('planner.overview.remainingSummary', {
-                  open: stepCounts.open,
-                  done: stepCounts.done,
-                  skipped: stepCounts.skipped,
-                  deferred: stepCounts.deferred,
-                })}
-              </span>
-            </div>
-            <ProgressBar
-              value={progressFrac}
-              tone="gold"
-              slim
-            />
-          </div>
-        </div>
-
-        {/* Prominent Next Recommended Activity Card */}
-        <div className="pnao-spotlight-col">
-          <div className="pnao-spotlight-header">
-            <span className="pnao-next-badge">
-              <Zap size={12} />
-              <span>{t('planner.next.badge')}</span>
-            </span>
-
-            {lastUndo && (
-              <button
-                type="button"
-                className="btn-tiny planner-undo-btn"
-                onClick={() => progressActions.undoLastPlannerAction()}
-                title={t('planner.action.undo')}
-              >
-                <Undo2 size={11} />
-                <span>{t('planner.action.undo')}</span>
-              </button>
-            )}
-          </div>
-
-          {showCharTaskInSpotlight && spotlightCharTask ? (
-            <div className="pnao-spotlight-body">
-              <div className="pnao-spotlight-main">
-                <div className="pnao-spotlight-title-line">
-                  <span className="pnao-prefix dim">
-                    {t('planner.next.charTaskPrefix', {
-                      level: spotlightCharTask.definition.minLevel,
-                    })}
-                  </span>
-                  <span className="pnao-title font-serif">
-                    {t(spotlightCharTask.definition.titleKey as TranslationKey)}
-                  </span>
-                  <span className={`planner-cat-pill cat-${spotlightCharTask.definition.category}`}>
-                    {t(`planner.cat.${spotlightCharTask.definition.category}` as TranslationKey)}
-                  </span>
-                  {spotlightCharTask.status === 'deferred' && (
-                    <span className="planner-status-pill deferred">
-                      {t('planner.status.deferred')}
-                    </span>
-                  )}
-                </div>
-
-                <div className="pnao-reason-line">
-                  <span className="pnao-reason-label">{t('planner.next.whyRecommended')}</span>
-                  <span className="pnao-reason-text">
-                    {t(spotlightCharTask.reasonKey as TranslationKey)}
-                  </span>
-                </div>
-
-                <div className="pnao-meta-line">
-                  {spotlightCharTask.definition.effortMinutes !== null && (
-                    <span className="pnao-effort-pill">
-                      <Clock size={11} />
-                      <span>
-                        {t('planner.next.estimatedEffort', {
-                          min: spotlightCharTask.definition.effortMinutes,
-                        })}
-                      </span>
-                    </span>
-                  )}
-                  <span className="pnao-benefit-text">
-                    <strong>{t('planner.next.expectedBenefit')}</strong>{' '}
-                    {t(spotlightCharTask.definition.benefitKey as TranslationKey)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pnao-spotlight-actions">
+            <div className="quick-targets-group">
+              {discipline === 'Jeweler' ? (
                 <button
                   type="button"
-                  className="btn sm primary-gold"
-                  onClick={() =>
-                    progressActions.setTaskStatus(
-                      selectedCharacter,
-                      spotlightCharTask.definition.id,
-                      'completed',
-                    )
-                  }
-                >
-                  <CheckCircle2 size={13} />
-                  <span>{t('planner.action.complete')}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn sm"
-                  onClick={() =>
-                    progressActions.setTaskStatus(
-                      selectedCharacter,
-                      spotlightCharTask.definition.id,
-                      'deferred',
-                    )
-                  }
-                >
-                  <PauseCircle size={13} />
-                  <span>{t('planner.action.defer')}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn sm"
-                  onClick={() =>
-                    progressActions.setTaskStatus(
-                      selectedCharacter,
-                      spotlightCharTask.definition.id,
-                      'skipped',
-                    )
-                  }
-                >
-                  <SkipForward size={13} />
-                  <span>{t('planner.action.skip')}</span>
-                </button>
-              </div>
-            </div>
-          ) : spotlightCraftStep && nextCraftingRecommendation ? (
-            <div className="pnao-spotlight-body">
-              <div className="pnao-spotlight-icon">
-                <ItemIcon
-                  id={spotlightCraftStep.recipe.outputId}
-                  size="m"
-                  onClick={() => onOpenItem(spotlightCraftStep.recipe.outputId)}
-                />
-              </div>
-
-              <div className="pnao-spotlight-main">
-                <div className="pnao-spotlight-title-line">
-                  <span className="pnao-prefix font-mono">
-                    {t('planner.next.craftingPrefix', {
-                      from: spotlightCraftStep.fromRank,
-                      to: spotlightCraftStep.toRank,
-                    })}
-                  </span>
-                  <span
-                    className="pnao-title font-serif cursor-pointer"
-                    onClick={() => onOpenItem(spotlightCraftStep.recipe.outputId)}
-                  >
-                    {getItem(spotlightCraftStep.recipe.outputId)?.name ??
-                      `#${spotlightCraftStep.recipe.outputId}`}
-                  </span>
-                  <span className="step-crafts-count font-mono">
-                    {t('crafting.craftRunsBadge', { count: spotlightCraftStep.crafts })}
-                  </span>
-                  {spotlightCraftStep.needsDiscovery && (
-                    <span className="discovery-tag">{t('crafting.discoveryBadge')}</span>
-                  )}
-                  {nextCraftingRecommendation.isDeferred && (
-                    <span className="planner-status-pill deferred">
-                      {t('planner.status.deferred')}
-                    </span>
-                  )}
-                </div>
-
-                <div className="pnao-reason-line">
-                  <span className="pnao-reason-label">{t('planner.next.whyRecommended')}</span>
-                  <span className="pnao-reason-text">
-                    {t(nextCraftingRecommendation.reasonKey as TranslationKey)}
-                  </span>
-                </div>
-
-                <div className="pnao-meta-line">
-                  {spotlightCraftStep.estimatedMinutes && (
-                    <span className="pnao-effort-pill">
-                      <Clock size={11} />
-                      <span>
-                        {t('planner.next.estimatedEffort', {
-                          min: spotlightCraftStep.estimatedMinutes,
-                        })}
-                      </span>
-                    </span>
-                  )}
-                  <span className="pnao-benefit-text">
-                    <strong>{t('planner.next.expectedBenefit')}</strong>{' '}
-                    {t('planner.next.benefitRanks', {
-                      ranks: spotlightCraftStep.toRank - spotlightCraftStep.fromRank,
-                      from: spotlightCraftStep.fromRank,
-                      to: spotlightCraftStep.toRank,
-                    })}
-                    {spotlightCraftStep.expectedBenefit?.reachesMilestone
-                      ? ` · ${t('planner.next.benefitMilestone', {
-                          milestone: spotlightCraftStep.expectedBenefit.reachesMilestone,
-                        })}`
-                      : ''}
-                  </span>
-                  <span className="pnao-cost-inline">
-                    <Coin copper={spotlightCraftStep.cost} />
-                  </span>
-                </div>
-              </div>
-
-              <div className="pnao-spotlight-actions">
-                <button
-                  type="button"
-                  className="btn sm primary-gold"
-                  onClick={() =>
-                    progressActions.setStepStatus(
-                      selectedCharacter,
-                      discipline,
-                      spotlightCraftStep.key,
-                      'completed',
-                    )
-                  }
-                >
-                  <CheckCircle2 size={13} />
-                  <span>{t('planner.action.complete')}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn sm"
-                  onClick={() =>
-                    progressActions.setStepStatus(
-                      selectedCharacter,
-                      discipline,
-                      spotlightCraftStep.key,
-                      'deferred',
-                    )
-                  }
-                >
-                  <PauseCircle size={13} />
-                  <span>{t('planner.action.defer')}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn sm"
-                  onClick={() =>
-                    progressActions.setStepStatus(
-                      selectedCharacter,
-                      discipline,
-                      spotlightCraftStep.key,
-                      'skipped',
-                    )
-                  }
-                >
-                  <SkipForward size={13} />
-                  <span>{t('planner.action.skip')}</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="pnao-all-done-box">
-              <CheckCircle2 size={16} className="text-emerald-400" />
-              <div>
-                <div className="font-serif font-semibold">{t('planner.next.allDoneTitle')}</div>
-                <div className="dim text-xs">{t('planner.next.allDoneDesc')}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Disclaimer Banner: Community XP Model */}
-      <Notice tone="warn" title={t('crafting.xpModelTitle')}>
-        {t('crafting.xpModelDesc')}
-      </Notice>
-
-      {/* Max Rank Notice if character already maxed */}
-      {effectiveStart >= maxRank && (
-        <Notice tone="info" title={t('crafting.maxRankReachedTitle')}>
-          {t('crafting.maxRankReachedDesc', { from: effectiveStart, max: maxRank })}
-          <div style={{ marginTop: '8px' }}>
-            <button type="button" className="btn sm" onClick={() => handleStartChange(0)}>
-              {t('crafting.showRouteFromZero')}
-            </button>
-          </div>
-        </Notice>
-      )}
-
-      {/* Configuration Controls Bar */}
-      <div className="planner-controls-panel">
-        <div className="controls-row">
-          <div className="control-group">
-            <label className="control-label">{t('crafting.fromRank')}</label>
-            <input
-              type="number"
-              className="gw2-num-input"
-              min={0}
-              max={maxRank}
-              value={effectiveStart}
-              onChange={(e) => handleStartChange(Number(e.target.value))}
-            />
-            {charRating !== undefined && effectiveStart !== charRating && (
-              <button
-                type="button"
-                className="btn-tiny"
-                onClick={() => handleStartChange(charRating)}
-                title={t('crafting.resetToCharRank', { rank: charRating })}
-              >
-                Char ({charRating})
-              </button>
-            )}
-          </div>
-
-          <div className="control-group">
-            <label className="control-label">{t('crafting.toRank')}</label>
-            <input
-              type="number"
-              className="gw2-num-input"
-              min={effectiveStart < maxRank ? effectiveStart + 1 : maxRank}
-              max={maxRank}
-              value={effectiveTarget}
-              onChange={(e) => handleTargetChange(Number(e.target.value))}
-            />
-            <div className="quick-targets">
-              {maxRank >= 400 && (
-                <button
-                  type="button"
-                  className={`btn-tiny ${effectiveTarget === 400 ? 'active' : ''}`}
+                  className={`quick-target-btn ${effectiveTarget === 400 ? 'active' : ''}`}
                   onClick={() => handleTargetChange(400)}
                 >
-                  400
+                  {t('planner.target.maxJeweler')}
                 </button>
-              )}
-              {maxRank >= 500 && (
-                <button
-                  type="button"
-                  className={`btn-tiny ${effectiveTarget === 500 ? 'active' : ''}`}
-                  onClick={() => handleTargetChange(500)}
-                >
-                  500
-                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={`quick-target-btn ${effectiveTarget === 400 ? 'active' : ''}`}
+                    onClick={() => handleTargetChange(400)}
+                  >
+                    {t('planner.target.master400')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`quick-target-btn ${effectiveTarget === 500 ? 'active' : ''}`}
+                    onClick={() => handleTargetChange(500)}
+                  >
+                    {t('planner.target.grandmaster500')}
+                  </button>
+                </>
               )}
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="control-group toggles-group">
-            <Check
-              checked={allowDiscovery}
-              onChange={handleToggleDiscovery}
-              label={t('crafting.allowDiscovery')}
-              title={t('crafting.discoveryTooltip')}
-            />
-            <Check
-              checked={craftIntermediates}
-              onChange={handleToggleIntermediates}
-              label={t('crafting.craftIntermediates')}
-              title={t('crafting.strategyCraftAllHint')}
-            />
+      {/* 2. Focused Strategy Selector Cards */}
+      <div className="planner-strategy-selector-suite">
+        <div className="strategy-suite-header">
+          <span className="strategy-suite-label font-serif font-semibold">
+            {t('planner.mode.label')}
+          </span>
+          <span className="strategy-suite-hint dim text-xs">
+            {t(`planner.mode.${planningMode}Desc` as TranslationKey)}
+          </span>
+        </div>
+
+        <div className="strategy-cards-grid">
+          {CRAFTING_STRATEGIES.map((strat) => {
+            const isAct = planningMode === strat.id || (planningMode === 'balanced' && strat.id === 'cost');
+            const Icon = strat.icon;
+            const labelKey = `planner.mode.${strat.id}` as TranslationKey;
+            const descKey = `planner.mode.${strat.id}Desc` as TranslationKey;
+
+            return (
+              <button
+                key={strat.id}
+                type="button"
+                className={`strategy-card-btn ${isAct ? 'active' : ''} ${strat.isRecommended ? 'is-recommended' : ''}`}
+                onClick={() => handleSelectMode(strat.id)}
+              >
+                <div className="strategy-card-top">
+                  <div className="strategy-card-icon-wrap">
+                    <Icon size={14} className={strat.id === 'cost' ? 'text-amber-400' : ''} />
+                  </div>
+                  <span className="strategy-card-title font-semibold">{t(labelKey)}</span>
+                  {strat.isRecommended && (
+                    <span className="strategy-card-rec-pill">
+                      ★ Empfohlen
+                    </span>
+                  )}
+                </div>
+                <div className="strategy-card-desc text-xs dim">
+                  {t(descKey)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Procurement & Workflow Toolbar */}
+      <div className="planner-workflow-toolbar">
+        <div className="pwt-procurement-group">
+          <span className="pwt-group-label font-serif">{t('crafting.strategyTitle')}:</span>
+          <div className="pwt-segmented-controls">
+            <button
+              type="button"
+              className={`pwt-segment-btn ${strategy === 'all_craft' ? 'active' : ''}`}
+              onClick={() => handleSetStrategy('all_craft')}
+              title={t('planner.procure.craftSelfDesc')}
+            >
+              <Hammer size={12} className="text-emerald-400" />
+              <span>{t('planner.procure.craftSelf')}</span>
+            </button>
+            <button
+              type="button"
+              className={`pwt-segment-btn ${strategy === 'all_buy' ? 'active' : ''}`}
+              onClick={() => handleSetStrategy('all_buy')}
+              title={t('planner.procure.buyDirectDesc')}
+            >
+              <ShoppingBag size={12} className="text-sky-400" />
+              <span>{t('planner.procure.buyDirect')}</span>
+            </button>
+            {itemOverrides.size > 0 && (
+              <button
+                type="button"
+                className={`pwt-segment-btn ${strategy === 'custom' ? 'active' : ''}`}
+                onClick={() => setStrategy('custom')}
+                title={t('crafting.strategyCustomHint')}
+              >
+                <Sliders size={12} />
+                <span>{t('crafting.strategyCustom', { count: itemOverrides.size })}</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Plan Summary Bar */}
-        {plan && (
-          <div className="plan-stats-strip">
-            <div className="stat-box">
-              <span className="stat-label">{t('crafting.totalCost')}</span>
-              <span className="stat-value">
-                <Coin copper={displayCost} />
+        <div className="pwt-toggles-group">
+          <Check
+            checked={allowDiscovery}
+            onChange={handleToggleDiscovery}
+            label={t('crafting.allowDiscovery')}
+            title={t('crafting.discoveryTooltip')}
+          />
+          <Check
+            checked={onlyOpenSteps}
+            onChange={() => setOnlyOpenSteps(!onlyOpenSteps)}
+            label={t('crafting.onlyOpenSteps')}
+            title={t('crafting.onlyOpenSteps')}
+          />
+        </div>
+
+        <div className="pwt-price-meta">
+          <span className="price-pulse-dot" />
+          <span className="dim text-xs font-mono">
+            {prices.updatedAt > 0
+              ? new Date(prices.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : 'Live TP'}
+          </span>
+          <button
+            type="button"
+            className="btn-tiny price-refresh-icon-btn"
+            onClick={prices.refresh}
+            title={t('crafting.priceRefreshBtn')}
+          >
+            <RotateCw size={10} />
+          </button>
+        </div>
+      </div>
+
+      {/* 4. Plan KPI Summary Strip */}
+      {plan && (
+        <div className="planner-kpi-summary-strip">
+          <div className="kpi-cell highlight-gold">
+            <span className="kpi-label">{t('crafting.netCostLabel')}</span>
+            <span className="kpi-value font-mono">
+              <Coin copper={plan.totalNetCost} />
+            </span>
+          </div>
+          <div className="kpi-cell">
+            <span className="kpi-label">{t('crafting.totalCost')}</span>
+            <span className="kpi-value font-mono dim">
+              <Coin copper={displayCost} />
+            </span>
+          </div>
+          {plan.totalNpcSavings > 0 && (
+            <div className="kpi-cell highlight-green">
+              <span className="kpi-label">{t('crafting.npcSavingsLabel')}</span>
+              <span className="kpi-value font-mono text-emerald-400">
+                +{fmtInt(plan.totalNpcSavings)}c
               </span>
             </div>
-            <div className="stat-box highlight-gold">
-              <span className="stat-label">{t('crafting.netCostLabel')}</span>
-              <span className="stat-value font-mono">
-                <Coin copper={plan.totalNetCost} />
-              </span>
-            </div>
-            {plan.totalNpcSavings > 0 && (
-              <div className="stat-box highlight-green">
-                <span className="stat-label">{t('crafting.npcSavingsLabel')}</span>
-                <span className="stat-value font-mono text-emerald-400">
-                  +{fmtInt(plan.totalNpcSavings)}c
-                </span>
-              </div>
-            )}
-            <div className="stat-box">
-              <span className="stat-label">{t('crafting.craftsCount')}</span>
-              <span className="stat-value font-mono">
-                {displayCrafts} ({plan.steps.length} {t('crafting.stepsWord')})
-              </span>
-            </div>
-            <div className="stat-box">
-              <span className="stat-label">{t('crafting.progressLabel')}</span>
-              <span className="stat-value font-mono">
+          )}
+          <div className="kpi-cell">
+            <span className="kpi-label">{t('crafting.craftsCount')}</span>
+            <span className="kpi-value font-mono">
+              {displayCrafts} ({plan.steps.length} {t('crafting.stepsWord')})
+            </span>
+          </div>
+          <div className="kpi-cell progress-cell">
+            <div className="kpi-progress-top">
+              <span className="kpi-label">{t('crafting.progressLabel')}</span>
+              <span className="kpi-value font-mono text-xs">
                 {stepCounts.done} / {effectiveTotalSteps} {t('crafting.doneWord')}
               </span>
               {(stepCounts.done > 0 || stepCounts.skipped > 0 || stepCounts.deferred > 0) && (
                 <button
                   type="button"
-                  className="btn-tiny"
+                  className="btn-tiny reset-marks-btn"
                   onClick={() => progressActions.resetDisciplineCheckmarks(discipline, selectedCharacter)}
                   title={t('crafting.resetCheckmarksTitle')}
-                  style={{ marginLeft: '6px' }}
                 >
-                  <RotateCcw size={10} className="mr-1 inline" />
+                  <RotateCcw size={10} className="mr-0.5 inline" />
                   {t('crafting.resetCheckmarks')}
                 </button>
               )}
             </div>
-            {/* Price Freshness Pill */}
-            <div className="stat-box price-freshness-box" title={t('crafting.priceFreshness')}>
-              <div className="flex items-center gap-1.5">
-                <span className="price-pulse-dot" />
-                <span className="text-xs dim font-mono">
-                  {prices.updatedAt > 0
-                    ? new Date(prices.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    : 'Live API'}
-                </span>
-                <button
-                  type="button"
-                  className="btn-tiny price-refresh-icon-btn"
-                  onClick={prices.refresh}
-                  title={t('crafting.priceRefreshBtn')}
-                >
-                  <RotateCw size={10} />
-                </button>
-              </div>
-            </div>
-            {stepCounts.skipped > 0 && (
-              <div className="stat-box">
-                <button
-                  type="button"
-                  className={`btn-tiny ${showSkippedSteps ? 'active' : ''}`}
-                  onClick={() => setShowSkippedSteps(!showSkippedSteps)}
-                >
-                  {t('planner.filter.showSkipped', { count: stepCounts.skipped })}
-                </button>
-              </div>
-            )}
-            {craftingPlanResult && craftingPlanResult.totals.unpricedCount > 0 && (
-              <div className="stat-box warn">
-                <span className="stat-label">{t('crafting.unpricedLabel')}</span>
-                <span className="stat-value dim">
-                  {craftingPlanResult.totals.unpricedCount} {t('crafting.unpricedItemsNote')}
-                </span>
-              </div>
-            )}
+            <ProgressBar value={progressFrac} tone="gold" slim />
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+
 
       {/* Plan Gaps Warning if any */}
       {plan && plan.gaps.length > 0 && (
@@ -1187,60 +880,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           </Notice>
         )}
 
-      {/* Strategy bar: Self-crafting vs. Buying */}
-      <div className="planner-strategy-bar">
-        <div className="strategy-row">
-          <div className="strategy-label-group">
-            <span className="strategy-title">{t('crafting.strategyTitle')}</span>
-            <div className="strategy-buttons">
-              <button
-                type="button"
-                className={`strategy-btn ${strategy === 'all_craft' ? 'active' : ''}`}
-                onClick={() => handleSetStrategy('all_craft')}
-                title={t('crafting.strategyCraftAllHint')}
-              >
-                <Hammer size={12} />
-                <span>{t('crafting.strategyCraftAll')}</span>
-              </button>
-              <button
-                type="button"
-                className={`strategy-btn ${strategy === 'all_buy' ? 'active' : ''}`}
-                onClick={() => handleSetStrategy('all_buy')}
-                title={t('crafting.strategyBuyAllHint')}
-              >
-                <ShoppingBag size={12} />
-                <span>{t('crafting.strategyBuyAll')}</span>
-              </button>
-              <button
-                type="button"
-                className={`strategy-btn ${strategy === 'custom' ? 'active' : ''}`}
-                onClick={() => setStrategy('custom')}
-                title={t('crafting.strategyCustomHint')}
-              >
-                <Sliders size={12} />
-                <span>{t('crafting.strategyCustom', { count: itemOverrides.size })}</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="strategy-scope-toggle">
-            <Check
-              checked={onlyOpenSteps}
-              onChange={() => setOnlyOpenSteps(!onlyOpenSteps)}
-              label={t('crafting.onlyOpenSteps')}
-              title={t('crafting.onlyOpenSteps')}
-            />
-          </div>
-        </div>
-
-        <div className="strategy-hint">
-          {strategy === 'all_craft' && t('crafting.strategyCraftAllHint')}
-          {strategy === 'all_buy' && t('crafting.strategyBuyAllHint')}
-          {strategy === 'custom' && t('crafting.strategyCustomHint')}
-        </div>
-      </div>
-
-      {/* Subtabs: Steps / Character Progression / Total Material Demand / Crafting Tree / Shopping List / Intermediates */}
+      {/* Subtabs: Steps / Shopping List & Demand / Cost Optimizer */}
       <div className="planner-subtabs-row">
         <div className="subtabs-group">
           <button
@@ -1255,33 +895,14 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           </button>
           <button
             type="button"
-            className={`subtab-btn ${activeTab === 'optimizer' ? 'active' : ''}`}
-            onClick={() => setActiveTab('optimizer')}
-          >
-            <TrendingUp size={13} />
-            <span>{t('crafting.optimizerTab')}</span>
-          </button>
-          <button
-            type="button"
-            className={`subtab-btn ${activeTab === 'materials' ? 'active' : ''}`}
-            onClick={() => setActiveTab('materials')}
-          >
-            <Layers size={13} />
-            <span>
-              {t('crafting.materialsTab')} ({craftingPlanResult?.materials.length ?? 0})
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`subtab-btn ${activeTab === 'tree' ? 'active' : ''}`}
-            onClick={() => setActiveTab('tree')}
-          >
-            <GitFork size={13} />
-            <span>{t('crafting.treeTab')}</span>
-          </button>
-          <button
-            type="button"
-            className={`subtab-btn ${activeTab === 'shopping' ? 'active' : ''}`}
+            className={`subtab-btn ${
+              activeTab === 'shopping' ||
+              activeTab === 'materials' ||
+              activeTab === 'tree' ||
+              activeTab === 'intermediates'
+                ? 'active'
+                : ''
+            }`}
             onClick={() => setActiveTab('shopping')}
           >
             <ShoppingBag size={13} />
@@ -1291,13 +912,11 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           </button>
           <button
             type="button"
-            className={`subtab-btn ${activeTab === 'intermediates' ? 'active' : ''}`}
-            onClick={() => setActiveTab('intermediates')}
+            className={`subtab-btn ${activeTab === 'optimizer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('optimizer')}
           >
-            <Sparkles size={13} />
-            <span>
-              {t('crafting.intermediatesTab')} ({plan?.intermediates.length ?? 0})
-            </span>
+            <TrendingUp size={13} />
+            <span>{t('crafting.optimizerTab')}</span>
           </button>
         </div>
       </div>
@@ -1308,19 +927,90 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           {plan.steps.length === 0 ? (
             <div className="empty-panel">{t('crafting.noStepsRequired')}</div>
           ) : (
-            stageGroups.map((stage) => {
-              const isStageCollapsed = collapsedStages.has(stage.id);
-              const visibleSteps = stage.steps.filter(
-                (st) => showSkippedSteps || !skippedSteps.includes(st.key),
-              );
-              if (visibleSteps.length === 0) return null;
+            <>
+              {/* Structured Tier Roadmap Overview (0–500) */}
+              <div className="planner-tier-roadmap">
+                <div className="ptr-header">
+                  <div className="flex items-center gap-2">
+                    <Layers size={14} className="text-amber-400" />
+                    <span className="ptr-title font-serif font-bold text-xs">
+                      {t('planner.roadmap.title')}
+                    </span>
+                  </div>
+                  <span className="ptr-hint dim text-xs">
+                    {t('planner.roadmap.jumpTip')}
+                  </span>
+                </div>
 
-              const stageTotalActive = Math.max(0, stage.steps.length - stage.skippedCount);
-              const stageFrac =
-                stageTotalActive > 0 ? Math.min(1, stage.completedCount / stageTotalActive) : 1;
+                <div className="ptr-cards-grid">
+                  {stageGroups.map((stage, idx) => {
+                    const isCollapsed = collapsedStages.has(stage.id);
+                    const stageTotal = stage.steps.length;
+                    const stageDone = stage.completedCount;
+                    const isComplete = stageDone >= stageTotal && stageTotal > 0;
+                    const stageCost = stage.steps.reduce((acc, st) => acc + st.cost, 0);
+                    const stageCrafts = stage.steps.reduce((acc, st) => acc + st.crafts, 0);
+                    const stageFrac = stageTotal > 0 ? stageDone / stageTotal : 0;
 
-              return (
-                <div key={stage.id} className="planner-stage-group">
+                    return (
+                      <button
+                        key={stage.id}
+                        type="button"
+                        className={`ptr-tier-card ${isComplete ? 'is-complete' : ''} ${!isCollapsed ? 'is-expanded' : ''}`}
+                        onClick={() => {
+                          if (isCollapsed) {
+                            setCollapsedStages((prev) => {
+                              const next = new Set(prev);
+                              next.delete(stage.id);
+                              return next;
+                            });
+                          }
+                          const el = document.getElementById(`stage-group-${stage.id}`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        title={`${t(stage.labelKey as TranslationKey)} (${stage.fromRank}–${stage.toRank})`}
+                      >
+                        <div className="ptr-tier-top">
+                          <span className="ptr-tier-num font-serif font-bold">
+                            Tier {idx + 1}
+                          </span>
+                          <span className="ptr-tier-range font-mono text-xs">
+                            {stage.fromRank}–{stage.toRank}
+                          </span>
+                          {isComplete && <CheckCircle2 size={12} className="text-emerald-400 ml-auto" />}
+                        </div>
+
+                        <div className="ptr-tier-name font-serif truncate">
+                          {t(stage.labelKey as TranslationKey).split('(')[0].trim()}
+                        </div>
+
+                        <div className="ptr-tier-meta font-mono text-xs">
+                          <span>{t('planner.roadmap.tierSteps', { count: stageTotal })} ({stageCrafts}×)</span>
+                          <span className="ptr-tier-cost"><Coin copper={stageCost} /></span>
+                        </div>
+
+                        <div className="ptr-tier-progress">
+                          <ProgressBar value={stageFrac} tone={isComplete ? 'gold' : 'green'} slim />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {stageGroups.map((stage) => {
+                const isStageCollapsed = collapsedStages.has(stage.id);
+                const visibleSteps = stage.steps.filter(
+                  (st) => showSkippedSteps || !skippedSteps.includes(st.key),
+                );
+                if (visibleSteps.length === 0) return null;
+
+                const stageTotalActive = Math.max(0, stage.steps.length - stage.skippedCount);
+                const stageFrac =
+                  stageTotalActive > 0 ? Math.min(1, stage.completedCount / stageTotalActive) : 1;
+
+                return (
+                  <div key={stage.id} id={`stage-group-${stage.id}`} className="planner-stage-group">
                   <div
                     className="planner-stage-header"
                     onClick={() => toggleStageCollapsed(stage.id)}
@@ -1530,12 +1220,13 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                           selectedCharacter,
                                           discipline,
                                           st.key,
-                                          'completed',
+                                          'skipped',
                                         )
                                       }
+                                      title={t('planner.action.skip')}
                                     >
-                                      <CheckCircle2 size={10} />
-                                      <span>{t('planner.action.complete')}</span>
+                                      <SkipForward size={10} />
+                                      <span>{t('planner.action.skip')}</span>
                                     </button>
                                     <button
                                       type="button"
@@ -1548,6 +1239,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                           isDeferred ? 'open' : 'deferred',
                                         )
                                       }
+                                      title={isDeferred ? t('planner.action.restore') : t('planner.action.defer')}
                                     >
                                       <PauseCircle size={10} />
                                       <span>
@@ -1555,21 +1247,6 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                                           ? t('planner.action.restore')
                                           : t('planner.action.defer')}
                                       </span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn-tiny"
-                                      onClick={() =>
-                                        progressActions.setStepStatus(
-                                          selectedCharacter,
-                                          discipline,
-                                          st.key,
-                                          'skipped',
-                                        )
-                                      }
-                                    >
-                                      <SkipForward size={10} />
-                                      <span>{t('planner.action.skip')}</span>
                                     </button>
                                   </>
                                 )}
@@ -1940,7 +1617,8 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                   )}
                 </div>
               );
-            })
+            })}
+            </>
           )}
         </div>
       )}
@@ -2152,407 +1830,450 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
         </div>
       )}
 
-      {/* Tab 2: Total Material Demand (fully recursively resolved) */}
-      {activeTab === 'materials' && (
-        <MaterialDemandTable
-          materials={craftingPlanResult?.materials ?? []}
-          onOpenItem={onOpenItem}
-          onToggleProcurement={handleToggleProcurement}
-          itemOverrides={itemOverrides}
-          hasStockData={account.hasStockData}
-        />
-      )}
+      {/* Procurement Views: Shopping List / Material Demand / Crafting Tree / Intermediates */}
+      {(activeTab === 'shopping' ||
+        activeTab === 'materials' ||
+        activeTab === 'tree' ||
+        activeTab === 'intermediates') && (
+        <div className="planner-procurement-container">
+          <div className="shopping-view-switcher">
+            <button
+              type="button"
+              className={`subtab-btn ${activeTab === 'shopping' ? 'active' : ''}`}
+              onClick={() => setActiveTab('shopping')}
+            >
+              <ShoppingBag size={12} />
+              <span>{t('planner.view.shopping')} ({plan?.purchases.size ?? 0})</span>
+            </button>
+            <button
+              type="button"
+              className={`subtab-btn ${activeTab === 'materials' ? 'active' : ''}`}
+              onClick={() => setActiveTab('materials')}
+            >
+              <Layers size={12} />
+              <span>{t('planner.view.demand')} ({craftingPlanResult?.materials.length ?? 0})</span>
+            </button>
+            <button
+              type="button"
+              className={`subtab-btn ${activeTab === 'tree' ? 'active' : ''}`}
+              onClick={() => setActiveTab('tree')}
+            >
+              <GitFork size={12} />
+              <span>{t('planner.view.tree')}</span>
+            </button>
+            <button
+              type="button"
+              className={`subtab-btn ${activeTab === 'intermediates' ? 'active' : ''}`}
+              onClick={() => setActiveTab('intermediates')}
+            >
+              <Sparkles size={12} />
+              <span>{t('planner.view.intermediates')} ({plan?.intermediates.length ?? 0})</span>
+            </button>
+          </div>
 
-      {/* Tab 4: Crafting Tree (hierarchical expandable tree structure) */}
-      {activeTab === 'tree' && (
-        <CraftingTreeView
-          trees={craftingPlanResult?.trees ?? []}
-          onOpenItem={onOpenItem}
-          onToggleProcurement={handleToggleProcurement}
-          hasStockData={account.hasStockData}
-        />
-      )}
+          {/* Tab 2: Total Material Demand (fully recursively resolved) */}
+          {activeTab === 'materials' && (
+            <MaterialDemandTable
+              materials={craftingPlanResult?.materials ?? []}
+              onOpenItem={onOpenItem}
+              onToggleProcurement={handleToggleProcurement}
+              itemOverrides={itemOverrides}
+              hasStockData={account.hasStockData}
+            />
+          )}
 
-      {/* Tab 5: Shopping List (Tier-grouped, searchable, with responsive columns) */}
-      {activeTab === 'shopping' && plan && (
-        <div className="planner-shopping-wrap">
-          {(() => {
-            const rawPurchases = Array.from(plan.purchases.entries());
-            const hasUntradable = rawPurchases.some(([id]) => {
-              const it = getItem(id);
-              return isUntradable(it) && !KNOWN_VENDOR_PRICES.has(id);
-            });
+          {/* Tab 4: Crafting Tree (hierarchical expandable tree structure) */}
+          {activeTab === 'tree' && (
+            <CraftingTreeView
+              trees={craftingPlanResult?.trees ?? []}
+              onOpenItem={onOpenItem}
+              onToggleProcurement={handleToggleProcurement}
+              hasStockData={account.hasStockData}
+            />
+          )}
 
-            // Enrich all purchases with metadata, stock, prices, and tier assignment
-            const enriched = rawPurchases.map(([itemId, qty]) => {
-              const item = getItem(itemId);
-              const stock = account.stockMap.get(itemId) ?? 0;
-              const missing = Math.max(0, qty - stock);
-              const isVendor = KNOWN_VENDOR_PRICES.has(itemId);
-              const untradable = isUntradable(item) && !isVendor;
-              const unit = unitPrice(prices.map.get(itemId), itemId);
-              const totalLineCost = unit !== null && missing > 0 ? unit * missing : (missing === 0 ? 0 : null);
+          {/* Tab 5: Shopping List (Tier-grouped, searchable, with responsive columns) */}
+          {activeTab === 'shopping' && plan && (
+            <div className="planner-shopping-wrap">
+              {(() => {
+                const rawPurchases = Array.from(plan.purchases.entries());
+                const hasUntradable = rawPurchases.some(([id]) => {
+                  const it = getItem(id);
+                  return isUntradable(it) && !KNOWN_VENDOR_PRICES.has(id);
+                });
 
-              const minRank = itemMinRankMap.get(itemId);
-              const rank = minRank !== undefined && Number.isFinite(minRank) ? minRank : 0;
-              let tier = 1;
-              if (rank >= 400) tier = 6;
-              else if (rank >= 300) tier = 5;
-              else if (rank >= 225) tier = 4;
-              else if (rank >= 150) tier = 3;
-              else if (rank >= 75) tier = 2;
+                // Enrich all purchases with metadata, stock, prices, and tier assignment
+                const enriched = rawPurchases.map(([itemId, qty]) => {
+                  const item = getItem(itemId);
+                  const stock = account.stockMap.get(itemId) ?? 0;
+                  const missing = Math.max(0, qty - stock);
+                  const isVendor = KNOWN_VENDOR_PRICES.has(itemId);
+                  const untradable = isUntradable(item) && !isVendor;
+                  const unit = unitPrice(prices.map.get(itemId), itemId);
+                  const totalLineCost = unit !== null && missing > 0 ? unit * missing : (missing === 0 ? 0 : null);
 
-              return {
-                itemId,
-                qty,
-                stock,
-                missing,
-                isVendor,
-                untradable,
-                unit,
-                totalLineCost,
-                item,
-                tier,
-                name: item?.name ?? `#${itemId}`,
-              };
-            });
+                  const minRank = itemMinRankMap.get(itemId);
+                  const rank = minRank !== undefined && Number.isFinite(minRank) ? minRank : 0;
+                  let tier = 1;
+                  if (rank >= 400) tier = 6;
+                  else if (rank >= 300) tier = 5;
+                  else if (rank >= 225) tier = 4;
+                  else if (rank >= 150) tier = 3;
+                  else if (rank >= 75) tier = 2;
 
-            // Counts for toolbar filter pills
-            const missingCount = enriched.filter((i) => i.missing > 0).length;
-            const tpCount = enriched.filter((i) => !i.isVendor && !i.untradable).length;
-            const vendorCount = enriched.filter((i) => i.isVendor).length;
+                  return {
+                    itemId,
+                    qty,
+                    stock,
+                    missing,
+                    isVendor,
+                    untradable,
+                    unit,
+                    totalLineCost,
+                    item,
+                    tier,
+                    name: item?.name ?? `#${itemId}`,
+                  };
+                });
 
-            let totalMissingCost = 0;
-            for (const item of enriched) {
-              if (item.totalLineCost !== null && item.missing > 0) {
-                totalMissingCost += item.totalLineCost;
-              }
-            }
+                // Counts for toolbar filter pills
+                const missingCount = enriched.filter((i) => i.missing > 0).length;
+                const tpCount = enriched.filter((i) => !i.isVendor && !i.untradable).length;
+                const vendorCount = enriched.filter((i) => i.isVendor).length;
 
-            // Apply search & filter
-            const query = shoppingSearch.trim().toLowerCase();
-            const filtered = enriched.filter((row) => {
-              if (query && !row.name.toLowerCase().includes(query)) return false;
-              if (shoppingFilter === 'missing' && row.missing <= 0) return false;
-              if (shoppingFilter === 'tp' && (row.isVendor || row.untradable)) return false;
-              if (shoppingFilter === 'vendor' && !row.isVendor) return false;
-              return true;
-            });
+                let totalMissingCost = 0;
+                for (const item of enriched) {
+                  if (item.totalLineCost !== null && item.missing > 0) {
+                    totalMissingCost += item.totalLineCost;
+                  }
+                }
 
-            // Group by tier
-            const tierMap = new Map<number, typeof filtered>();
-            for (const item of filtered) {
-              const list = tierMap.get(item.tier) ?? [];
-              list.push(item);
-              tierMap.set(item.tier, list);
-            }
+                // Apply search & filter
+                const query = shoppingSearch.trim().toLowerCase();
+                const filtered = enriched.filter((row) => {
+                  if (query && !row.name.toLowerCase().includes(query)) return false;
+                  if (shoppingFilter === 'missing' && row.missing <= 0) return false;
+                  if (shoppingFilter === 'tp' && (row.isVendor || row.untradable)) return false;
+                  if (shoppingFilter === 'vendor' && !row.isVendor) return false;
+                  return true;
+                });
 
-            const tierMeta: Record<number, { title: string; range: string }> = {
-              1: { title: lang === 'en' ? 'Tier 1 · Novice' : 'Tier 1 · Novize', range: '0–75' },
-              2: { title: lang === 'en' ? 'Tier 2 · Initiate' : 'Tier 2 · Initiant', range: '75–150' },
-              3: { title: lang === 'en' ? 'Tier 3 · Apprentice' : 'Tier 3 · Lehrling', range: '150–225' },
-              4: { title: lang === 'en' ? 'Tier 4 · Journeyman' : 'Tier 4 · Geselle', range: '225–300' },
-              5: { title: lang === 'en' ? 'Tier 5 · Adept' : 'Tier 5 · Experte', range: '300–400' },
-              6: { title: lang === 'en' ? 'Tier 6 · Master & Grandmaster' : 'Tier 6 · Meister & Großmeister', range: '400–500' },
-            };
+                // Group by tier
+                const tierMap = new Map<number, typeof filtered>();
+                for (const item of filtered) {
+                  const list = tierMap.get(item.tier) ?? [];
+                  list.push(item);
+                  tierMap.set(item.tier, list);
+                }
 
-            const presentTiers = [1, 2, 3, 4, 5, 6].filter((t) => tierMap.has(t));
+                const tierMeta: Record<number, { title: string; range: string }> = {
+                  1: { title: lang === 'en' ? 'Tier 1 · Novice' : 'Tier 1 · Novize', range: '0–75' },
+                  2: { title: lang === 'en' ? 'Tier 2 · Initiate' : 'Tier 2 · Initiant', range: '75–150' },
+                  3: { title: lang === 'en' ? 'Tier 3 · Apprentice' : 'Tier 3 · Lehrling', range: '150–225' },
+                  4: { title: lang === 'en' ? 'Tier 4 · Journeyman' : 'Tier 4 · Geselle', range: '225–300' },
+                  5: { title: lang === 'en' ? 'Tier 5 · Adept' : 'Tier 5 · Experte', range: '300–400' },
+                  6: { title: lang === 'en' ? 'Tier 6 · Master & Grandmaster' : 'Tier 6 · Meister & Großmeister', range: '400–500' },
+                };
 
-            return (
-              <>
-                {hasUntradable && (
-                  <div className="planner-untradable-banner">
-                    <AlertCircle size={15} className="text-amber shrink-0" />
-                    <span>
-                      {lang === 'en'
-                        ? 'Note: Some materials below are account-bound (marked with ⚠️) and cannot be purchased on the Trading Post. They must be gathered, looted, or acquired in-game with currencies (e.g. Karma).'
-                        : 'Hinweis: Einige Materialien unten sind accountgebunden (mit ⚠️ markiert) und können nicht im Handelsposten gekauft werden. Sie müssen im Spiel gesammelt, erbeutet oder über Währungen (z. B. Karma) beschafft werden.'}
-                    </span>
-                  </div>
-                )}
+                const presentTiers = [1, 2, 3, 4, 5, 6].filter((t) => tierMap.has(t));
 
-                {/* Shopping Toolbar: Search, Filters & Total Cost */}
-                <div className="shopping-toolbar">
-                  <div className="shopping-toolbar-left">
-                    <div className="shopping-search-box">
-                      <Search size={13} className="text-amber-400 shrink-0" />
-                      <input
-                        type="text"
-                        placeholder={t('crafting.searchMaterial')}
-                        value={shoppingSearch}
-                        onChange={(e) => setShoppingSearch(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="shopping-filter-chips">
-                      <button
-                        type="button"
-                        className={`shopping-chip ${shoppingFilter === 'all' ? 'active' : ''}`}
-                        onClick={() => setShoppingFilter('all')}
-                      >
-                        {t('crafting.filterAll')} ({enriched.length})
-                      </button>
-                      <button
-                        type="button"
-                        className={`shopping-chip ${shoppingFilter === 'missing' ? 'active' : ''}`}
-                        onClick={() => setShoppingFilter('missing')}
-                      >
-                        {t('crafting.filterMissingOnly')} ({missingCount})
-                      </button>
-                      <button
-                        type="button"
-                        className={`shopping-chip ${shoppingFilter === 'tp' ? 'active' : ''}`}
-                        onClick={() => setShoppingFilter('tp')}
-                      >
-                        {t('crafting.filterTpOnly')} ({tpCount})
-                      </button>
-                      <button
-                        type="button"
-                        className={`shopping-chip ${shoppingFilter === 'vendor' ? 'active' : ''}`}
-                        onClick={() => setShoppingFilter('vendor')}
-                      >
-                        {t('crafting.filterVendorOnly')} ({vendorCount})
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="shopping-toolbar-right">
-                    <span className="dim text-xs">{t('crafting.shoppingTotalMissing')}:</span>
-                    <span className="font-bold">
-                      <Coin copper={totalMissingCost} />
-                    </span>
-                  </div>
-                </div>
-
-                {/* Responsive Table Container */}
-                <div className="shopping-table-responsive-container">
-                  <table className="gw2-dense-table shopping-table">
-                    <thead>
-                      <tr>
-                        <th className="col-icon" style={{ width: '44px', textAlign: 'center' }}>
-                          {t('legendary.colIcon')}
-                        </th>
-                        <th className="col-item">{t('crafting.colItem')}</th>
-                        <th className="col-gross" style={{ width: '85px', textAlign: 'right' }}>
-                          {t('crafting.colGross')}
-                        </th>
-                        <th className="col-stock" style={{ width: '85px', textAlign: 'right' }}>
-                          {t('crafting.colStock')}
-                        </th>
-                        <th className="col-missing" style={{ width: '95px', textAlign: 'right' }}>
-                          {t('crafting.colStillBuy')}
-                        </th>
-                        <th className="col-unit" style={{ width: '115px', textAlign: 'right' }}>
-                          {t('crafting.colUnit')}
-                        </th>
-                        <th className="col-total" style={{ width: '140px', textAlign: 'right', paddingRight: '16px' }}>
-                          {t('crafting.colTotal')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {presentTiers.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="empty-cell">
-                            {t('crafting.noSearchResults')}
-                          </td>
-                        </tr>
-                      ) : (
-                        presentTiers.map((tierNum) => {
-                          const tierItems = tierMap.get(tierNum) ?? [];
-                          const meta = tierMeta[tierNum];
-                          let tierMissingCost = 0;
-                          let tierMissingItems = 0;
-                          for (const it of tierItems) {
-                            if (it.missing > 0) {
-                              tierMissingItems++;
-                              if (it.totalLineCost !== null) tierMissingCost += it.totalLineCost;
-                            }
-                          }
-
-                          return (
-                            <React.Fragment key={`tier-${tierNum}`}>
-                              <tr className="shopping-tier-separator">
-                                <td colSpan={7}>
-                                  <div className="tier-header-content">
-                                    <span className="tier-badge">
-                                      {meta.title} (Rang {meta.range})
-                                    </span>
-                                    <div className="tier-meta-right">
-                                      <span className="tier-items-count">
-                                        {tierItems.length}{' '}
-                                        {lang === 'en' ? 'materials' : 'Materialien'}
-                                      </span>
-                                      {tierMissingItems === 0 ? (
-                                        <span className="text-emerald-400 font-semibold text-xs">
-                                          {t('crafting.shoppingAllInStock')}
-                                        </span>
-                                      ) : (
-                                        <span className="text-amber-400 text-xs">
-                                          {t('crafting.shoppingMissingItems', { count: tierMissingItems })}
-                                        </span>
-                                      )}
-                                      <span className="tier-subtotal">
-                                        <Coin copper={tierMissingCost} />
-                                      </span>
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-
-                              {tierItems.map((row) => {
-                                const { itemId, qty, stock, missing, isVendor, untradable, unit, totalLineCost, item } = row;
-                                return (
-                                  <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
-                                    <td className="icon-cell" style={{ textAlign: 'center' }}>
-                                      <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
-                                    </td>
-                                    <td
-                                      className="name-cell font-serif cursor-pointer"
-                                      onClick={() => onOpenItem(itemId)}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <span className={`r-${item?.rarity ?? 'Basic'}`}>
-                                          {item?.name ?? `#${itemId}`}
-                                        </span>
-                                        {untradable && (
-                                          <span
-                                            className="badge-untradable"
-                                            title={
-                                              lang === 'en'
-                                                ? 'Account-bound: cannot be traded on the Trading Post'
-                                                : 'Accountgebunden: nicht im Handelsposten handelbar'
-                                            }
-                                          >
-                                            {lang === 'en' ? 'Account Bound' : 'Accountgebunden'}
-                                          </span>
-                                        )}
-                                        {isVendor && (
-                                          <span
-                                            className="mat-badge badge-discovery-ing"
-                                            title={
-                                              lang === 'en'
-                                                ? 'Purchasable from Master Craftsman / NPC Vendor'
-                                                : 'Kaufbar beim Handwerksmeister / Händler'
-                                            }
-                                          >
-                                            {lang === 'en' ? 'Vendor' : 'Händler'}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="num font-mono">{fmtInt(qty)}</td>
-                                    <td className="num font-mono dim">
-                                      {account.hasStockData ? fmtInt(stock) : '–'}
-                                    </td>
-                                    <td
-                                      className={`num font-mono ${
-                                        missing > 0
-                                          ? untradable
-                                            ? 'text-amber font-bold'
-                                            : 'bad font-bold'
-                                          : 'good font-bold'
-                                      }`}
-                                    >
-                                      {account.hasStockData ? (
-                                        untradable && missing > 0 ? (
-                                          <span
-                                            title={
-                                              lang === 'en'
-                                                ? 'Must be farmed/looted in-game'
-                                                : 'Muss im Spiel gesammelt/erbeutet werden'
-                                            }
-                                          >
-                                            {fmtInt(missing)} ⚠️
-                                          </span>
-                                        ) : missing === 0 ? (
-                                          <span className="text-emerald-400 font-bold">✓ 0</span>
-                                        ) : (
-                                          fmtInt(missing)
-                                        )
-                                      ) : (
-                                        fmtInt(qty)
-                                      )}
-                                    </td>
-                                    <td className="num font-mono col-unit" style={{ textAlign: 'right' }}>
-                                      {untradable ? (
-                                        <span className="dim text-xs font-serif">
-                                          {lang === 'en' ? 'Not tradable' : 'Nicht handelbar'}
-                                        </span>
-                                      ) : (
-                                        <Coin copper={unit} />
-                                      )}
-                                    </td>
-                                    <td className="num font-mono col-total" style={{ textAlign: 'right', paddingRight: '16px' }}>
-                                      {untradable ? (
-                                        <span className="dim text-xs font-serif">–</span>
-                                      ) : (
-                                        <Coin copper={totalLineCost} />
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </React.Fragment>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* Tab 6: Intermediate Components */}
-      {activeTab === 'intermediates' && plan && (
-        <div className="planner-intermediates-wrap">
-          {plan.intermediates.length === 0 ? (
-            <div className="empty-panel">{t('crafting.noIntermediatesPlanned')}</div>
-          ) : (
-            <div className="intermediates-grid">
-              {plan.intermediates.map((im, i) => {
-                const outItem = getItem(im.recipe.outputId);
                 return (
-                  <div key={i} className="intermediate-card">
-                    <div className="im-header">
-                      <ItemIcon
-                        id={im.recipe.outputId}
-                        size="m"
-                        onClick={() => onOpenItem(im.recipe.outputId)}
-                      />
-                      <div className="im-info">
-                        <span
-                          className="im-name font-serif cursor-pointer"
-                          onClick={() => onOpenItem(im.recipe.outputId)}
-                        >
-                          {outItem?.name ?? `#${im.recipe.outputId}`}
+                  <>
+                    {hasUntradable && (
+                      <div className="planner-untradable-banner">
+                        <AlertCircle size={15} className="text-amber shrink-0" />
+                        <span>
+                          {lang === 'en'
+                            ? 'Note: Some materials below are account-bound (marked with ⚠️) and cannot be purchased on the Trading Post. They must be gathered, looted, or acquired in-game with currencies (e.g. Karma).'
+                            : 'Hinweis: Einige Materialien unten sind accountgebunden (mit ⚠️ markiert) und können nicht im Handelsposten gekauft werden. Sie müssen im Spiel gesammelt, erbeutet oder über Währungen (z. B. Karma) beschafft werden.'}
                         </span>
-                        <span className="im-crafts font-mono">
-                          {t('crafting.craftRunsBadge', { count: im.crafts })}
+                      </div>
+                    )}
+
+                    {/* Shopping Toolbar: Search, Filters & Total Cost */}
+                    <div className="shopping-toolbar">
+                      <div className="shopping-toolbar-left">
+                        <div className="shopping-search-box">
+                          <Search size={13} className="text-amber-400 shrink-0" />
+                          <input
+                            type="text"
+                            placeholder={t('crafting.searchMaterial')}
+                            value={shoppingSearch}
+                            onChange={(e) => setShoppingSearch(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="shopping-filter-chips">
+                          <button
+                            type="button"
+                            className={`shopping-chip ${shoppingFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setShoppingFilter('all')}
+                          >
+                            {t('crafting.filterAll')} ({enriched.length})
+                          </button>
+                          <button
+                            type="button"
+                            className={`shopping-chip ${shoppingFilter === 'missing' ? 'active' : ''}`}
+                            onClick={() => setShoppingFilter('missing')}
+                          >
+                            {t('crafting.filterMissingOnly')} ({missingCount})
+                          </button>
+                          <button
+                            type="button"
+                            className={`shopping-chip ${shoppingFilter === 'tp' ? 'active' : ''}`}
+                            onClick={() => setShoppingFilter('tp')}
+                          >
+                            {t('crafting.filterTpOnly')} ({tpCount})
+                          </button>
+                          <button
+                            type="button"
+                            className={`shopping-chip ${shoppingFilter === 'vendor' ? 'active' : ''}`}
+                            onClick={() => setShoppingFilter('vendor')}
+                          >
+                            {t('crafting.filterVendorOnly')} ({vendorCount})
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="shopping-toolbar-right">
+                        <span className="dim text-xs">{t('crafting.shoppingTotalMissing')}:</span>
+                        <span className="font-bold">
+                          <Coin copper={totalMissingCost} />
                         </span>
                       </div>
                     </div>
-                    <div className="im-ingredients">
-                      {im.recipe.ingredients.map((ing) => {
-                        const it = getItem(ing.itemId);
-                        return (
-                          <div
-                            key={ing.itemId}
-                            className="im-ing-row cursor-pointer"
-                            onClick={() => onOpenItem(ing.itemId)}
-                          >
-                            <ItemIcon id={ing.itemId} count={ing.count * im.crafts} size="s" />
-                            <span className="dim">{it?.name ?? `#${ing.itemId}`}</span>
-                          </div>
-                        );
-                      })}
+
+                    {/* Responsive Table Container */}
+                    <div className="shopping-table-responsive-container">
+                      <table className="gw2-dense-table shopping-table">
+                        <thead>
+                          <tr>
+                            <th className="col-icon" style={{ width: '44px', textAlign: 'center' }}>
+                              {t('legendary.colIcon')}
+                            </th>
+                            <th className="col-item">{t('crafting.colItem')}</th>
+                            <th className="col-gross" style={{ width: '85px', textAlign: 'right' }}>
+                              {t('crafting.colGross')}
+                            </th>
+                            <th className="col-stock" style={{ width: '85px', textAlign: 'right' }}>
+                              {t('crafting.colStock')}
+                            </th>
+                            <th className="col-missing" style={{ width: '95px', textAlign: 'right' }}>
+                              {t('crafting.colStillBuy')}
+                            </th>
+                            <th className="col-unit" style={{ width: '115px', textAlign: 'right' }}>
+                              {t('crafting.colUnit')}
+                            </th>
+                            <th className="col-total" style={{ width: '140px', textAlign: 'right', paddingRight: '16px' }}>
+                              {t('crafting.colTotal')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {presentTiers.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="empty-cell">
+                                {t('crafting.noSearchResults')}
+                              </td>
+                            </tr>
+                          ) : (
+                            presentTiers.map((tierNum) => {
+                              const tierItems = tierMap.get(tierNum) ?? [];
+                              const meta = tierMeta[tierNum];
+                              let tierMissingCost = 0;
+                              let tierMissingItems = 0;
+                              for (const it of tierItems) {
+                                if (it.missing > 0) {
+                                  tierMissingItems++;
+                                  if (it.totalLineCost !== null) tierMissingCost += it.totalLineCost;
+                                }
+                              }
+
+                              return (
+                                <React.Fragment key={`tier-${tierNum}`}>
+                                  <tr className="shopping-tier-separator">
+                                    <td colSpan={7}>
+                                      <div className="tier-header-content">
+                                        <span className="tier-badge">
+                                          {meta.title} (Rang {meta.range})
+                                        </span>
+                                        <div className="tier-meta-right">
+                                          <span className="tier-items-count">
+                                            {tierItems.length}{' '}
+                                            {lang === 'en' ? 'materials' : 'Materialien'}
+                                          </span>
+                                          {tierMissingItems === 0 ? (
+                                            <span className="text-emerald-400 font-semibold text-xs">
+                                              {t('crafting.shoppingAllInStock')}
+                                            </span>
+                                          ) : (
+                                            <span className="text-amber-400 text-xs">
+                                              {t('crafting.shoppingMissingItems', { count: tierMissingItems })}
+                                            </span>
+                                          )}
+                                          <span className="tier-subtotal">
+                                            <Coin copper={tierMissingCost} />
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+
+                                  {tierItems.map((row) => {
+                                    const { itemId, qty, stock, missing, isVendor, untradable, unit, totalLineCost, item } = row;
+                                    return (
+                                      <tr key={itemId} className={missing === 0 ? 'row-complete' : ''}>
+                                        <td className="icon-cell" style={{ textAlign: 'center' }}>
+                                          <ItemIcon id={itemId} size="s" onClick={() => onOpenItem(itemId)} />
+                                        </td>
+                                        <td
+                                          className="name-cell font-serif cursor-pointer"
+                                          onClick={() => onOpenItem(itemId)}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <span className={`r-${item?.rarity ?? 'Basic'}`}>
+                                              {item?.name ?? `#${itemId}`}
+                                            </span>
+                                            {untradable && (
+                                              <span
+                                                className="badge-untradable"
+                                                title={
+                                                  lang === 'en'
+                                                    ? 'Account-bound: cannot be traded on the Trading Post'
+                                                    : 'Accountgebunden: nicht im Handelsposten handelbar'
+                                                }
+                                              >
+                                                {lang === 'en' ? 'Account Bound' : 'Accountgebunden'}
+                                              </span>
+                                            )}
+                                            {isVendor && (
+                                              <span
+                                                className="mat-badge badge-discovery-ing"
+                                                title={
+                                                  lang === 'en'
+                                                    ? 'Purchasable from Master Craftsman / NPC Vendor'
+                                                    : 'Kaufbar beim Handwerksmeister / Händler'
+                                                }
+                                              >
+                                                {lang === 'en' ? 'Vendor' : 'Händler'}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="num font-mono">{fmtInt(qty)}</td>
+                                        <td className="num font-mono dim">
+                                          {account.hasStockData ? fmtInt(stock) : '–'}
+                                        </td>
+                                        <td
+                                          className={`num font-mono ${
+                                            missing > 0
+                                              ? untradable
+                                              ? 'text-amber font-bold'
+                                              : 'bad font-bold'
+                                              : 'good font-bold'
+                                          }`}
+                                        >
+                                          {account.hasStockData ? (
+                                            untradable && missing > 0 ? (
+                                              <span
+                                                title={
+                                                  lang === 'en'
+                                                    ? 'Must be farmed/looted in-game'
+                                                    : 'Muss im Spiel gesammelt/erbeutet werden'
+                                                }
+                                              >
+                                                {fmtInt(missing)} ⚠️
+                                              </span>
+                                            ) : missing === 0 ? (
+                                              <span className="text-emerald-400 font-bold">✓ 0</span>
+                                            ) : (
+                                              fmtInt(missing)
+                                            )
+                                          ) : (
+                                            fmtInt(qty)
+                                          )}
+                                        </td>
+                                        <td className="num font-mono col-unit" style={{ textAlign: 'right' }}>
+                                          {untradable ? (
+                                            <span className="dim text-xs font-serif">
+                                              {lang === 'en' ? 'Not tradable' : 'Nicht handelbar'}
+                                            </span>
+                                          ) : (
+                                            <Coin copper={unit} />
+                                          )}
+                                        </td>
+                                        <td className="num font-mono col-total" style={{ textAlign: 'right', paddingRight: '16px' }}>
+                                          {untradable ? (
+                                            <span className="dim text-xs font-serif">–</span>
+                                          ) : (
+                                            <Coin copper={totalLineCost} />
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </React.Fragment>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                  </div>
+                  </>
                 );
-              })}
+              })()}
+            </div>
+          )}
+
+          {/* Tab 6: Intermediate Components */}
+          {activeTab === 'intermediates' && plan && (
+            <div className="planner-intermediates-wrap">
+              {plan.intermediates.length === 0 ? (
+                <div className="empty-panel">{t('crafting.noIntermediatesPlanned')}</div>
+              ) : (
+                <div className="intermediates-grid">
+                  {plan.intermediates.map((im, i) => {
+                    const outItem = getItem(im.recipe.outputId);
+                    return (
+                      <div key={i} className="intermediate-card">
+                        <div className="im-header">
+                          <ItemIcon
+                            id={im.recipe.outputId}
+                            size="m"
+                            onClick={() => onOpenItem(im.recipe.outputId)}
+                          />
+                          <div className="im-info">
+                            <span
+                              className="im-name font-serif cursor-pointer"
+                              onClick={() => onOpenItem(im.recipe.outputId)}
+                            >
+                              {outItem?.name ?? `#${im.recipe.outputId}`}
+                            </span>
+                            <span className="im-crafts font-mono">
+                              {t('crafting.craftRunsBadge', { count: im.crafts })}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="im-ingredients">
+                          {im.recipe.ingredients.map((ing) => {
+                            const it = getItem(ing.itemId);
+                            return (
+                              <div
+                                key={ing.itemId}
+                                className="im-ing-row cursor-pointer"
+                                onClick={() => onOpenItem(ing.itemId)}
+                              >
+                                <ItemIcon id={ing.itemId} count={ing.count * im.crafts} size="s" />
+                                <span className="dim">{it?.name ?? `#${ing.itemId}`}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

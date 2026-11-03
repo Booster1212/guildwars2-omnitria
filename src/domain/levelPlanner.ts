@@ -543,14 +543,17 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
 
     // Apply transparent mode-specific weighting:
     // 1. Höchste Kosteneffizienz (Cost Mode - Günstigster Weg von 0–500):
+    // Philosophie: Bulk-Crafting zuerst, gezielte Entdeckungen von Zeit zu Zeit
     if (mode === 'cost') {
       if (rank < 400) {
         // Refinements at tier start are the absolute cheapest way to gain early tier ranks:
         if (c.category === 'refinement') {
           effectiveCostPerRank *= 0.25;
         } else if (!isDisc && f >= 0.35) {
-          // Below 400: Strongly prioritize healthy bulk recipes (components, bulk items)
-          // over discoveries, avoiding fine-material price spikes and discovery window friction
+          // Healthy bulk crafting for simple batch execution
+          effectiveCostPerRank *= 0.65;
+        } else if (isDisc && (rank % 75 >= 25)) {
+          // Timely discoveries in mid/late tier: excellent XP-to-cost ratio, unlocks recipe for repeat batch
           effectiveCostPerRank *= 0.55;
         }
       } else {
@@ -651,19 +654,48 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       plannedDiscoveries.add(String(chosen.recipe.id));
       const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, true);
       const ranksGained = Math.max(1, Math.round(rpc));
-      const stepToRank = Math.min(effectiveToRank, n + ranksGained);
+      let currentRank = Math.min(effectiveToRank, n + ranksGained);
+      let repeatCrafts = 0;
+
+      // In bulk-first leveling (Cost, Fast, Balanced, or standard leveling below 400):
+      // When a recipe is discovered (1x), immediately execute a bulk repeat run of this exact recipe
+      // while it yields healthy XP (f >= 0.28) and stays within the sub-tier target (e.g. up to next 25-rank milestone),
+      // saving player time and eliminating tedious 1-craft recipe hopping.
+      const shouldBulkAfterDiscovery =
+        mode !== 'completionist' && (n < 400 || chosen.category !== 'item');
+
+      if (shouldBulkAfterDiscovery && currentRank < effectiveToRank) {
+        // Target next sub-tier milestone (ranks 25, 50, 75, 100, etc.)
+        const subTierCap = Math.min(effectiveToRank, Math.ceil((currentRank + 0.1) / 25) * 25);
+        const maxRepeats = 25;
+
+        while (currentRank < effectiveToRank && currentRank < subTierCap && repeatCrafts < maxRepeats) {
+          const rpcRepeat = ranksPerCraft(chosen.category, currentRank, chosen.recipe.rating, false);
+          if (rpcRepeat <= 0 || !Number.isFinite(rpcRepeat)) break;
+
+          const span = XP_MODEL[chosen.category].span;
+          const f = 1 - (currentRank - chosen.recipe.rating) / span;
+          if (f < 0.28) break; // Terminal decay cutoff before yellow/green waste
+
+          const craftsForOneRank = 1 / rpcRepeat;
+          repeatCrafts += craftsForOneRank;
+          currentRank += 1;
+        }
+      }
+
+      const totalCraftsExact = 1 + repeatCrafts;
       prev = {
         recipe: chosen.recipe,
         category: chosen.category,
         fromRank: n,
-        toRank: stepToRank,
-        craftsExact: 1,
+        toRank: currentRank,
+        craftsExact: totalCraftsExact,
         isDiscovery: true,
         discoveryCrafts: 1,
-        repeatCraftsExact: 0,
+        repeatCraftsExact: repeatCrafts,
       };
       raw.push(prev);
-      n = stepToRank - 1; // loop increment will advance to stepToRank
+      n = currentRank - 1; // loop increment will advance to currentRank
     } else {
       // Leveling for learned / repeated recipes (accumulation across ranks)
       const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, false);

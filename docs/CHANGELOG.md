@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.3] - 2026-11-04
+
+### Added & Improved
+
+#### Crafting Suite UI & UX Redesign (`src/components/crafting/LevelPlanner.tsx`, `src/index.css`)
+* **Unified Crafting Suite Header (`.planner-suite-header`):**
+  * Consolidated disparate control bars into a modern, cohesive header panel.
+  * Displays discipline profile with official 44px discipline icon, localized name, and accurate max rank badge (e.g. `0–400` for Jeweler, `0–500` for all other disciplines).
+  * Direct character context selector with live API verification badges (`API Verified` / `Locally Tracked`).
+  * Interactive rank range stepper with quick-target buttons (`[400 Max]` for Jeweler, `[400 Master]` and `[500 Grandmaster]` for 500-cap professions).
+* **Focused Leveling Strategy Selector (`.planner-strategy-selector-suite`):**
+  * Replaced cramped, ambiguous mode pills with 4 structured visual strategy cards featuring distinct icons, active golden accents, and clear benefit descriptions:
+    * 🌟 **Budget Bulk Leveling (Recommended)** (`cost`): 0–30 refinements, 1x discovery + 25x bulk – saves gold, clicks & effort.
+    * ⚡ **Fast-Track Leveling** (`fast`): Larger bulk batches, minimum craft steps & clicks.
+    * 📦 **Prioritize Account Stock** (`goal`): Consumes existing materials from bank & material storage first.
+    * 🔍 **Discovery & Collection** (`completionist`): Maximum unique recipe discoveries to complete your crafting book.
+* **Streamlined Workflow & Procurement Toolbar (`.planner-workflow-toolbar`):**
+  * Unified segmented procurement controls: 🔨 *Craft Ingredients Self (Recommended)* (intermediate refinement yields extra XP and saves up to 60% gold) vs 🛒 *Buy Finished Components* (buys blades, hilts, panels on TP to save time).
+  * Clear toggle controls for `✨ 1× Discovery + Bulk Crafting` and `👁️ Only Open Steps`.
+  * Integrated real-time Trading Post price pulse dot and refresh trigger.
+* **Consolidated KPI Summary Strip (`.planner-kpi-summary-strip`):**
+  * Floating financial and progression summary bar displaying Net Cost (factoring in liquidation resale proceeds), Gross Outlay, Master Craftsman Savings, Crafts & Steps count, and an interactive progress bar with a 1-click checkmark reset button.
+* **Structured Tier Roadmap (0–500):**
+  * Prominent tier cards for Tiers 1 through 6 (Novice, Initiate, Apprentice, Journeyman, Adept, Master) featuring step/craft counts, tier investment costs, mini progress bars, and smooth click-to-scroll navigation. Automatically adapts to 400 cap for Jeweler.
+* **Actionable Next Action Spotlight & Step Cards:**
+  * Prominent spotlight card focusing on the next immediate crafting task with explicit combined operation tags (`✨ 1× Discovery` + `🔨 24× Bulk Craft`).
+  * Removed redundant duplicate text buttons on step cards in favor of a clean, responsive single-checkbox design.
+
+#### Algorithmic Bulk-First Leveling Engine (`src/domain/levelPlanner.ts`)
+* **Bulk-First Progression Engine (0–30 Refine + 1x Discovery + 25x Bulk):**
+  * Overhauled candidate evaluation and execution loop to match how seasoned players actually level crafting efficiently in Guild Wars 2.
+  * Tier start ranks (0–25, 75–100, 150–175, etc.) prioritize cheap, decay-free material refinements (ores into ingots, logs into planks, raw leather into sections, cloth scraps into bolts).
+  * Sub-tier progression performs a single discovery craft to unlock the recipe in the player's crafting station, then **immediately executes an optimal repeat bulk batch (20–25x)** before yellow/green decay waste occurs.
+  * Eliminates the tedious, click-heavy 100+ single-discovery swapping that plagues other calculators while keeping total costs competitive.
+* **Full Support Across All 8 Disciplines:**
+  * **Weaponsmith, Huntsman, Artificer:** Ore/wood refinement ➔ 1x discovery of cheapest weapon slots (e.g. Dagger, Pistol, Focus) ➔ bulk repeat crafting.
+  * **Armorsmith, Leatherworker, Tailor:** Ore/leather/cloth refinement ➔ 1x discovery of cheapest armor slots (Boots, Gloves, Helm) ➔ bulk repeat crafting.
+  * **Jeweler:** Refines metal ingots and gems (Pebbles ➔ Nuggets ➔ Ingots) ➔ 1x discovery (Earring/Ring) ➔ bulk repeat crafting. Max rank is strictly capped at 400.
+  * **Chef:** 0–50 basic staple cooking ingredient refinements (Dough, Loaf of Bread, Seasonings) ➔ 1x discovery ➔ bulk repeat crafting.
+* **Auto-Learned Standard Recipe Utilization (0–400):**
+  * Capitalizes on base game auto-learned recipes (refinements, components, utility potions, maintenance oils, standard gear) to bypass discovery friction whenever cost-effective.
+
+#### Internationalization & Localization (`src/i18n/index.ts`)
+* **100% Key Parity Maintained:**
+  * Added and updated 12 new localization keys for the strategy selector cards, procurement workflow, and quick target buttons.
+  * Verified exact key parity between German (`de`) and English (`en`) across 849 dictionary keys.
+
+---
+
 ## [0.3.2] - 2026-11-04
 
 ### Added & Improved

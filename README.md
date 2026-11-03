@@ -4,7 +4,7 @@
 
 # Omnitria HUD
 
-[![Release](https://img.shields.io/badge/Release-v0.3.2-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Release](https://img.shields.io/badge/Release-v0.3.3-d4a359?style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Downloads](https://img.shields.io/github/downloads/Booster1212/guildwars2-omnitria/total?color=8b5cf6&label=Downloads&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
@@ -20,7 +20,27 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 ## Release Changelog
 
 <details open>
-<summary><b>v0.3.2 · Security Hardening, Vendor Catalog Overhaul, MumbleLink Map Telemetry & ESM Modernization</b> (Latest Release)</summary>
+<summary><b>v0.3.3 · Crafting Suite Redesign, Bulk-First Leveling Engine & Usability Overhaul</b> (Latest Release)</summary>
+
+- **Bulk-First Leveling Engine (0–30 Refine + 1x Discovery + 25x Bulk):**
+  - Overhauled candidate progression algorithm across all 8 disciplines to match efficient GW2 player behavior: tier-start refinements (0–25, 75–100, etc.) provide cheap, decay-free initial ranks.
+  - Sub-tier progression performs a single discovery craft to unlock the recipe in the player's crafting station, followed **immediately by an optimal repeat bulk batch (20–25x)** before yellow/green decay waste occurs.
+  - Eliminates the tedious, click-heavy 100+ single-discovery swapping of other calculators while maintaining low gold expenditure.
+  - Full support across all 8 disciplines (Weaponsmith, Huntsman, Artificer, Armorsmith, Leatherworker, Tailor, Jeweler capped to 400, Chef with cooking staple refinements).
+- **Crafting Suite UI & UX Redesign:**
+  * **Unified Suite Header:** Official discipline icon, localized name, 0–400 / 0–500 max rank badge, character selector with live API verification badges, and rank stepper with quick targets (`[400 Max]`, `[400 Master]`, `[500 Grandmaster]`).
+  * **Focused Strategy Cards:** 4 structured strategy cards with icons, badges, and benefit descriptions: 🌟 *Budget Bulk Leveling (Recommended)*, ⚡ *Fast-Track*, 📦 *Prioritize Account Stock*, and 🔍 *Discovery & Collection*.
+  * **Workflow & Procurement Bar:** Segmented toggle for *Craft Ingredients Self* vs *Buy Finished Components*, combined discovery/bulk checkboxes, and real-time TP price pulse.
+  * **Consolidated KPI Summary Strip:** Floating metrics bar showing Net Cost (factoring in liquidation resale proceeds), Gross Outlay, Master Craftsman Savings, Crafts & Steps count, and progress bar with 1-click reset.
+  * **Structured Tier Roadmap (0–500):** Tier 1 to Tier 6 interactive cards with cost, craft counts, completion progress, and click-to-scroll navigation.
+  * **Spotlight & Step Cards:** Clean operation tags (`✨ 1× Discovery` + `🔨 24× Bulk Craft`) and streamlined single-checkbox completion.
+- **100% Localization Parity:**
+  - Added new localization keys across German and English with strict 100% parity (849 keys).
+
+</details>
+
+<details>
+<summary><b>v0.3.2 · Security Hardening, Vendor Catalog Overhaul, MumbleLink Map Telemetry & ESM Modernization</b></summary>
 
 - **Credential Security Hardening (DPAPI Isolation):**
   - Eliminated plain-text API key serialization in `localStorage`.
@@ -127,7 +147,7 @@ Omnitria is an open-source desktop companion and HUD overlay for Guild Wars 2. I
 
 ### Standalone Binary (Windows)
 
-1. Download `Omnitria-v0.3.2-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.3.3-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (portable, no installer required).
 3. Launch `Omnitria.exe`.
 

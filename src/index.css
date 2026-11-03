@@ -6264,6 +6264,512 @@ button {
   line-height: 1.35;
 }
 
+/* ============================================================================
+   Crafting Suite Header, Strategy Selector & Workflow Control Center
+   ============================================================================ */
+.planner-suite-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(180deg, #181d26 0%, #12161f 100%);
+  border: 1px solid #283142;
+  border-top: 2px solid var(--gw2-gold);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.psh-discipline-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.psh-discipline-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.psh-disc-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.psh-disc-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.psh-disc-max-badge {
+  font-size: 11px;
+  color: var(--gw2-gold-bright);
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 2px;
+  padding: 1px 6px;
+}
+
+.psh-char-context-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.planner-char-select-compact {
+  max-width: 210px;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+
+.psh-target-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.target-rank-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 18, 24, 0.7);
+  border: 1px solid #222938;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.rank-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rank-field-label {
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rank-step-arrow {
+  margin: 0 2px;
+}
+
+.quick-targets-group {
+  display: flex;
+  gap: 4px;
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid #283142;
+}
+
+.quick-target-btn {
+  background: #1e2430;
+  border: 1px solid #333d52;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.quick-target-btn:hover {
+  background: #2a3445;
+  border-color: var(--gw2-gold);
+  color: #fff;
+}
+
+.quick-target-btn.active {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: var(--gw2-gold-bright);
+  color: #fef08a;
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
+}
+
+/* Strategy Cards Grid */
+.planner-strategy-selector-suite {
+  background: #11141b;
+  border: 1px solid #202735;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.strategy-suite-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.strategy-suite-label {
+  font-size: 12px;
+  color: var(--gw2-gold-bright);
+  letter-spacing: 0.5px;
+}
+
+.strategy-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.strategy-card-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #171c26;
+  border: 1px solid #283345;
+  border-radius: 3px;
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.strategy-card-btn:hover {
+  background: #202837;
+  border-color: #3e4d68;
+  transform: translateY(-1px);
+}
+
+.strategy-card-btn.active {
+  background: linear-gradient(180deg, #222938 0%, #1a202c 100%);
+  border-color: var(--gw2-gold-bright);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+}
+
+.strategy-card-btn.is-recommended {
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.strategy-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strategy-card-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.strategy-card-title {
+  font-size: 12px;
+  color: #f1f5f9;
+}
+
+.strategy-card-btn.active .strategy-card-title {
+  color: var(--gw2-gold-bright);
+}
+
+.strategy-card-rec-pill {
+  font-size: 9px;
+  color: #fef08a;
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 2px;
+  padding: 0 4px;
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.strategy-card-desc {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #94a3b8;
+}
+
+.strategy-card-btn.active .strategy-card-desc {
+  color: #cbd5e1;
+}
+
+/* Workflow & Procurement Toolbar */
+.planner-workflow-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #141821;
+  border: 1px solid #232b3a;
+  border-radius: 4px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.pwt-procurement-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pwt-group-label {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.pwt-segmented-controls {
+  display: flex;
+  background: #0f1218;
+  border: 1px solid #262e3d;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pwt-segment-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #262e3d;
+  color: #94a3b8;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pwt-segment-btn:last-child {
+  border-right: none;
+}
+
+.pwt-segment-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.pwt-segment-btn.active {
+  background: #252e3e;
+  color: #f8fafc;
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--gw2-gold);
+}
+
+.pwt-toggles-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pwt-price-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* KPI Summary Strip */
+.planner-kpi-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  background: #11141b;
+  border: 1px solid #222938;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.kpi-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #161a22;
+  border: 1px solid #242c3b;
+  border-radius: 2px;
+  padding: 6px 10px;
+}
+
+.kpi-cell.highlight-gold {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.kpi-cell.highlight-green {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.05);
+}
+
+.kpi-cell.progress-cell {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .kpi-cell.progress-cell {
+    grid-column: span 1;
+  }
+}
+
+.kpi-label {
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kpi-value {
+  font-size: 13px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.kpi-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.reset-marks-btn {
+  font-size: 10px;
+  padding: 1px 6px;
+}
+
+/* Consolidated Inline Procurement Strategy */
+.strategy-inline-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.strategy-inline-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Structured Tier Roadmap (0-500) */
+.planner-tier-roadmap {
+  background: #11141a;
+  border: 1px solid #252b38;
+  border-left: 3px solid var(--gw2-gold);
+  border-radius: 2px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.ptr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ptr-title {
+  color: var(--gw2-gold-bright);
+}
+
+.ptr-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.ptr-tier-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #161a22;
+  border: 1px solid #2a3140;
+  border-radius: 2px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  color: #cbd5e1;
+}
+
+.ptr-tier-card:hover {
+  background: #1f2533;
+  border-color: var(--gw2-gold);
+  transform: translateY(-1px);
+}
+
+.ptr-tier-card.is-expanded {
+  border-color: rgba(212, 175, 55, 0.6);
+  background: #1b202c;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.15);
+}
+
+.ptr-tier-card.is-complete {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.ptr-tier-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ptr-tier-num {
+  font-size: 11px;
+  color: var(--gw2-gold-bright);
+}
+
+.ptr-tier-range {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.ptr-tier-name {
+  font-size: 11px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.ptr-tier-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.ptr-tier-cost {
+  color: #fef08a;
+}
+
+.ptr-tier-progress {
+  margin-top: 2px;
+}
+
+/* Shopping & Demand View Switcher */
+.shopping-view-switcher {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e2430;
+  flex-wrap: wrap;
+}
+
+.shopping-view-switcher .subtab-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
 /* 2. Materialbedarfs-Tabelle */
 .planner-material-table-wrap {
   display: flex;
