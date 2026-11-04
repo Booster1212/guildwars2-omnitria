@@ -5,6 +5,7 @@
 # Omnitria HUD
 
 [![Release](https://img.shields.io/github/v/release/Booster1212/guildwars2-omnitria?color=d4a359&label=Release&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
+[![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FBooster1212%2Fguildwars2-omnitria%2Fmain%2F.github%2Fbadges%2Fdownloads.json&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/releases)
 [![Build](https://img.shields.io/github/actions/workflow/status/Booster1212/guildwars2-omnitria/ci.yml?branch=main&label=Build&style=flat-square)](https://github.com/Booster1212/guildwars2-omnitria/actions)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue?style=flat-square)](#installation)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
