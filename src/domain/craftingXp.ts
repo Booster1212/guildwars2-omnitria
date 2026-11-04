@@ -26,6 +26,7 @@ export const XP_MODEL: Record<XpCategory, { multiplier: number; span: number }> 
 /** API recipe types that do NOT qualify for leveling routes */
 const EXCLUDED_TYPES = new Set([
   'Bulk',
+  'Bag',
   'Dye',
   'GuildDecoration',
   'LegendaryComponent',

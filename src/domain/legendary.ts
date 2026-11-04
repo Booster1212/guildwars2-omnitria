@@ -41,13 +41,35 @@ export const RANDOM_RECIPE_YIELD: Record<number, { yield: number; note: string; 
   },
 };
 
-export type WeaponSlot = 'oneHand' | 'twoHand' | 'offHand' | 'aquatic';
+export type WeaponSlot =
+  | 'oneHand'
+  | 'twoHand'
+  | 'offHand'
+  | 'aquatic'
+  | 'ring'
+  | 'accessory'
+  | 'amulet'
+  | 'back'
+  | 'relic'
+  | 'armorHeavy'
+  | 'armorMedium'
+  | 'armorLight';
+
+export type LegendaryMainCategory = 'all' | 'weapons' | 'trinkets' | 'back' | 'armor';
 
 export const SLOT_LABEL: Record<WeaponSlot, string> = {
   oneHand: 'Einhandwaffen',
   twoHand: 'Zweihandwaffen',
   offHand: 'Nebenhandwaffen',
   aquatic: 'Unterwasserwaffen',
+  ring: 'Ringe',
+  accessory: 'Accessoires',
+  amulet: 'Amulette',
+  back: 'Rücken',
+  relic: 'Relikte',
+  armorHeavy: 'Schwere Rüstung',
+  armorMedium: 'Mittlere Rüstung',
+  armorLight: 'Leichte Rüstung',
 };
 
 export const SLOT_LABEL_EN: Record<WeaponSlot, string> = {
@@ -55,6 +77,14 @@ export const SLOT_LABEL_EN: Record<WeaponSlot, string> = {
   twoHand: 'Two-Handed',
   offHand: 'Off-Hand',
   aquatic: 'Aquatic',
+  ring: 'Rings',
+  accessory: 'Accessories',
+  amulet: 'Amulets',
+  back: 'Backpacks',
+  relic: 'Relics',
+  armorHeavy: 'Heavy Armor',
+  armorMedium: 'Medium Armor',
+  armorLight: 'Light Armor',
 };
 
 export function getSlotLabel(slot: WeaponSlot, lang: string = 'en'): string {
@@ -84,6 +114,29 @@ const SLOT_BY_TYPE: Record<string, WeaponSlot> = {
   Harpoon: 'aquatic',
   Speargun: 'aquatic',
   Trident: 'aquatic',
+  Ring: 'ring',
+  Accessory: 'accessory',
+  Amulet: 'amulet',
+  Back: 'back',
+  Relic: 'relic',
+  'Heavy Helm': 'armorHeavy',
+  'Heavy Shoulders': 'armorHeavy',
+  'Heavy Coat': 'armorHeavy',
+  'Heavy Gloves': 'armorHeavy',
+  'Heavy Leggings': 'armorHeavy',
+  'Heavy Boots': 'armorHeavy',
+  'Medium Helm': 'armorMedium',
+  'Medium Shoulders': 'armorMedium',
+  'Medium Jerkin': 'armorMedium',
+  'Medium Gloves': 'armorMedium',
+  'Medium Leggings': 'armorMedium',
+  'Medium Boots': 'armorMedium',
+  'Light Hood': 'armorLight',
+  'Light Mantle': 'armorLight',
+  'Light Vestments': 'armorLight',
+  'Light Gloves': 'armorLight',
+  'Light Pants': 'armorLight',
+  'Light Shoes': 'armorLight',
 };
 
 export const WEAPON_TYPE_DE: Record<string, string> = {
@@ -109,6 +162,29 @@ export const WEAPON_TYPE_DE: Record<string, string> = {
   Harpoon: 'Harpune',
   Speargun: 'Harpunengewehr',
   Trident: 'Dreizack',
+  Ring: 'Ring',
+  Accessory: 'Accessoire',
+  Amulet: 'Amulett',
+  Back: 'Rücken',
+  Relic: 'Relikt',
+  'Heavy Helm': 'Schwerer Helm',
+  'Heavy Shoulders': 'Schwere Schultern',
+  'Heavy Coat': 'Schweres Wams',
+  'Heavy Gloves': 'Schwere Handschuhe',
+  'Heavy Leggings': 'Schwere Beinschienen',
+  'Heavy Boots': 'Schwere Stiefel',
+  'Medium Helm': 'Mittlere Kappe',
+  'Medium Shoulders': 'Mittlere Schultern',
+  'Medium Jerkin': 'Mittleres Wams',
+  'Medium Gloves': 'Mittlere Handschuhe',
+  'Medium Leggings': 'Mittlere Beinkleider',
+  'Medium Boots': 'Mittlere Stiefel',
+  'Light Hood': 'Leichte Kapuze',
+  'Light Mantle': 'Leichter Mantel',
+  'Light Vestments': 'Leichtes Gewand',
+  'Light Gloves': 'Leichte Handschuhe',
+  'Light Pants': 'Leichte Hosen',
+  'Light Shoes': 'Leichte Schuhe',
 };
 
 /** Generation numbers of dataset are internal groups; display names are mapped here. */
@@ -183,10 +259,15 @@ export interface LegendaryModel extends RecipeProvider {
 export function createLegendaryModel(
   data: CommunityDataset,
   extraOfficialWeapons: { id: number; name: string; type: string }[] = [],
+  extraLegendaryItems: { id: number; name: string; type: string; gen: number }[] = [],
+  extraRecipes: { out: number; n: number; type: string; ing: [number, number][]; disc?: string[]; rating?: number }[] = [],
 ): LegendaryModel {
   const byOut = new Map<number, Recipe>();
   const vendorByOut = new Map<number, Recipe>();
-  data.recipes.forEach((r, idx) => {
+
+  const allRawRecipes = [...data.recipes, ...extraRecipes];
+
+  allRawRecipes.forEach((r, idx) => {
     const kind = r.type === 'mf' ? 'mf' : r.type === 'craft' ? 'craft' : 'vendor';
     const rand = RANDOM_RECIPE_YIELD[r.out];
     const recipe: Recipe = {
@@ -198,7 +279,7 @@ export function createLegendaryModel(
       rating: r.rating ?? 0,
       ingredients: r.ing.map(([itemId, count]) => ({ itemId, count })),
       yield: kind === 'mf' && rand && r.n > 1 ? rand.yield : undefined,
-      vendor: r.vendor,
+      vendor: 'vendor' in r ? (r as { vendor?: string }).vendor : undefined,
       source: 'community',
     };
     if (kind === 'vendor') {
@@ -216,13 +297,27 @@ export function createLegendaryModel(
     generation: w.gen,
     hasRecipe: byOut.has(w.id),
   }));
+
+  for (const ex of extraLegendaryItems) {
+    if (known.has(ex.id)) continue;
+    known.add(ex.id);
+    weapons.push({
+      id: ex.id,
+      nameEn: ex.name,
+      type: ex.type,
+      generation: ex.gen,
+      hasRecipe: byOut.has(ex.id),
+    });
+  }
+
   for (const e of extraOfficialWeapons) {
     if (known.has(e.id)) continue;
+    known.add(e.id);
     weapons.push({ id: e.id, nameEn: e.name, type: e.type, generation: 0, hasRecipe: false });
   }
 
   const allIds = new Set<number>(Object.keys(data.items).map(Number));
-  data.recipes.forEach((r) => {
+  allRawRecipes.forEach((r) => {
     allIds.add(r.out);
     r.ing.forEach(([id]) => allIds.add(id));
   });
@@ -238,7 +333,16 @@ export function createLegendaryModel(
 }
 
 export function weaponSlot(w: LegendaryWeapon, item: GameItem | undefined): WeaponSlot | undefined {
-  return slotOf(item?.weaponType) ?? slotOf(w.type);
+  return slotOf(item?.weaponType) ?? slotOf(item?.type) ?? slotOf(w.type);
+}
+
+export function categoryOfSlot(slot: WeaponSlot | undefined): LegendaryMainCategory {
+  if (!slot) return 'weapons';
+  if (slot === 'oneHand' || slot === 'twoHand' || slot === 'offHand' || slot === 'aquatic') return 'weapons';
+  if (slot === 'ring' || slot === 'accessory' || slot === 'amulet' || slot === 'relic') return 'trinkets';
+  if (slot === 'back') return 'back';
+  if (slot === 'armorHeavy' || slot === 'armorMedium' || slot === 'armorLight') return 'armor';
+  return 'weapons';
 }
 
 /** Determines base name for collection achievements ("Sunrise I: …") */

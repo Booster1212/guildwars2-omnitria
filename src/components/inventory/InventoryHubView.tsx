@@ -57,6 +57,7 @@ import {
   Target,
 } from 'lucide-react';
 import { CharacterProgressionView } from '../crafting/CharacterProgressionView';
+import { DailyCraftingCard } from '../crafting/DailyCraftingCard';
 
 export type InventorySubTab = 'search' | 'characters' | 'leveling' | 'progression';
 
@@ -378,6 +379,22 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
         lang === 'en'
           ? `📋 Chat link ${chatLink} copied to clipboard.`
           : `📋 Chat-Code ${chatLink} in die Zwischenablage kopiert.`,
+      );
+    }
+  };
+
+  const handleCopyWaypoint = (wp: string) => {
+    if (!wp) return;
+    navigator.clipboard?.writeText(wp).catch(() => {});
+    const api = (window as unknown as { electronAPI?: { copyToClipboard?: (t: string) => void } }).electronAPI;
+    if (api?.copyToClipboard) {
+      api.copyToClipboard(wp);
+    }
+    if (onToast) {
+      onToast(
+        lang === 'en'
+          ? `📋 Waypoint ${wp} copied to clipboard.`
+          : `📋 Wegmarke ${wp} in die Zwischenablage kopiert.`,
       );
     }
   };
@@ -1167,18 +1184,43 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                         </span>
                         <span className="font-mono text-xs gold">{fmtInt(count)}</span>
                         {inv && inv.locations.length > 0 && (
-                          <div className="dim text-[10px] truncate">
-                            {inv.locations
-                              .map((l) =>
+                          <div className="pve-loc-chips-row flex items-center gap-1.5 flex-wrap mt-1">
+                            {inv.locations.map((l, idx) => {
+                              const label =
                                 l.kind === 'materials'
-                                  ? `Mat: ${l.count}`
+                                  ? (lang === 'en' ? 'Material Storage' : 'Materiallager')
                                   : l.kind === 'bank'
-                                  ? `Bank: ${l.count}`
+                                  ? 'Bank'
                                   : l.kind === 'shared'
-                                  ? `Shared: ${l.count}`
-                                  : `${l.characterName ?? 'Char'}: ${l.count}`,
-                              )
-                              .join(' · ')}
+                                  ? (lang === 'en' ? 'Shared' : 'Geteilt')
+                                  : (l.characterName ?? (lang === 'en' ? 'Char' : 'Charakter'));
+
+                              const titleTip =
+                                l.kind === 'materials'
+                                  ? `${t('inventory.locMaterials')}: ${l.count}`
+                                  : l.kind === 'bank'
+                                  ? `${t('inventory.locBank')}: ${l.count}`
+                                  : l.kind === 'shared'
+                                  ? `${t('inventory.locShared')}: ${l.count}`
+                                  : `${l.characterName ?? 'Charakter'}: ${l.count}`;
+
+                              return (
+                                <span
+                                  key={`loc-${idx}`}
+                                  className={`pve-loc-chip loc-${l.kind}`}
+                                  title={titleTip}
+                                >
+                                  {l.kind === 'materials' && <Archive size={10} className="text-amber-400" />}
+                                  {l.kind === 'bank' && <Box size={10} className="text-sky-400" />}
+                                  {l.kind === 'shared' && <Layers size={10} className="text-purple-400" />}
+                                  {l.kind !== 'materials' && l.kind !== 'bank' && l.kind !== 'shared' && (
+                                    <User size={10} className="text-emerald-400" />
+                                  )}
+                                  <span className="pve-loc-label">{label}:</span>
+                                  <strong className="font-mono">{fmtInt(l.count)}</strong>
+                                </span>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -1188,7 +1230,10 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
               </div>
             </section>
 
-            {/* 2. Tracked Legendary Weapons & Next Practical Steps */}
+            {/* 2. Daily Timegated Crafting Tracker */}
+            <DailyCraftingCard onOpenItem={openDrawer} onCopyWaypoint={handleCopyWaypoint} />
+
+            {/* 3. Tracked Legendary Weapons & Next Practical Steps */}
             <section className="pve-hub-card">
               <div className="pve-hub-card-header">
                 <div className="flex items-center gap-2">

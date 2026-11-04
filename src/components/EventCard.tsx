@@ -49,7 +49,7 @@ import { useItems } from '../data/gw2/items';
 import { ItemIcon } from './common/ui';
 import { useTranslation } from '../i18n';
 import { evaluateEventDailyWeekly } from '../domain/dailyWeeklyEvents';
-import { useMumbleLink, isEventOnMap } from '../data/gw2/mumble';
+import { useMumbleLink, isEventOnMap, calculateSpatialWayfinding } from '../data/gw2/mumble';
 
 function getLootMeta(loot: string): { type: string; icon: LucideIcon } {
   const lower = loot.toLowerCase();
@@ -273,6 +273,10 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
   const { event, isActive, startsInSeconds, endsInSeconds } = instance;
   const mumble = useMumbleLink();
   const isOnCurrentMap = Boolean(mumble.connected && isEventOnMap(event, mumble.mapId));
+  const wayfinding = useMemo(() => {
+    if (!isOnCurrentMap) return null;
+    return calculateSpatialWayfinding(event.id, mumble.playerX, mumble.playerY, mumble.compassRotation);
+  }, [isOnCurrentMap, event.id, mumble.playerX, mumble.playerY, mumble.compassRotation]);
 
   const progress = useProgress();
   const completionsCount = progress.eventCompletions[event.id] ?? 0;
@@ -375,11 +379,16 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
               </span>
               {isOnCurrentMap && (
                 <span
-                  className="gw2-dw-badge current-map-badge"
+                  className="gw2-dw-badge current-map-badge spatial-wayfinding-badge"
                   title={t('events.onYourMapTooltip')}
                 >
                   <MapPin size={11} className="dw-badge-icon" />
                   <span>{t('events.onYourMap')}</span>
+                  {wayfinding && (
+                    <span className="spatial-live-meta font-mono font-bold text-emerald-300">
+                      · {wayfinding.arrow} {wayfinding.distanceLabel} ({wayfinding.cardinal})
+                    </span>
+                  )}
                 </span>
               )}
               {dwMatch.isDaily && (

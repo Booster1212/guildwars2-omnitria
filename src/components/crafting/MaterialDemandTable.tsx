@@ -278,16 +278,18 @@ export const MaterialDemandTable: React.FC<MaterialDemandTableProps> = ({
                             const charBd = account.data?.characterBreakdown?.[m.itemId];
                             const locParts: string[] = [];
                             if (bd) {
-                              if (bd[0] > 0) locParts.push(`Mat: ${fmtInt(bd[0])}`);
+                              const matLabel = lang === 'en' ? 'Material' : 'Materiallager';
+                              const sharedLabel = lang === 'en' ? 'Shared' : 'Geteilt';
+                              if (bd[0] > 0) locParts.push(`${matLabel}: ${fmtInt(bd[0])}`);
                               if (bd[1] > 0) locParts.push(`Bank: ${fmtInt(bd[1])}`);
-                              if (bd[2] > 0) locParts.push(`${lang === 'en' ? 'Shared' : 'Geteilt'}: ${fmtInt(bd[2])}`);
+                              if (bd[2] > 0) locParts.push(`${sharedLabel}: ${fmtInt(bd[2])}`);
                               if (bd[3] > 0) {
                                 if (charBd && Object.keys(charBd).length > 0) {
                                   for (const [cName, cCnt] of Object.entries(charBd)) {
                                     if (cCnt > 0) locParts.push(`${cName}: ${fmtInt(cCnt)}`);
                                   }
                                 } else {
-                                  locParts.push(`Chars: ${fmtInt(bd[3])}`);
+                                  locParts.push(`${lang === 'en' ? 'Characters' : 'Charaktere'}: ${fmtInt(bd[3])}`);
                                 }
                               }
                             }

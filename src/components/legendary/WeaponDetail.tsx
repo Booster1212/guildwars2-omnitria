@@ -12,7 +12,7 @@ import { Coin, ItemIcon, Notice, ProgressBar, Tabs } from '../common/ui';
 import { CraftTree } from './CraftTree';
 import { MaterialTable } from './MaterialTable';
 import { CollectionList } from './CollectionList';
-import { Star, RotateCcw, AlertTriangle, Info } from 'lucide-react';
+import { Star, RotateCcw, AlertTriangle, Info, Check } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 interface WeaponDetailProps {
@@ -73,6 +73,10 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
   const slot = weaponSlot(weapon, item);
   const slotLabel = slot ? getSlotLabel(slot, lang) : '';
 
+  const isUnlockedInArmory = account.armoryMap ? account.armoryMap.has(weapon.id) : false;
+  const armoryCount = isUnlockedInArmory ? (account.armoryMap?.get(weapon.id) ?? 1) : 0;
+  const effectiveProgress = isUnlockedInArmory ? 1 : treeResult.progress;
+
   return (
     <div className="gw2-detail-panel weapon-detail-panel">
       {/* Weapon Banner Header */}
@@ -100,6 +104,15 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
               <span className="sep">·</span>
               <span className="dim">ID {weapon.id}</span>
             </div>
+
+            {isUnlockedInArmory && (
+              <div className="armory-unlocked-banner">
+                <Check size={13} className="armory-check-icon" />
+                <span className="banner-text font-serif">
+                  {t('legendary.unlockedBanner', { count: armoryCount })}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -107,19 +120,23 @@ export const WeaponDetail: React.FC<WeaponDetailProps> = ({
         <div className="banner-right">
           <div className="progress-status-box">
             <div className="progress-number font-mono">
-              {Math.round(treeResult.progress * 100)} %
+              {Math.round(effectiveProgress * 100)} %
             </div>
             <div className="progress-bar-container">
               <ProgressBar
-                value={treeResult.progress}
-                tone={treeResult.progress >= 1 ? 'gold' : 'green'}
+                value={effectiveProgress}
+                tone={effectiveProgress >= 1 ? 'gold' : 'green'}
               />
             </div>
             <div className="progress-sub-text dim font-mono">
-              {t('legendary.stepsDone', {
-                done: treeResult.components.complete,
-                total: treeResult.components.total,
-              })}
+              {isUnlockedInArmory ? (
+                <span>{t('legendary.unlockedInArmory')}</span>
+              ) : (
+                t('legendary.stepsDone', {
+                  done: treeResult.components.complete,
+                  total: treeResult.components.total,
+                })
+              )}
             </div>
           </div>
 

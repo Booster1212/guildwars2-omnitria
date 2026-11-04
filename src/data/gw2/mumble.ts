@@ -174,6 +174,73 @@ export function isEventOnMap(event: WorldEvent, currentMapId?: number): boolean 
   );
 }
 
+/**
+ * Canonical continent coordinates for major world bosses and meta events for real-time spatial navigation.
+ */
+export const EVENT_CONTINENT_COORDS: Record<string, [number, number]> = {
+  'svanir-shaman': [24950, 15420],
+  'fire-elemental': [16850, 22400],
+  'shadow-behemoth': [19450, 18900],
+  'great-jungle-wurm': [16450, 19200],
+  'claw-of-jormag': [26100, 11400],
+  'tequatl': [18350, 21850],
+  'shatterer': [28700, 17200],
+  'megadestroyer': [20500, 23800],
+  'karka-queen': [14200, 24100],
+  'triple-trouble': [19200, 22900],
+  'tarir': [10400, 18800],
+  'chak-gerent': [9400, 20100],
+  'dragons-stand': [8200, 18600],
+  'dragons-end': [38200, 41200],
+};
+
+export interface SpatialWayfinding {
+  distanceLabel: string;
+  arrow: string;
+  cardinal: string;
+}
+
+/**
+ * Computes live spatial distance & compass heading relative to player camera orientation.
+ */
+export function calculateSpatialWayfinding(
+  eventId: string,
+  playerX?: number,
+  playerY?: number,
+  compassRotation?: number
+): SpatialWayfinding | null {
+  if (playerX === undefined || playerY === undefined) return null;
+  const coords = EVENT_CONTINENT_COORDS[eventId];
+  if (!coords) return null;
+
+  const dx = coords[0] - playerX;
+  const dy = coords[1] - playerY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  // Convert game continent coords to human distance label
+  const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${Math.round(dist)} m`;
+
+  // Angle from player to target (0 is North)
+  let worldRad = Math.atan2(dx, -dy);
+  if (worldRad < 0) worldRad += 2 * Math.PI;
+
+  // Relative to compass rotation
+  let relRad = worldRad - (compassRotation ?? 0);
+  while (relRad < 0) relRad += 2 * Math.PI;
+  while (relRad >= 2 * Math.PI) relRad -= 2 * Math.PI;
+
+  const deg = (relRad * 180) / Math.PI;
+  const cardinals = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const arrows = ['⬆', '↗', '➡', '↘', '⬇', '↙', '⬅', '↖'];
+  const idx = Math.round(deg / 45) % 8;
+
+  return {
+    distanceLabel: distLabel,
+    arrow: arrows[idx],
+    cardinal: cardinals[idx],
+  };
+}
+
 // Global in-memory state store for reactive MumbleLink updates
 let currentMumbleData: MumbleData = { connected: false };
 let lastNotifiedAt = 0;

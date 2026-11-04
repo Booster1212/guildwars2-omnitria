@@ -22,3 +22,24 @@ export const wikiArticleUrl = (articleTitle: string, lang: 'de' | 'en' = 'en'): 
   const base = lang === 'de' ? 'https://wiki-de.guildwars2.com/wiki' : 'https://wiki.guildwars2.com/wiki';
   return `${base}/${encodeURIComponent(articleTitle.replace(/ /g, '_'))}`;
 };
+
+/**
+ * Generates an authentic Guild Wars 2 in-game chat link ([&...]) for an item.
+ * Specification: 0x02 header, count byte, 3-byte little-endian item ID, 0x00 terminator, base64-encoded.
+ */
+export function encodeItemChatCode(itemId: number, count = 1): string {
+  if (!itemId || itemId <= 0) return '';
+  const bytes = new Uint8Array([
+    0x02,
+    Math.min(255, Math.max(1, count)),
+    itemId & 0xff,
+    (itemId >> 8) & 0xff,
+    (itemId >> 16) & 0xff,
+    0x00,
+  ]);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return `[&${btoa(binary)}]`;
+}

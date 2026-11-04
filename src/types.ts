@@ -58,6 +58,7 @@ export interface WorldEvent {
   waypoint: string;
   waypointName: string;
   waypointNameEn?: string;
+  coords?: [number, number]; // [x, y] continent coordinates for spatial wayfinding
   durationMinutes: number;
   schedule: {
     type: 'fixed' | 'repeat';
@@ -107,5 +108,6 @@ export interface OverlaySettings {
   mumbleEnabled?: boolean;
   autoSelectMumbleCharacter?: boolean;
   autoDimInCombat?: boolean;
+  autoDimOnWorldMap?: boolean;
   highlightCurrentMapEvents?: boolean;
 }

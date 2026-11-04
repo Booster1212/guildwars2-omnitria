@@ -1,5 +1,17 @@
-import React, { useMemo } from 'react';
-import { ChevronLeft, ExternalLink, X } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import {
+  ChevronLeft,
+  ExternalLink,
+  X,
+  BookOpen,
+  Copy,
+  TrendingUp,
+  Package,
+  Layers,
+  Sparkles,
+  ShoppingBag,
+  Info,
+} from 'lucide-react';
 import type { LegendaryModel } from '../../domain/legendary';
 import { WEAPON_TYPE_DE } from '../../domain/legendary';
 import { resolveSources, KIND_META } from '../../domain/sources';
@@ -9,8 +21,8 @@ import { getItem, useItems, cleanDescription } from '../../data/gw2/items';
 import { usePrices } from '../../data/gw2/prices';
 import { useAccountState } from '../../data/gw2/account';
 import { useRecipeDb } from '../../data/gw2/recipes';
-import { openExternal, wikiSearchUrl } from '../../data/external';
-import { Coin, ItemIcon, Notice, OriginBadge } from '../common/ui';
+import { openExternal, wikiSearchUrl, encodeItemChatCode } from '../../data/external';
+import { Coin, ItemIcon, Notice, OriginBadge, ProgressBar } from '../common/ui';
 import { getDisciplineName, getItemTypeName, getRarityName, fmtInt } from '../common/labels';
 import type { DisciplineId } from '../../domain/types';
 import { useTranslation } from '../../i18n';
@@ -26,10 +38,30 @@ interface Props {
   onOpenItem: (id: number) => void;
 }
 
-export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack, onBack, onClose, onOpenItem }) => {
-  const { lang } = useTranslation();
+export const MaterialDetail: React.FC<Props> = ({
+  itemId,
+  model,
+  need,
+  canGoBack,
+  onBack,
+  onClose,
+  onOpenItem,
+}) => {
+  const { lang, t } = useTranslation();
   const recipeDb = useRecipeDb(false);
   const account = useAccountState();
+  const [copiedAction, setCopiedAction] = useState<string | null>(null);
+
+  // Keyboard shortcut: Escape to close drawer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const breakdownLabels = useMemo(() => {
     return lang === 'en'
@@ -70,7 +102,11 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
     price,
   });
   const caveats = [
-    ...new Set(sources.flatMap((s) => (lang === 'en' ? (s.caveatsEn && s.caveatsEn.length ? s.caveatsEn : s.caveats) : s.caveats))),
+    ...new Set(
+      sources.flatMap((s) =>
+        lang === 'en' ? (s.caveatsEn && s.caveatsEn.length ? s.caveatsEn : s.caveats) : s.caveats
+      )
+    ),
   ];
   const stock = account.stockMap.get(itemId) ?? 0;
   const bd = account.data?.breakdown[itemId];
@@ -94,96 +130,210 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
     }
     return out;
   }, [usedIn]);
-  useItems(usedInOutputs.slice(0, 12));
+  useItems(usedInOutputs.slice(0, 16));
+
+  const chatCode = useMemo(() => encodeItemChatCode(itemId), [itemId]);
+
+  const handleCopyChatCode = () => {
+    if (!chatCode) return;
+    navigator.clipboard.writeText(chatCode);
+    setCopiedAction('chatCode');
+    setTimeout(() => setCopiedAction(null), 2200);
+  };
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(String(itemId));
+    setCopiedAction('id');
+    setTimeout(() => setCopiedAction(null), 2200);
+  };
+
+  // Demand progress fraction
+  const demandProgress = need && need.total > 0 ? Math.min(1, Math.max(0, (need.total - need.missing) / need.total)) : 0;
 
   return (
-    <aside className="drawer" aria-label="Materialdetails">
+    <aside className="drawer innovative-item-drawer" aria-label="Materialdetails">
+      {/* Drawer Sticky Header */}
       <div className="drawer-head">
-        {canGoBack && (
-          <button className="btn ghost sm" onClick={onBack} title={lang === 'en' ? 'Back' : 'Zurück'}>
-            <ChevronLeft size={13} /> {lang === 'en' ? 'Back' : 'Zurück'}
+        <div className="flex items-center gap-2">
+          {canGoBack && (
+            <button className="btn ghost sm drawer-back-btn" onClick={onBack} title={lang === 'en' ? 'Back' : 'Zurück'}>
+              <ChevronLeft size={14} /> {lang === 'en' ? 'Back' : 'Zurück'}
+            </button>
+          )}
+          <span className="drawer-title">{lang === 'en' ? 'Item Details' : 'Gegenstands-Details'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn icon ghost drawer-close-btn"
+            onClick={onClose}
+            title={lang === 'en' ? 'Close (Esc)' : 'Schließen (Esc)'}
+            aria-label="Schließen"
+          >
+            <X size={16} />
           </button>
-        )}
-        <span className="drawer-title">{lang === 'en' ? 'Material Details' : 'Material'}</span>
-        <button className="btn icon ghost" onClick={onClose} title={lang === 'en' ? 'Close' : 'Schließen'} aria-label="Schließen">
-          <X size={14} />
-        </button>
+        </div>
       </div>
 
       <div className="drawer-body">
-        <div className="md-head">
-          <ItemIcon id={itemId} size="l" />
-          <div className="md-head-text">
-            <h3 className={`md-name r-${item?.rarity ?? 'Basic'}`}>{item?.name ?? `Item #${itemId}`}</h3>
-            <div className="dim">
-              {item
-                ? `${getRarityName(item.rarity, lang)} · ${
-                    item.type === 'Weapon' && item.weaponType
+        {/* 1. Hero Item Card */}
+        <div className="md-hero-card">
+          <div className="md-hero-top">
+            <ItemIcon id={itemId} size="l" />
+            <div className="md-hero-info">
+              <h3 className={`md-hero-title r-${item?.rarity ?? 'Basic'}`}>
+                {item?.name ?? (lang === 'en' ? `Item #${itemId}` : `Gegenstand #${itemId}`)}
+              </h3>
+              <div className="md-hero-sub dim flex items-center gap-1.5 flex-wrap">
+                <span className={`rarity-label r-${item?.rarity ?? 'Basic'}`}>
+                  {item ? getRarityName(item.rarity, lang) : '…'}
+                </span>
+                <span className="sep">·</span>
+                <span>
+                  {item
+                    ? item.type === 'Weapon' && item.weaponType
                       ? (lang === 'en' ? item.weaponType : (WEAPON_TYPE_DE[item.weaponType] ?? item.weaponType))
                       : getItemTypeName(item.type, lang)
-                  }`
-                : lang === 'en' ? 'Loading…' : 'Wird geladen …'}
-              <span className="sep">·</span>ID {itemId}
+                    : '…'}
+                </span>
+                {item?.level !== undefined && item.level > 0 && (
+                  <>
+                    <span className="sep">·</span>
+                    <span>Lv. {item.level}</span>
+                  </>
+                )}
+              </div>
             </div>
-            {item?.description && <p className="md-desc">{cleanDescription(item.description)}</p>}
+          </div>
+
+          {item?.description && (
+            <div className="md-hero-desc">
+              <p>{cleanDescription(item.description)}</p>
+            </div>
+          )}
+
+          {/* Quick Innovative Action Bar */}
+          <div className="md-quick-actions">
+            {/* Primary Action: Look up in Wiki */}
+            <button
+              type="button"
+              className="md-action-btn primary-wiki-btn"
+              onClick={() => openExternal(wikiSearchUrl(item?.name ?? String(itemId), lang))}
+              title={lang === 'en' ? 'Open official Guild Wars 2 Wiki' : 'Offizielles Guild Wars 2 Wiki öffnen'}
+            >
+              <BookOpen size={13} className="text-amber-400" />
+              <span>{lang === 'en' ? 'Wiki Lookup' : 'Im Wiki nachschlagen'}</span>
+              <ExternalLink size={10} className="opacity-70 ml-0.5" />
+            </button>
+
+            {/* Copy In-Game Chat Link */}
+            {chatCode && (
+              <button
+                type="button"
+                className={`md-action-btn chat-link-btn ${copiedAction === 'chatCode' ? 'copied' : ''}`}
+                onClick={handleCopyChatCode}
+                title={lang === 'en' ? `Copy in-game chat link (${chatCode})` : `In-Game Chat-Link kopieren (${chatCode})`}
+              >
+                <Copy size={12} />
+                <span>{copiedAction === 'chatCode' ? (lang === 'en' ? 'Copied!' : 'Kopiert!') : 'Chat-Code'}</span>
+              </button>
+            )}
+
+            {/* Copy Item ID */}
+            <button
+              type="button"
+              className={`md-action-btn id-btn ${copiedAction === 'id' ? 'copied' : ''}`}
+              onClick={handleCopyId}
+              title={lang === 'en' ? 'Copy Item ID' : 'Item-ID kopieren'}
+            >
+              <span className="font-mono text-[10.5px]">#{itemId}</span>
+            </button>
+
+            {/* Trading Post / BLTC Link */}
+            {!untradable && (
+              <button
+                type="button"
+                className="md-action-btn bltc-btn"
+                onClick={() => openExternal(`https://www.gw2bltc.com/en/item/${itemId}`)}
+                title={lang === 'en' ? 'View live Trading Post history on GW2BLTC' : 'Live-Handelsposten auf GW2BLTC ansehen'}
+              >
+                <TrendingUp size={12} className="text-emerald-400" />
+                <span>TP</span>
+              </button>
+            )}
           </div>
         </div>
 
-        <section className="md-sec">
-          <h4>{lang === 'en' ? 'Quantities' : 'Mengen'}</h4>
-          <table className="tbl kv">
-            <tbody>
-              {need && (
-                <>
-                  <tr>
-                    <td>{lang === 'en' ? 'Total Demand' : 'Gesamtbedarf'}</td>
-                    <td className="num">{fmtInt(need.total)}</td>
-                    <td>
-                      <OriginBadge origin="derived" />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>{lang === 'en' ? 'Still Missing' : 'Noch fehlend'}</td>
-                    <td className={`num ${need.missing > 0 ? 'bad' : 'good'}`}>{fmtInt(need.missing)}</td>
-                    <td>
-                      <OriginBadge origin="derived" />
-                    </td>
-                  </tr>
-                </>
-              )}
-              <tr>
-                <td>{lang === 'en' ? 'In Possession' : 'Im Besitz'}</td>
-                <td className="num">{account.hasStockData ? fmtInt(stock) : '–'}</td>
-                <td>
-                  <OriginBadge origin="personal" />
-                </td>
-              </tr>
-              {bd &&
-                bd.map((n, i) =>
+        {/* 2. Quantities & Demand Card */}
+        <section className="md-sec md-quantities-card">
+          <div className="md-sec-header">
+            <Package size={14} className="gold" />
+            <h4>{lang === 'en' ? 'Stock & Demand' : 'Bestand & Bedarf'}</h4>
+          </div>
+
+          {need && (
+            <div className="md-demand-progress-box">
+              <div className="flex justify-between items-center mb-1 text-xs">
+                <span className="dim">{lang === 'en' ? 'Demand Fulfilled' : 'Bedarfs-Abdeckung'}</span>
+                <span className="font-mono font-bold text-amber-300">{Math.round(demandProgress * 100)}%</span>
+              </div>
+              <ProgressBar value={demandProgress} tone="gold" slim />
+            </div>
+          )}
+
+          <div className="md-kpi-grid">
+            {need && (
+              <div className="md-kpi-box">
+                <span className="md-kpi-label">{lang === 'en' ? 'Total Demand' : 'Gesamtbedarf'}</span>
+                <span className="md-kpi-val font-mono">{fmtInt(need.total)}</span>
+              </div>
+            )}
+            <div className="md-kpi-box">
+              <span className="md-kpi-label">{lang === 'en' ? 'Owned' : 'Im Besitz'}</span>
+              <span className="md-kpi-val font-mono text-emerald-400">
+                {account.hasStockData ? fmtInt(stock) : '–'}
+              </span>
+            </div>
+            {need && (
+              <div className="md-kpi-box">
+                <span className="md-kpi-label">{lang === 'en' ? 'Missing' : 'Noch fehlend'}</span>
+                <span className={`md-kpi-val font-mono ${need.missing > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {need.missing > 0 ? fmtInt(need.missing) : (lang === 'en' ? '0 (Done!)' : '0 (Erledigt!)')}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Inventory Breakdown if available */}
+          {bd && bd.some((n) => n > 0) && (
+            <div className="md-breakdown-subtable">
+              <span className="text-[11px] dim font-semibold mb-1 block">
+                {lang === 'en' ? 'Storage Locations:' : 'Lagerorte:'}
+              </span>
+              <div className="space-y-1">
+                {bd.map((n, i) =>
                   n > 0 ? (
-                    <React.Fragment key={i}>
-                      <tr className="sub">
-                        <td>{breakdownLabels[i]}</td>
-                        <td className="num">{fmtInt(n)}</td>
-                        <td />
-                      </tr>
-                      {i === 3 &&
-                        charEntries.map(([charName, charCnt]) => (
-                          <tr key={`char-${charName}`} className="sub">
-                            <td style={{ paddingLeft: '22px' }} className="dim">
-                              ↳ {charName}
-                            </td>
-                            <td className="num dim">{fmtInt(charCnt)}</td>
-                            <td />
-                          </tr>
-                        ))}
-                    </React.Fragment>
-                  ) : null,
+                    <div key={i} className="flex justify-between items-center text-xs px-2 py-0.5 bg-black/30 rounded">
+                      <span className="dim">{breakdownLabels[i]}</span>
+                      <span className="font-mono font-semibold">{fmtInt(n)}</span>
+                    </div>
+                  ) : null
                 )}
-            </tbody>
-          </table>
+                {charEntries.length > 0 && (
+                  <div className="pt-1 border-t border-white/5">
+                    {charEntries.map(([charName, charCnt]) => (
+                      <div key={`char-${charName}`} className="flex justify-between items-center text-[11px] px-2 py-0.5 dim">
+                        <span className="truncate max-w-[180px]">↳ {charName}</span>
+                        <span className="font-mono">{fmtInt(charCnt)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {!account.hasStockData && (
-            <p className="hint">
+            <p className="hint text-xs dim italic mt-2">
               {lang === 'en'
                 ? 'Stock tracking requires an API key with "inventories" permission.'
                 : 'Bestände benötigen einen API-Schlüssel mit der Berechtigung „inventories“.'}
@@ -191,41 +341,137 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
           )}
         </section>
 
-        <section className="md-sec">
-          <h4>{lang === 'en' ? 'Trading Post' : 'Handelsgesellschaft'}</h4>
+        {/* 3. Trading Post Market Card */}
+        <section className="md-sec md-market-card">
+          <div className="md-sec-header">
+            <ShoppingBag size={14} className="gold" />
+            <h4>{lang === 'en' ? 'Trading Post Market' : 'Handelsposten & Markt'}</h4>
+          </div>
+
           {untradable ? (
-            <p className="hint">
-              {lang === 'en'
-                ? `Item is ${item?.flags.includes('AccountBound') ? 'Account Bound' : 'Soulbound'} – not tradable.`
-                : `Gegenstand ist ${item?.flags.includes('AccountBound') ? 'accountgebunden' : 'seelengebunden'} – nicht handelbar.`}
-            </p>
+            <div className="untradable-banner">
+              <Info size={13} className="opacity-70" />
+              <span>
+                {lang === 'en'
+                  ? `Item is ${item?.flags.includes('AccountBound') ? 'Account Bound' : 'Soulbound'} – not tradable.`
+                  : `Gegenstand ist ${item?.flags.includes('AccountBound') ? 'accountgebunden' : 'seelengebunden'} – nicht handelbar.`}
+              </span>
+            </div>
           ) : price && (price.sell > 0 || price.buy > 0) ? (
-            <table className="tbl kv">
-              <tbody>
-                <tr>
-                  <td>{lang === 'en' ? 'Instant Buy (Lowest Offer)' : 'Sofortkauf (niedrigstes Angebot)'}</td>
-                  <td className="num">
-                    <Coin copper={price.sell || null} />
-                  </td>
-                  <td className="dim num">{fmtInt(price.sellQty)} {lang === 'en' ? 'pcs.' : 'Stk.'}</td>
-                </tr>
-                <tr>
-                  <td>{lang === 'en' ? 'Highest Buy Order' : 'Höchstes Kaufgesuch'}</td>
-                  <td className="num">
-                    <Coin copper={price.buy || null} />
-                  </td>
-                  <td className="dim num">{fmtInt(price.buyQty)} {lang === 'en' ? 'pcs.' : 'Stk.'}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="market-dual-cards">
+              <div className="market-price-pill sell-pill">
+                <span className="market-type-label">{lang === 'en' ? 'Instant Buy (Sell Offer)' : 'Sofortkauf (Verkaufsangebot)'}</span>
+                <div className="market-coin-row">
+                  <Coin copper={price.sell || null} />
+                </div>
+                <span className="market-qty-meta font-mono">
+                  {fmtInt(price.sellQty)} {lang === 'en' ? 'available' : 'verfügbar'}
+                </span>
+              </div>
+
+              <div className="market-price-pill buy-pill">
+                <span className="market-type-label">{lang === 'en' ? 'Highest Buy Order' : 'Höchstes Kaufgesuch'}</span>
+                <div className="market-coin-row">
+                  <Coin copper={price.buy || null} />
+                </div>
+                <span className="market-qty-meta font-mono">
+                  {fmtInt(price.buyQty)} {lang === 'en' ? 'orders' : 'Gesuche'}
+                </span>
+              </div>
+            </div>
           ) : (
-            <p className="hint">{lang === 'en' ? 'No active listing / not tradable.' : 'Kein aktuelles Angebot / nicht gelistet.'}</p>
+            <p className="hint text-xs dim italic">
+              {lang === 'en' ? 'No active listing / not tradable.' : 'Kein aktuelles Angebot / nicht gelistet.'}
+            </p>
           )}
-          {prices.error && <Notice tone="warn">{lang === 'en' ? 'Failed to refresh prices' : 'Preise konnten nicht aktualisiert werden'}: {prices.error}</Notice>}
+
+          {prices.error && (
+            <Notice tone="warn">
+              {lang === 'en' ? 'Failed to refresh prices' : 'Preise konnten nicht aktualisiert werden'}: {prices.error}
+            </Notice>
+          )}
         </section>
 
-        <section className="md-sec">
-          <h4>{lang === 'en' ? 'Acquisition' : 'Beschaffung'}</h4>
+        {/* 4. Crafting Recipes */}
+        {shownRecipes.length > 0 && (
+          <section className="md-sec md-recipe-card">
+            <div className="md-sec-header">
+              <Layers size={14} className="gold" />
+              <h4>{lang === 'en' ? 'Crafting Recipe' : 'Herstellungs-Rezept'}</h4>
+            </div>
+
+            {shownRecipes.map((r) => (
+              <div className="recipe-box" key={r.id}>
+                <div className="recipe-meta flex items-center justify-between">
+                  <span className="font-semibold text-xs text-[#f4e3a8]">
+                    {r.kind === 'mf'
+                      ? (lang === 'en' ? 'Mystic Forge' : 'Mystische Schmiede')
+                      : r.disciplines.length
+                        ? r.disciplines.map((d) => getDisciplineName(d as DisciplineId, lang)).join(', ')
+                        : (lang === 'en' ? 'Vendor' : 'Händler')}
+                    {r.rating > 0 && ` · Lv. ${r.rating}`}
+                    {r.outputCount > 1 && ` · x${r.outputCount}`}
+                  </span>
+                  <OriginBadge origin={r.source === 'official' ? 'official' : 'community'} />
+                </div>
+
+                <div className="recipe-ings">
+                  {r.ingredients.map((ing) => (
+                    <div
+                      className="recipe-ing interactive-ing"
+                      key={ing.itemId}
+                      onClick={() => onOpenItem(ing.itemId)}
+                      title={lang === 'en' ? 'Click to inspect ingredient' : 'Klicken, um Zutat zu inspizieren'}
+                    >
+                      <ItemIcon id={ing.itemId} count={ing.count} />
+                      <span className="truncate max-w-[140px] text-xs">
+                        {getItem(ing.itemId)?.name ?? `#${ing.itemId}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* 5. Used In Recipes */}
+        {usedInOutputs.length > 0 && (
+          <section className="md-sec md-used-in-card">
+            <div className="md-sec-header">
+              <Sparkles size={14} className="gold" />
+              <h4>
+                {lang === 'en' ? 'Used In' : 'Verwendet in'}{' '}
+                <span className="dim text-xs font-mono font-normal">
+                  ({fmtInt(usedInOutputs.length)})
+                </span>
+              </h4>
+            </div>
+
+            <div className="icon-row flex flex-wrap gap-2">
+              {usedInOutputs.slice(0, 16).map((id) => (
+                <div
+                  key={id}
+                  className="used-in-node cursor-pointer"
+                  onClick={() => onOpenItem(id)}
+                  title={getItem(id)?.name ?? `#${id}`}
+                >
+                  <ItemIcon id={id} size="m" />
+                </div>
+              ))}
+              {usedInOutputs.length > 16 && (
+                <span className="self-center dim text-xs font-mono">+{usedInOutputs.length - 16}</span>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* 6. Acquisition Sources */}
+        <section className="md-sec md-sources-card">
+          <div className="md-sec-header">
+            <h4>{lang === 'en' ? 'Acquisition' : 'Beschaffung'}</h4>
+          </div>
+
           <ul className="srcs">
             {sources.map((s, i) => (
               <li key={i} className={`src k-${s.kind}`}>
@@ -244,88 +490,24 @@ export const MaterialDetail: React.FC<Props> = ({ itemId, model, need, canGoBack
               </li>
             ))}
           </ul>
-          <p className="hint">
-            {lang === 'en' ? 'Categories:' : 'Kategorien:'}{' '}
-            {Object.values(KIND_META)
-              .map((k) => (lang === 'en' ? (k.labelEn || k.label) : k.label))
-              .join(' · ')}.
-          </p>
         </section>
 
-        {shownRecipes.length > 0 && (
-          <section className="md-sec">
-            <h4>{lang === 'en' ? 'Recipe' : 'Rezept'}</h4>
-            {shownRecipes.map((r) => (
-              <div className="recipe-box" key={r.id}>
-                <div className="recipe-meta">
-                  {r.kind === 'mf'
-                    ? (lang === 'en' ? 'Mystic Forge' : 'Mystische Schmiede')
-                    : r.disciplines.length
-                      ? r.disciplines.map((d) => getDisciplineName(d as DisciplineId, lang)).join(', ')
-                      : (lang === 'en' ? 'Vendor' : 'Händler')}
-                  {r.rating > 0 && ` · ${lang === 'en' ? `Rank ${r.rating}` : `Rang ${r.rating}`}`}
-                  {r.outputCount > 1 && ` · ${lang === 'en' ? `yields ${r.outputCount}` : `ergibt ${r.outputCount}`}`}
-                  <OriginBadge origin={r.source === 'official' ? 'official' : 'community'} />
-                </div>
-                <div className="recipe-ings">
-                  {r.ingredients.map((ing) => (
-                    <div className="recipe-ing" key={ing.itemId}>
-                      <ItemIcon id={ing.itemId} count={ing.count} onClick={() => onOpenItem(ing.itemId)} />
-                      <span>{getItem(ing.itemId)?.name ?? `#${ing.itemId}`}</span>
-                    </div>
-                  ))}
-                </div>
-                {r.yield !== undefined && r.yield < 1 && (
-                  <p className="hint">
-                    {lang === 'en'
-                      ? `RNG recipe – success rate approx. ${Math.round(r.yield * 100)}% (estimate).`
-                      : `Zufallsrezept – Erfolgsquote ca. ${Math.round(r.yield * 100)} % (Schätzung).`}
-                  </p>
-                )}
-              </div>
-            ))}
-          </section>
-        )}
-
-        {usedInOutputs.length > 0 && (
-          <section className="md-sec">
-            <h4>
-              {lang === 'en' ? 'Used In' : 'Verwendet in'} <span className="dim">({fmtInt(usedInOutputs.length)} {lang === 'en' ? 'items' : 'Gegenstände'})</span>
-            </h4>
-            <div className="icon-row">
-              {usedInOutputs.slice(0, 12).map((id) => (
-                <ItemIcon key={id} id={id} onClick={() => onOpenItem(id)} />
-              ))}
-              {usedInOutputs.length > 12 && <span className="dim">+{usedInOutputs.length - 12}</span>}
-            </div>
-            <p className="hint">
-              {lang === 'en'
-                ? 'Official crafting recipes only (Mystic Forge recipes are not exposed by the API).'
-                : 'Nur offizielle Handwerksrezepte (Mystische-Schmiede-Rezepte sind nicht in der API).'}
-            </p>
-          </section>
-        )}
-
-        <section className="md-sec">
-          <h4>{lang === 'en' ? 'Notes & Caveats' : 'Unsicherheiten & Hinweise'}</h4>
-          {caveats.length > 0 ? (
+        {/* 7. Notes & Caveats */}
+        {caveats.length > 0 && (
+          <section className="md-sec md-caveats-card">
+            <h4>{lang === 'en' ? 'Notes & Caveats' : 'Unsicherheiten & Hinweise'}</h4>
             <ul className="caveats">
               {caveats.map((c, i) => (
                 <li key={i}>{c}</li>
               ))}
             </ul>
-          ) : (
-            <p className="hint">{lang === 'en' ? 'No known restrictions for this material.' : 'Keine bekannten Einschränkungen für dieses Material.'}</p>
-          )}
-          <button className="btn sm" onClick={() => openExternal(wikiSearchUrl(item?.name ?? String(itemId), lang))}>
-            <ExternalLink size={12} /> {lang === 'en' ? 'Lookup in Wiki' : 'Im Wiki nachschlagen'}
-          </button>
-        </section>
+          </section>
+        )}
       </div>
     </aside>
   );
 };
 
 function usedIds(rs: Recipe[]): number[] {
-  return rs.slice(0, 12).map((r) => r.outputId);
+  return rs.slice(0, 16).map((r) => r.outputId);
 }

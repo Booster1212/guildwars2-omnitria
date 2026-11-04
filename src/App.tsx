@@ -158,12 +158,21 @@ export const App: React.FC = () => {
     mumble.isInCombat
   );
 
+  const isMapDimmed = Boolean(
+    settings.mumbleEnabled !== false &&
+    settings.autoDimOnWorldMap !== false &&
+    mumble.connected &&
+    mumble.isMapOpen
+  );
+
+  const isOverlayDimmed = isCombatDimmed || isMapDimmed;
+
   useEffect(() => {
     const api = (window as unknown as { electronAPI?: { setIgnoreMouse?: (ignore: boolean) => void } }).electronAPI;
     if (api?.setIgnoreMouse) {
-      api.setIgnoreMouse(isCombatDimmed);
+      api.setIgnoreMouse(isOverlayDimmed);
     }
-  }, [isCombatDimmed]);
+  }, [isOverlayDimmed]);
 
   // Sync settings.language with i18n
   useEffect(() => {
@@ -610,11 +619,11 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className={`gw2-hero-window ${isCombatDimmed ? 'mumble-in-combat' : ''}`}
+      className={`gw2-hero-window ${isCombatDimmed ? 'mumble-in-combat' : ''} ${isMapDimmed ? 'mumble-map-open' : ''}`}
       style={{
-        opacity: isCombatDimmed ? 0 : settings.opacity,
-        pointerEvents: isCombatDimmed ? 'none' : undefined,
-        visibility: isCombatDimmed ? 'hidden' : undefined,
+        opacity: isOverlayDimmed ? 0 : settings.opacity,
+        pointerEvents: isOverlayDimmed ? 'none' : undefined,
+        visibility: isOverlayDimmed ? 'hidden' : undefined,
         outline: clickThroughActive ? '2px dashed var(--gw2-cyan)' : undefined,
       }}
     >

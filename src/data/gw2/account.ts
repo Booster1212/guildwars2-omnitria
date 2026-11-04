@@ -13,13 +13,13 @@
  * Missing permissions are reported per feature; remaining data is still loaded.
  */
 import { useSyncExternalStore } from 'react';
-import { apiGet, buildUrl, describeApiError } from './client';
-import { createEmitter } from './cache';
-import { progressActions } from '../progressStore';
+import { apiGet, buildUrl, describeApiError } from './client.ts';
+import { createEmitter } from './cache.ts';
+import { progressActions } from '../progressStore.ts';
 
 const STORAGE_KEY = 'gw2_overlay_account_data_v1';
 
-export type AccountFeature = 'materials' | 'bank' | 'shared' | 'characters' | 'wallet' | 'recipes' | 'armory';
+export type AccountFeature = 'materials' | 'bank' | 'shared' | 'characters' | 'wallet' | 'recipes' | 'armory' | 'dailyCrafting' | 'delivery';
 
 export const FEATURE_INFO: Record<AccountFeature, { label: string; scope: string }> = {
   materials: { label: 'Materiallager', scope: 'inventories' },
@@ -29,6 +29,8 @@ export const FEATURE_INFO: Record<AccountFeature, { label: string; scope: string
   wallet: { label: 'Geldbörse', scope: 'wallet' },
   recipes: { label: 'Bekannte Rezepte', scope: 'unlocks' },
   armory: { label: 'Legendäre Rüstkammer', scope: 'unlocks' },
+  dailyCrafting: { label: 'Tägliche Handwerks-Cooldowns', scope: 'progression' },
+  delivery: { label: 'Handelsposten-Lieferungen', scope: 'tradingpost' },
 };
 
 export interface AccountCharacterDiscipline {
@@ -76,6 +78,8 @@ export interface AccountData {
   wallet: [number, number][] | null;
   knownRecipes: number[] | null;
   armory: [number, number][] | null;
+  dailyCrafting?: string[] | null;
+  delivery?: { coins: number; items: [number, number][] } | null;
   crafting: Record<string, { rating: number; character: string }> | null;
   errors: Partial<Record<AccountFeature, string>>;
 }
@@ -88,6 +92,8 @@ export interface AccountState {
   knownRecipeSet: ReadonlySet<number> | null;
   armoryMap: ReadonlyMap<number, number> | null;
   walletMap: ReadonlyMap<number, number> | null;
+  dailyCraftingSet: ReadonlySet<string> | null;
+  delivery: { coins: number; items: [number, number][] } | null;
   hasStockData: boolean;
 }
 
@@ -102,6 +108,8 @@ function derive(data: AccountData | null, status: AccountState['status']): Accou
     knownRecipeSet: data?.knownRecipes ? new Set(data.knownRecipes) : null,
     armoryMap: data?.armory ? new Map(data.armory) : null,
     walletMap: data?.wallet ? new Map(data.wallet) : null,
+    dailyCraftingSet: data?.dailyCrafting ? new Set(data.dailyCrafting) : null,
+    delivery: data?.delivery ?? null,
     hasStockData: hasStock && (data?.stock.length ?? 0) > 0,
   };
 }
@@ -210,6 +218,8 @@ export async function syncAccountData(apiKey: string): Promise<void> {
   let knownRecipes: number[] | null = null;
   const allDiscoveredRecipes = new Set<number>();
   let armory: [number, number][] | null = null;
+  let dailyCrafting: string[] | null = null;
+  let delivery: { coins: number; items: [number, number][] } | null = null;
   let crafting: AccountData['crafting'] = null;
   let characters: AccountCharacter[] | null = null;
   let access: string[] | null = null;
@@ -385,6 +395,29 @@ export async function syncAccountData(apiKey: string): Promise<void> {
       }),
     );
   }
+  if (need('dailyCrafting')) {
+    tasks.push(
+      apiGet<string[]>(buildUrl('account/dailycrafting', {}, key)).then((r) => {
+        if (!r.ok || !r.data) return failed('dailyCrafting', r);
+        dailyCrafting = Array.isArray(r.data) ? r.data : [];
+      }),
+    );
+  }
+  if (need('delivery')) {
+    tasks.push(
+      apiGet<{ coins?: number; items?: { id: number; count: number }[] }>(
+        buildUrl('commerce/delivery', {}, key),
+      ).then((r) => {
+        if (!r.ok || !r.data) return failed('delivery', r);
+        delivery = {
+          coins: typeof r.data.coins === 'number' ? r.data.coins : 0,
+          items: Array.isArray(r.data.items)
+            ? r.data.items.filter((it) => it && it.id > 0 && it.count > 0).map((it) => [it.id, it.count])
+            : [],
+        };
+      }),
+    );
+  }
   await Promise.all(tasks);
 
   // Combine account-wide sheet unlocks and all character-discovered recipes
@@ -411,6 +444,8 @@ export async function syncAccountData(apiKey: string): Promise<void> {
     wallet,
     knownRecipes: finalKnownRecipes,
     armory,
+    dailyCrafting,
+    delivery,
     crafting,
     errors,
   };

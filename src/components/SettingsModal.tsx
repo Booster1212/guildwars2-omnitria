@@ -678,6 +678,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="checkbox-setting-row">
                 <input
                   type="checkbox"
+                  id="mumbleAutoMapToggle"
+                  className="gw2-checkbox"
+                  checked={settings.autoDimOnWorldMap !== false}
+                  onChange={(e) => onUpdateSettings({ autoDimOnWorldMap: e.target.checked })}
+                />
+                <label htmlFor="mumbleAutoMapToggle" className="checkbox-label" title={t('settings.mumbleAutoMapDimHint')}>
+                  {t('settings.mumbleAutoMapDim')}
+                </label>
+              </div>
+
+              <div className="checkbox-setting-row">
+                <input
+                  type="checkbox"
                   id="mumbleHighlightMapToggle"
                   className="gw2-checkbox"
                   checked={settings.highlightCurrentMapEvents !== false}

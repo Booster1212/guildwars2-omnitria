@@ -14,6 +14,7 @@ import {
   Plus,
   Sparkles,
   Award,
+  Package,
 } from 'lucide-react';
 import { EventInstance } from '../types';
 import { Gw2DailyProgression } from '../data/gw2Api';
@@ -29,7 +30,8 @@ import {
 } from '../data/events';
 import { useProgress, progressStore } from '../data/progressStore';
 import { useTranslation } from '../i18n';
-import { useMumbleLink, isEventOnMap } from '../data/gw2/mumble';
+import { useMumbleLink, isEventOnMap, calculateSpatialWayfinding } from '../data/gw2/mumble';
+import { useAccountState } from '../data/gw2/account';
 
 export type MiniTab = 'active' | 'metas' | 'core' | 'soon' | 'all';
 export type MiniDensity = 'standard' | 'compact';
@@ -59,6 +61,18 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
   const { t, lang } = useTranslation();
   const progress = useProgress();
   const mumble = useMumbleLink();
+  const account = useAccountState();
+
+  const deliveryItemsCount = account.delivery?.items?.reduce((acc, [, c]) => acc + c, 0) ?? 0;
+  const deliveryCoins = account.delivery?.coins ?? 0;
+  const hasDelivery = deliveryCoins > 0 || deliveryItemsCount > 0;
+
+  const handleCopyTpWaypoint = () => {
+    const wp = '[&BEYAAAA=]';
+    navigator.clipboard?.writeText(wp).catch(() => {});
+    const api = (window as unknown as { electronAPI?: { copyToClipboard?: (t: string) => void } }).electronAPI;
+    if (api?.copyToClipboard) api.copyToClipboard(wp);
+  };
 
   // Saved category filter
   const [activeTab, setActiveTab] = useState<MiniTab>(() => {
@@ -236,6 +250,24 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
 
         {/* Right Toolbar: View Density Toggle & Count */}
         <div className="mini-toolbar-right">
+          {hasDelivery && (
+            <button
+              type="button"
+              className="mini-density-btn mini-tp-btn"
+              onClick={handleCopyTpWaypoint}
+              title={t('delivery.tooltip', {
+                coins: `${Math.floor(deliveryCoins / 10000)}g ${Math.floor((deliveryCoins % 10000) / 100)}s ${deliveryCoins % 100}c`,
+                count: deliveryItemsCount,
+              })}
+              aria-label={t('delivery.badge')}
+            >
+              <Package size={11} className="gold" />
+              <span className="font-mono text-[10px] gold font-bold ml-1">
+                {deliveryCoins > 0 ? `${Math.floor(deliveryCoins / 10000)}g` : `${deliveryItemsCount}x`}
+              </span>
+            </button>
+          )}
+
           <button
             className={`mini-density-btn ${density === 'compact' ? 'active' : ''}`}
             onClick={toggleDensity}
@@ -268,6 +300,9 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
             const doneToday = checkIsDoneToday(inst.event.id);
             const dwMatch = dwMatchMap.get(inst.event.id) || { isDaily: false, isWeekly: false };
             const isOnCurrentMap = Boolean(mumble.connected && isEventOnMap(inst.event, mumble.mapId));
+            const wayfinding = isOnCurrentMap
+              ? calculateSpatialWayfinding(inst.event.id, mumble.playerX, mumble.playerY, mumble.compassRotation)
+              : null;
 
             // 1. Ultra-Compact Mode Row
             if (density === 'compact') {
@@ -285,8 +320,13 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
                       <Clock size={11} className="mini-cr-clock" />
                     ) : null}
                     {isOnCurrentMap && (
-                      <span className="mini-dw-wrap" title={t('events.onYourMapTooltip')}>
+                      <span className="mini-dw-wrap spatial-mini-wrap" title={t('events.onYourMapTooltip')}>
                         <MapPin size={11} className="text-emerald-400" />
+                        {wayfinding && (
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold ml-0.5">
+                            {wayfinding.arrow} {wayfinding.distanceLabel}
+                          </span>
+                        )}
                       </span>
                     )}
                     {dwMatch.isDaily && (
@@ -379,6 +419,11 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
                       <span className="gw2-dw-badge current-map-badge mini-dw" title={t('events.onYourMapTooltip')}>
                         <MapPin size={9} />
                         <span>{t('events.onYourMap')}</span>
+                        {wayfinding && (
+                          <span className="font-mono font-bold ml-1 text-emerald-300">
+                            · {wayfinding.arrow} {wayfinding.distanceLabel}
+                          </span>
+                        )}
                       </span>
                     )}
                     {dwMatch.isDaily && (

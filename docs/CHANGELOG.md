@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.4] - 2026-11-05
+
+### Added & Improved
+
+#### 1. Unified Crafting Master Dashboard & `gw2crafts.net` Cost/Step Calibration (`src/domain/levelPlanner.ts`, `src/domain/craftingXp.ts`, `src/domain/costs.ts`, `src/components/crafting/LevelPlanner.tsx`)
+* **Consolidated Master Control Panel:**
+  * Merged the 4 previously disjointed, stacked control boxes into a single cohesive control dashboard (`planner-unified-dashboard`) with an intuitive visual hierarchy:
+    1. **Ranks & Character:** Discipline emblem, character selector with live API verification badge, from/to rank steppers, and quick-target pills (`[400 Master]` & `[500 Grandmaster]`).
+    2. **Material Strategy:** Placed directly below ranks; toggle between *"Craft Ingredients (Cheaper)"* and *"Buy All Components"*, discovery permissions, and live TP price refresh.
+    3. **Procurement Method:** Prominent 2-card hero switcher (*⚡ Bulk 0–450* vs *✨ gw2crafts Normal Discoveries*) that automatically enables intermediate crafting (`craftIntermediates: true`) when selected, plus expandable advanced options.
+    4. **Costs & Progress Footer:** Integrated KPI summary displaying net leveling cost, total expense, craft step count, and interactive progress bar.
+* **`gw2crafts.net` Craft-Count & Cost Parity:**
+  * **10-Rank Tier-Start Refinement Cap (~36–42x instead of 128x):** Restricted tier-start material refinements (*Bolt of Cotton, Bolt of Linen, Stretched Rawhide Leather Square*, etc.) to the fresh first 10 ranks of each tier (`150 → 160`, `225 → 235`), eliminating decayed 20-rank refinement grinds (`128x` bolts) before transitioning to basic components and equipment.
+  * **Elimination of 64x Fine-Material Insignia/Inscription Grinds:** Distinguished basic components (*Panels, Linings, Blades, Hilts* — requiring 0 fine materials) from expensive `Insignia`/`Inscription` recipes (requiring 3–5 fine materials per craft). Mid-tier brackets (`125–150`, `175–225`, `250–300`, `325–400`) now use `~6–7x` 1-time discoveries in Normal (`cost`) mode or `1x Discovery + ~15x Bulk Repeat` of a single cheap weapon/armor piece in Bulk (`fast`) mode, cutting mid-tier craft counts by 75%–90% and saving 75%–88% gold.
+  * **Inventory Bag Exclusion & Runes of Holding Vendor Pricing:** Added `'Bag'` to `EXCLUDED_TYPES` so 8–20 slot inventory bags are never suggested as leveling filler, and added all 5 Master Craftsman *Runes of Holding* (`13010`, `13006`, `13007`, `13008`, `13009`) to `KNOWN_VENDOR_PRICES` and `MASTER_CRAFTSMAN_MATERIALS`.
+  * **Protection Against Scalped/Unlisted TP Intermediates:** Updated `acq()` so unlisted or scalped intermediate armor panels and weapon parts are automatically evaluated via self-crafting cost even if *"Buy All Components"* was previously active.
+
+#### 2. Innovative Item Inspector Drawer (`src/components/material/MaterialDetail.tsx`, `src/data/external.ts`)
+* **Prominent Wiki Lookup:**
+  * Elevated the wiki lookup to a primary golden header action button (`[ 📖 Wiki Lookup ↗ ]`), opening the official German or English GW2 Wiki article in one click.
+* **1-Click In-Game Chat Link Copying (`[&...]`):**
+  * Added `encodeItemChatCode` generating official Base64 in-game chat codes (e.g. `[&AgEJTQAA]` for Glob of Ectoplasm, `[&AgGStgAA]` for Deldrimor Steel Ingot) with 1-click clipboard copying and visual checkmark confirmation.
+* **Stock & Demand Progress Dashboard:**
+  * Added an interactive KPI grid showing total demand, owned quantity (with breakdown across storage locations), remaining missing count, and a visual fulfillment progress bar.
+* **Modernized Trading Post Market Card:**
+  * Replaced static plain-text tables with a dual-card instant buy vs sell order display with live quantities and spread.
+* **Keyboard Navigation & Slide Animation:**
+  * Added `Escape` key support to immediately close the drawer, backdrop blur, and smooth slide-in transitions.
+
+#### 3. Storage Hub Clarity & Human-Readable Badges (`src/components/inventory/InventoryHubView.tsx`, `src/components/crafting/MaterialDemandTable.tsx`)
+* **Elimination of Cryptic Abbreviations:**
+  * Replaced abbreviated text snippets with visual micro-badges featuring authentic icons and full localized names:
+    * 📦 **Material Storage** (`Material Storage: 52`)
+    * 🏦 **Bank** (`Bank: 10`)
+    * 🗃️ **Shared Inventory** (`Shared: 5`)
+    * 👤 **Character Bags** (`Lyra Dawnblade: 2`)
+  * Displays clean micro-pills with tooltips in both the Key Legendary Materials row and the Material Demand Table.
+
+#### 4. MumbleLink Spatial Telemetry & World Map Auto-Hide (`src/data/gw2/mumble.ts`, `src/App.tsx`, `src/components/SettingsModal.tsx`)
+* **Live Spatial Compass Wayfinding:**
+  * Added `calculateSpatialWayfinding` evaluating player coordinates (`playerX`, `playerY`) and camera rotation (`compassRotation`).
+  * Displays real-time distance labels (`1.4 km`) and dynamic directional compass arrows (`↗ NE`) pointing directly towards active world bosses on the current map in both `EventCard.tsx` and `MiniWidget.tsx`.
+* **World Map Auto-Hide (`mumbleAutoMapDim`):**
+  * Automatically detects when the in-game full-screen world map is open (`isMapOpen` via `uiState & 0x01`). Fades out the overlay to 4% opacity and enables full mouse click-through so map navigation is never obstructed. Toggleable in Settings with full DE/EN localization.
+
+#### 5. Daily Timegated Crafting Tracker (`src/domain/dailyCrafting.ts`, `src/components/crafting/DailyCraftingCard.tsx`)
+* **Account Cooldown Synchronization (`/v2/account/dailycrafting`):**
+  * Tracks all 9 core ascended daily crafts with live net profitability modeling (deducting 15% TP fees and factoring in NPC vendor reagent prices).
+* **Spacious 2-Tier Card Grid & Compact Status Badges:**
+  * Redesigned layout into responsive cards (`minmax(360px, 1fr)`) with clean status badges (`Ready` / `Done`), zero text-icon overlaps, and 1-click waypoint copying (`[&...]`).
+* **Tactile Manual Check-Off & Filter Toolbar:**
+  * Allows players to immediately toggle crafts as completed locally without waiting for the 5–10 minute GW2 API cache.
+  * Added filter pills: *All (9)*, *Ready*, *Completed*, plus category tabs (*Ascended Refinements* vs *Special Collections*).
+
+#### 6. Full Legendary Armory Expansion (`src/components/legendary/`, `src/domain/legendary.ts`, `src/data/community/`)
+* **Complete Multi-Category Coverage:**
+  * Expanded armory tracking to include all GW2 legendary equipment: Weapons Gen 1–4, Rings (*Coalescence, Conflux*), Accessories (*Aurora, Vision*), Amulets (*Prismatic Champion's Regalia, Transcendence*), Backpacks (*Ad Infinitum, The Ascension, Warbringer*), Relics (*Legendary Relic*), and 6-piece Armor Sets (*Obsidian & Perfected Envoy*).
+* **Official Armory Account Integration (`/v2/account/legendaryarmory`):**
+  * Live detection of account-unlocked legendaries with golden *"Unlocked in Armory"* tags and a quick-filter toggle: *"Hide Unlocked Legendaries"*.
+
+#### 7. Trading Post Delivery Box Alert (`/v2/commerce/delivery`, `src/components/Header.tsx`, `src/components/MiniWidget.tsx`)
+* **Live Delivery Notifications:**
+  * Added real-time notification pills in the header and Mini-HUD whenever coins or items are waiting for pickup at the Trading Post, with 1-click waypoint copying to Lion's Arch (`[&BEYAAAA=]`).
+
+#### 8. Quality Assurance & Test Suite
+* **163 Automated Unit & Integration Tests:**
+  * All 163 tests passing cleanly in Node.js test runner (`node --test tests/*.test.ts`).
+* **Strict Type Safety & Internationalization:**
+  * 0 errors under `tsc --noEmit`.
+  * 100% key parity across German and English dictionaries in `src/i18n/index.ts`.
+
+---
+
 ## [0.3.3] - 2026-11-04
 
 ### Added & Improved

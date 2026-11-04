@@ -158,6 +158,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   const [itemOverrides, setItemOverrides] = useState<Map<number, ItemProcurement>>(new Map());
   const [onlyOpenSteps, setOnlyOpenSteps] = useState<boolean>(true);
   const [showSkippedSteps, setShowSkippedSteps] = useState<boolean>(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
   // Collapsible state for stages and individual step/task details
   const [collapsedStages, setCollapsedStages] = useState<Set<string>>(new Set());
@@ -204,11 +205,17 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const handleSelectMode = (mode: PlannerMode) => {
     progressActions.setPlanningMode(mode);
-    // In Fast or Completionist mode, automatically enable discovery if not already enabled
-    if ((mode === 'fast' || mode === 'completionist') && !allowDiscovery) {
-      progressActions.setCharacterDiscipline(selectedCharacter, discipline, {
-        allowDiscovery: true,
-      });
+    const patch: { allowDiscovery?: boolean; craftIntermediates?: boolean } = {};
+    if ((mode === 'cost' || mode === 'completionist') && !allowDiscovery) {
+      patch.allowDiscovery = true;
+    }
+    if ((mode === 'cost' || mode === 'fast') && !craftIntermediates) {
+      patch.craftIntermediates = true;
+      setStrategy('all_craft');
+      setItemOverrides(new Map());
+    }
+    if (Object.keys(patch).length > 0) {
+      progressActions.setCharacterDiscipline(selectedCharacter, discipline, patch);
     }
   };
 
@@ -573,290 +580,332 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   return (
     <div className="level-planner-wrap">
-      {/* 1. Crafting Suite Header & Target Control */}
-      <div className="planner-suite-header">
-        <div className="psh-discipline-info">
-          <DisciplineIcon discipline={discipline} size="l" />
-          <div className="psh-discipline-details">
-            <div className="psh-disc-name-row">
-              <h2 className="psh-disc-name font-serif">{discName}</h2>
-              <span className="psh-disc-max-badge font-mono">
-                {discipline === 'Jeweler' ? '0–400' : '0–500'}
-              </span>
-            </div>
-            <div className="psh-char-context-row">
-              <User size={12} className="inline mr-1 text-amber-400" />
-              <select
-                className="gw2-select planner-char-select-compact"
-                value={selectedCharacter ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  progressActions.setSelectedCharacter(val ? val : null);
-                }}
-              >
-                <option value="">{t('planner.char.manualGuest')}</option>
-                {(account.data?.characters ?? []).map((ch) => {
-                  const chDisc = ch.crafting.find((c) => c.discipline === discipline);
-                  const discSuffix = chDisc ? ` · ${discName} ${chDisc.rating}` : '';
-                  return (
-                    <option key={ch.name} value={ch.name}>
-                      {ch.name} (Lv {ch.level} {ch.profession}{discSuffix})
-                    </option>
-                  );
-                })}
-              </select>
-              {isLevelApiVerified ? (
-                <span className="planner-verify-badge api-verified" title={t('planner.verify.apiVerifiedTip')}>
-                  <ShieldCheck size={11} />
-                  <span>{t('planner.verify.apiVerified')}</span>
+      {/* ========================================================
+          UNIFIED LEVEL PLANNER MASTER DASHBOARD
+          1. Ränge & Charakter
+          2. Materialstrategie (direkt unter Ränge)
+          3. Weg der Beschaffung (⚡ Massenfertigung Bulk vs ✨ Günstigster Weg Normal)
+          4. Kosten & Fortschritt (KPIs am Ende)
+          ======================================================== */}
+      <div className="planner-unified-dashboard">
+        {/* Tier 1: Discipline, Character & Target Ranks */}
+        <div className="pud-ranks-row">
+          <div className="psh-discipline-info">
+            <DisciplineIcon discipline={discipline} size="l" />
+            <div className="psh-discipline-details">
+              <div className="psh-disc-name-row">
+                <h2 className="psh-disc-name font-serif">{discName}</h2>
+                <span className="psh-disc-max-badge font-mono">
+                  {discipline === 'Jeweler' ? '0–400' : '0–500'}
                 </span>
-              ) : (
-                <span className="planner-verify-badge local-tracked" title={t('planner.verify.localTrackedTip')}>
-                  <BookmarkCheck size={11} />
-                  <span>{t('planner.verify.localTracked')}</span>
-                </span>
-              )}
+              </div>
+              <div className="psh-char-context-row">
+                <User size={12} className="inline mr-1 text-amber-400" />
+                <select
+                  className="gw2-select planner-char-select-compact"
+                  value={selectedCharacter ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    progressActions.setSelectedCharacter(val ? val : null);
+                  }}
+                >
+                  <option value="">{t('planner.char.manualGuest')}</option>
+                  {(account.data?.characters ?? []).map((ch) => {
+                    const chDisc = ch.crafting.find((c) => c.discipline === discipline);
+                    const discSuffix = chDisc ? ` · ${discName} ${chDisc.rating}` : '';
+                    return (
+                      <option key={ch.name} value={ch.name}>
+                        {ch.name} (Lv {ch.level} {ch.profession}{discSuffix})
+                      </option>
+                    );
+                  })}
+                </select>
+                {isLevelApiVerified ? (
+                  <span className="planner-verify-badge api-verified" title={t('planner.verify.apiVerifiedTip')}>
+                    <ShieldCheck size={11} />
+                    <span>{t('planner.verify.apiVerified')}</span>
+                  </span>
+                ) : (
+                  <span className="planner-verify-badge local-tracked" title={t('planner.verify.localTrackedTip')}>
+                    <BookmarkCheck size={11} />
+                    <span>{t('planner.verify.localTracked')}</span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Level Span Range Controls */}
-        <div className="psh-target-controls">
-          <div className="target-rank-stepper">
-            <div className="rank-input-field">
-              <span className="rank-field-label">{t('crafting.fromRank')}</span>
-              <input
-                type="number"
-                className="gw2-num-input"
-                min={0}
-                max={maxRank}
-                value={effectiveStart}
-                onChange={(e) => handleStartChange(Number(e.target.value))}
-              />
-              {charRating !== undefined && effectiveStart !== charRating && (
-                <button
-                  type="button"
-                  className="btn-tiny"
-                  onClick={() => handleStartChange(charRating)}
-                  title={t('crafting.resetToCharRank', { rank: charRating })}
-                >
-                  Char ({charRating})
-                </button>
-              )}
-            </div>
+          {/* Level Span Range Controls */}
+          <div className="psh-target-controls">
+            <div className="target-rank-stepper">
+              <div className="rank-input-field">
+                <span className="rank-field-label">{t('crafting.fromRank')}</span>
+                <input
+                  type="number"
+                  className="gw2-num-input"
+                  min={0}
+                  max={maxRank}
+                  value={effectiveStart}
+                  onChange={(e) => handleStartChange(Number(e.target.value))}
+                />
+                {charRating !== undefined && effectiveStart !== charRating && (
+                  <button
+                    type="button"
+                    className="btn-tiny"
+                    onClick={() => handleStartChange(charRating)}
+                    title={t('crafting.resetToCharRank', { rank: charRating })}
+                  >
+                    Char ({charRating})
+                  </button>
+                )}
+              </div>
 
-            <ChevronRight size={16} className="rank-step-arrow text-amber-400" />
+              <ChevronRight size={16} className="rank-step-arrow text-amber-400" />
 
-            <div className="rank-input-field">
-              <span className="rank-field-label">{t('crafting.toRank')}</span>
-              <input
-                type="number"
-                className="gw2-num-input"
-                min={effectiveStart < maxRank ? effectiveStart + 1 : maxRank}
-                max={maxRank}
-                value={effectiveTarget}
-                onChange={(e) => handleTargetChange(Number(e.target.value))}
-              />
-            </div>
+              <div className="rank-input-field">
+                <span className="rank-field-label">{t('crafting.toRank')}</span>
+                <input
+                  type="number"
+                  className="gw2-num-input"
+                  min={effectiveStart < maxRank ? effectiveStart + 1 : maxRank}
+                  max={maxRank}
+                  value={effectiveTarget}
+                  onChange={(e) => handleTargetChange(Number(e.target.value))}
+                />
+              </div>
 
-            <div className="quick-targets-group">
-              {discipline === 'Jeweler' ? (
-                <button
-                  type="button"
-                  className={`quick-target-btn ${effectiveTarget === 400 ? 'active' : ''}`}
-                  onClick={() => handleTargetChange(400)}
-                >
-                  {t('planner.target.maxJeweler')}
-                </button>
-              ) : (
-                <>
+              <div className="quick-targets-group">
+                {discipline === 'Jeweler' ? (
                   <button
                     type="button"
                     className={`quick-target-btn ${effectiveTarget === 400 ? 'active' : ''}`}
                     onClick={() => handleTargetChange(400)}
                   >
-                    {t('planner.target.master400')}
+                    {t('planner.target.maxJeweler')}
                   </button>
-                  <button
-                    type="button"
-                    className={`quick-target-btn ${effectiveTarget === 500 ? 'active' : ''}`}
-                    onClick={() => handleTargetChange(500)}
-                  >
-                    {t('planner.target.grandmaster500')}
-                  </button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className={`quick-target-btn ${effectiveTarget === 400 ? 'active' : ''}`}
+                      onClick={() => handleTargetChange(400)}
+                    >
+                      {t('planner.target.master400')}
+                    </button>
+                    <button
+                      type="button"
+                      className={`quick-target-btn ${effectiveTarget === 500 ? 'active' : ''}`}
+                      onClick={() => handleTargetChange(500)}
+                    >
+                      {t('planner.target.grandmaster500')}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 2. Focused Strategy Selector Cards */}
-      <div className="planner-strategy-selector-suite">
-        <div className="strategy-suite-header">
-          <span className="strategy-suite-label font-serif font-semibold">
-            {t('planner.mode.label')}
-          </span>
-          <span className="strategy-suite-hint dim text-xs">
-            {t(`planner.mode.${planningMode}Desc` as TranslationKey)}
-          </span>
-        </div>
-
-        <div className="strategy-cards-grid">
-          {CRAFTING_STRATEGIES.map((strat) => {
-            const isAct = planningMode === strat.id || (planningMode === 'balanced' && strat.id === 'cost');
-            const Icon = strat.icon;
-            const labelKey = `planner.mode.${strat.id}` as TranslationKey;
-            const descKey = `planner.mode.${strat.id}Desc` as TranslationKey;
-
-            return (
-              <button
-                key={strat.id}
-                type="button"
-                className={`strategy-card-btn ${isAct ? 'active' : ''} ${strat.isRecommended ? 'is-recommended' : ''}`}
-                onClick={() => handleSelectMode(strat.id)}
-              >
-                <div className="strategy-card-top">
-                  <div className="strategy-card-icon-wrap">
-                    <Icon size={14} className={strat.id === 'cost' ? 'text-amber-400' : ''} />
-                  </div>
-                  <span className="strategy-card-title font-semibold">{t(labelKey)}</span>
-                  {strat.isRecommended && (
-                    <span className="strategy-card-rec-pill">
-                      ★ Empfohlen
-                    </span>
-                  )}
-                </div>
-                <div className="strategy-card-desc text-xs dim">
-                  {t(descKey)}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. Procurement & Workflow Toolbar */}
-      <div className="planner-workflow-toolbar">
-        <div className="pwt-procurement-group">
-          <span className="pwt-group-label font-serif">{t('crafting.strategyTitle')}:</span>
-          <div className="pwt-segmented-controls">
-            <button
-              type="button"
-              className={`pwt-segment-btn ${strategy === 'all_craft' ? 'active' : ''}`}
-              onClick={() => handleSetStrategy('all_craft')}
-              title={t('planner.procure.craftSelfDesc')}
-            >
-              <Hammer size={12} className="text-emerald-400" />
-              <span>{t('planner.procure.craftSelf')}</span>
-            </button>
-            <button
-              type="button"
-              className={`pwt-segment-btn ${strategy === 'all_buy' ? 'active' : ''}`}
-              onClick={() => handleSetStrategy('all_buy')}
-              title={t('planner.procure.buyDirectDesc')}
-            >
-              <ShoppingBag size={12} className="text-sky-400" />
-              <span>{t('planner.procure.buyDirect')}</span>
-            </button>
-            {itemOverrides.size > 0 && (
+        {/* Tier 2: Materialstrategie & Optionen (direkt unter Ränge) */}
+        <div className="pud-material-row">
+          <div className="pwt-procurement-group">
+            <span className="pwt-group-label font-serif">{t('crafting.strategyTitle')}</span>
+            <div className="pwt-segmented-controls">
               <button
                 type="button"
-                className={`pwt-segment-btn ${strategy === 'custom' ? 'active' : ''}`}
-                onClick={() => setStrategy('custom')}
-                title={t('crafting.strategyCustomHint')}
+                className={`pwt-segment-btn ${strategy === 'all_craft' ? 'active' : ''}`}
+                onClick={() => handleSetStrategy('all_craft')}
+                title={t('planner.procure.craftSelfDesc')}
               >
-                <Sliders size={12} />
-                <span>{t('crafting.strategyCustom', { count: itemOverrides.size })}</span>
+                <Hammer size={12} className="text-emerald-400" />
+                <span>{t('planner.procure.craftSelf')}</span>
               </button>
-            )}
-          </div>
-        </div>
-
-        <div className="pwt-toggles-group">
-          <Check
-            checked={allowDiscovery}
-            onChange={handleToggleDiscovery}
-            label={t('crafting.allowDiscovery')}
-            title={t('crafting.discoveryTooltip')}
-          />
-          <Check
-            checked={onlyOpenSteps}
-            onChange={() => setOnlyOpenSteps(!onlyOpenSteps)}
-            label={t('crafting.onlyOpenSteps')}
-            title={t('crafting.onlyOpenSteps')}
-          />
-        </div>
-
-        <div className="pwt-price-meta">
-          <span className="price-pulse-dot" />
-          <span className="dim text-xs font-mono">
-            {prices.updatedAt > 0
-              ? new Date(prices.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : 'Live TP'}
-          </span>
-          <button
-            type="button"
-            className="btn-tiny price-refresh-icon-btn"
-            onClick={prices.refresh}
-            title={t('crafting.priceRefreshBtn')}
-          >
-            <RotateCw size={10} />
-          </button>
-        </div>
-      </div>
-
-      {/* 4. Plan KPI Summary Strip */}
-      {plan && (
-        <div className="planner-kpi-summary-strip">
-          <div className="kpi-cell highlight-gold">
-            <span className="kpi-label">{t('crafting.netCostLabel')}</span>
-            <span className="kpi-value font-mono">
-              <Coin copper={plan.totalNetCost} />
-            </span>
-          </div>
-          <div className="kpi-cell">
-            <span className="kpi-label">{t('crafting.totalCost')}</span>
-            <span className="kpi-value font-mono dim">
-              <Coin copper={displayCost} />
-            </span>
-          </div>
-          {plan.totalNpcSavings > 0 && (
-            <div className="kpi-cell highlight-green">
-              <span className="kpi-label">{t('crafting.npcSavingsLabel')}</span>
-              <span className="kpi-value font-mono text-emerald-400">
-                +{fmtInt(plan.totalNpcSavings)}c
-              </span>
-            </div>
-          )}
-          <div className="kpi-cell">
-            <span className="kpi-label">{t('crafting.craftsCount')}</span>
-            <span className="kpi-value font-mono">
-              {displayCrafts} ({plan.steps.length} {t('crafting.stepsWord')})
-            </span>
-          </div>
-          <div className="kpi-cell progress-cell">
-            <div className="kpi-progress-top">
-              <span className="kpi-label">{t('crafting.progressLabel')}</span>
-              <span className="kpi-value font-mono text-xs">
-                {stepCounts.done} / {effectiveTotalSteps} {t('crafting.doneWord')}
-              </span>
-              {(stepCounts.done > 0 || stepCounts.skipped > 0 || stepCounts.deferred > 0) && (
+              <button
+                type="button"
+                className={`pwt-segment-btn ${strategy === 'all_buy' ? 'active' : ''}`}
+                onClick={() => handleSetStrategy('all_buy')}
+                title={t('planner.procure.buyDirectDesc')}
+              >
+                <ShoppingBag size={12} className="text-sky-400" />
+                <span>{t('planner.procure.buyDirect')}</span>
+              </button>
+              {itemOverrides.size > 0 && (
                 <button
                   type="button"
-                  className="btn-tiny reset-marks-btn"
-                  onClick={() => progressActions.resetDisciplineCheckmarks(discipline, selectedCharacter)}
-                  title={t('crafting.resetCheckmarksTitle')}
+                  className={`pwt-segment-btn ${strategy === 'custom' ? 'active' : ''}`}
+                  onClick={() => setStrategy('custom')}
+                  title={t('crafting.strategyCustomHint')}
                 >
-                  <RotateCcw size={10} className="mr-0.5 inline" />
-                  {t('crafting.resetCheckmarks')}
+                  <Sliders size={12} />
+                  <span>{t('crafting.strategyCustom', { count: itemOverrides.size })}</span>
                 </button>
               )}
             </div>
-            <ProgressBar value={progressFrac} tone="gold" slim />
+          </div>
+
+          <div className="pwt-toggles-group">
+            {planningMode !== 'fast' && (
+              <Check
+                checked={allowDiscovery}
+                onChange={handleToggleDiscovery}
+                label={t('crafting.allowDiscovery')}
+                title={t('crafting.discoveryTooltip')}
+              />
+            )}
+            <Check
+              checked={onlyOpenSteps}
+              onChange={() => setOnlyOpenSteps(!onlyOpenSteps)}
+              label={t('crafting.onlyOpenSteps')}
+              title={t('crafting.onlyOpenSteps')}
+            />
+          </div>
+
+          <div className="pwt-price-meta">
+            <span className="price-pulse-dot" />
+            <span className="dim text-xs font-mono">
+              {prices.updatedAt > 0
+                ? new Date(prices.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : 'Live TP'}
+            </span>
+            <button
+              type="button"
+              className="btn-tiny price-refresh-icon-btn"
+              onClick={prices.refresh}
+              title={t('crafting.priceRefreshBtn')}
+            >
+              <RotateCw size={10} />
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Tier 3: Weg der Beschaffung (Dual-Strategy Hero Selector) */}
+        <div className="pud-modes-row">
+          <div className="planner-primary-modes">
+            {/* Option 1: Bulk Mode */}
+            <button
+              type="button"
+              className={`primary-mode-card ${planningMode === 'fast' ? 'active bulk-mode' : ''}`}
+              onClick={() => handleSelectMode('fast')}
+            >
+              <div className="primary-mode-header">
+                <Zap size={16} className="text-amber-400" />
+                <span className="primary-mode-title font-serif">{t('planner.mode.fast')}</span>
+                <span className="primary-mode-tag">{t('crafting.bulkTag')}</span>
+              </div>
+              <p className="primary-mode-desc">{t('planner.mode.fastDesc')}</p>
+            </button>
+
+            {/* Option 2: Normal / Cost Mode */}
+            <button
+              type="button"
+              className={`primary-mode-card ${planningMode === 'cost' || planningMode === 'balanced' ? 'active cost-mode' : ''}`}
+              onClick={() => handleSelectMode('cost')}
+            >
+              <div className="primary-mode-header">
+                <Sparkles size={16} className="text-emerald-400" />
+                <span className="primary-mode-title font-serif">{t('planner.mode.cost')}</span>
+                <span className="primary-mode-tag">{t('crafting.normalTag')}</span>
+              </div>
+              <p className="primary-mode-desc">{t('planner.mode.costDesc')}</p>
+            </button>
+          </div>
+
+          {/* Subtle toggle for advanced modes */}
+          <div className="advanced-modes-toggle-row">
+            <button
+              type="button"
+              className="primary-mode-more-btn"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            >
+              <Sliders size={12} />
+              <span>{showAdvancedOptions ? t('crafting.hideOptions') : t('crafting.moreOptions')}</span>
+              {showAdvancedOptions ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </button>
+          </div>
+
+          {showAdvancedOptions && (
+            <div className="advanced-strategy-cards-grid mt-2">
+              {CRAFTING_STRATEGIES.filter((s) => s.id === 'goal' || s.id === 'completionist').map((strat) => {
+                const isAct = planningMode === strat.id;
+                const Icon = strat.icon;
+                const labelKey = `planner.mode.${strat.id}` as TranslationKey;
+                const descKey = `planner.mode.${strat.id}Desc` as TranslationKey;
+
+                return (
+                  <button
+                    key={strat.id}
+                    type="button"
+                    className={`strategy-card-btn ${isAct ? 'active' : ''}`}
+                    onClick={() => handleSelectMode(strat.id)}
+                  >
+                    <div className="strategy-card-top">
+                      <div className="strategy-card-icon-wrap">
+                        <Icon size={14} />
+                      </div>
+                      <span className="strategy-card-title font-semibold">{t(labelKey)}</span>
+                    </div>
+                    <div className="strategy-card-desc text-xs dim">
+                      {t(descKey)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Tier 4: Kosten am Ende (Plan KPI Summary Strip) */}
+        {plan && (
+          <div className="pud-kpi-footer">
+            <div className="kpi-cell highlight-gold">
+              <span className="kpi-label">{t('crafting.netCostLabel')}</span>
+              <span className="kpi-value font-mono">
+                <Coin copper={plan.totalNetCost} />
+              </span>
+            </div>
+            <div className="kpi-cell">
+              <span className="kpi-label">{t('crafting.totalCost')}</span>
+              <span className="kpi-value font-mono dim">
+                <Coin copper={displayCost} />
+              </span>
+            </div>
+            {plan.totalNpcSavings > 0 && (
+              <div className="kpi-cell highlight-green">
+                <span className="kpi-label">{t('crafting.npcSavingsLabel')}</span>
+                <span className="kpi-value font-mono text-emerald-400">
+                  +{fmtInt(plan.totalNpcSavings)}c
+                </span>
+              </div>
+            )}
+            <div className="kpi-cell">
+              <span className="kpi-label">{t('crafting.craftsCount')}</span>
+              <span className="kpi-value font-mono">
+                {displayCrafts} ({plan.steps.length} {t('crafting.stepsWord')})
+              </span>
+            </div>
+            <div className="kpi-cell progress-cell">
+              <div className="kpi-progress-top">
+                <span className="kpi-label">{t('crafting.progressLabel')}</span>
+                <span className="kpi-value font-mono text-xs">
+                  {stepCounts.done} / {effectiveTotalSteps} {t('crafting.doneWord')}
+                </span>
+                {(stepCounts.done > 0 || stepCounts.skipped > 0 || stepCounts.deferred > 0) && (
+                  <button
+                    type="button"
+                    className="btn-tiny reset-marks-btn"
+                    onClick={() => progressActions.resetDisciplineCheckmarks(discipline, selectedCharacter)}
+                    title={t('crafting.resetCheckmarksTitle')}
+                  >
+                    <RotateCcw size={10} className="mr-0.5 inline" />
+                    {t('crafting.resetCheckmarks')}
+                  </button>
+                )}
+              </div>
+              <ProgressBar value={progressFrac} tone="gold" slim />
+            </div>
+          </div>
+        )}
+      </div>
 
 
 

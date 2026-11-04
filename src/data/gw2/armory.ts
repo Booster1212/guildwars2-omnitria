@@ -70,3 +70,24 @@ export function useArmoryWeapons(): { id: number; name: string; type: string }[]
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.ids, version]);
 }
+
+/** Official Armory all legendaries (Weapons, Armor, Trinkets, Back, Relics) */
+export function useArmoryLegendaries(): { id: number; name: string; type: string }[] {
+  const s = useSyncExternalStore(emitter.subscribe, () => state);
+  useEffect(() => {
+    if (s.status === 'idle') void loadArmoryIds();
+  }, [s.status]);
+  const { version } = useItems(s.ids);
+  return useMemo(() => {
+    const out: { id: number; name: string; type: string }[] = [];
+    for (const id of s.ids) {
+      const it = getItem(id);
+      if (it && it.rarity === 'Legendary') {
+        const typeStr = it.weaponType ?? it.type;
+        out.push({ id, name: it.name, type: typeStr });
+      }
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.ids, version]);
+}

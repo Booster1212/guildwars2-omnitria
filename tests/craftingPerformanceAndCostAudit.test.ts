@@ -294,3 +294,348 @@ test('4. Wenn alle Schritte erledigt sind, betragen die offenen Kosten exakt 0',
   assert.equal(remainingCost, 0, 'Offene Kosten müssen bei 100% Fortschritt exakt 0 betragen');
 });
 
+// ============================================================================
+// Test 5: gw2crafts Parität: Günstigster Weg (Normal) & Bulk-Modus (0-450 Bulk, 450+ Discoveries)
+// ============================================================================
+test('5. gw2crafts Parität: Normal-Modus (1x Discoveries) und Bulk-Modus (0-450 Bulk, ab 450 Discoveries) verhindern 10x Teuerung', () => {
+  const { recipes, byOutput, prices } = generateDisciplineRecipes('Weaponsmith', 500);
+
+  // 1. Normal (Cost) Mode: 0–400 and 0–500
+  const planCost = planLevelRoute({
+    discipline: 'Weaponsmith',
+    fromRank: 0,
+    toRank: 500,
+    recipes,
+    recipesByOutput: byOutput,
+    prices,
+    options: {
+      allowDiscovery: true,
+      craftIntermediates: true,
+      mode: 'cost',
+    },
+  });
+
+  // Gesamtkosten für 0-500 müssen unter 30 Gold (300.000 Kupfer) liegen
+  assert.ok(
+    planCost.totalCost < 300_000,
+    `Kosten im Normal-Modus müssen unter 30g liegen (erhalten: ${(planCost.totalCost / 10000).toFixed(2)}g)`,
+  );
+
+  // Im Normal-Modus sind Entdeckungen von Ausrüstung strikt 1x initial ausgeführt (keine 24x Wiederholungen)
+  for (const step of planCost.steps) {
+    if (step.needsDiscovery && step.category === 'item') {
+      assert.equal(
+        step.discoveryCrafts,
+        1,
+        `Entdeckungen von Ausrüstung müssen initial strikt 1x ausgeführt werden (Schritt: ${step.key})`,
+      );
+    }
+  }
+
+  // Tier-Start (0-20) muss 100% Veredelung sein
+  assert.equal(planCost.steps[0].recipe.type, 'Refinement');
+  assert.equal(planCost.steps[0].needsDiscovery, false);
+
+  // 2. Bulk (Fast) Mode: 0–500
+  const planBulk = planLevelRoute({
+    discipline: 'Weaponsmith',
+    fromRank: 0,
+    toRank: 500,
+    recipes,
+    recipesByOutput: byOutput,
+    prices,
+    options: {
+      allowDiscovery: false,
+      craftIntermediates: true,
+      mode: 'fast',
+    },
+  });
+
+  // Unter Rang 450 dürfen im Bulk-Modus KEINE Entdeckungen vorkommen (reines Bulk-Crafting)
+  const bulkSub450Steps = planBulk.steps.filter((s) => s.fromRank < 450);
+  for (const s of bulkSub450Steps) {
+    assert.equal(
+      s.needsDiscovery,
+      false,
+      `Schritt ${s.key} unter Rang 450 darf im Bulk-Modus keine Entdeckung sein!`,
+    );
+  }
+
+  // Ab Rang 450 setzen im Bulk-Modus Entdeckungen für Exotics ein
+  const bulk450PlusSteps = planBulk.steps.filter((s) => s.fromRank >= 450);
+  assert.ok(bulk450PlusSteps.length > 0, 'Muss Schritte ab 450 enthalten');
+  const hasDiscoveryAbove450 = bulk450PlusSteps.some((s) => s.needsDiscovery);
+  assert.ok(
+    hasDiscoveryAbove450,
+    'Im Bulk-Modus müssen ab Rang 450 exotische Entdeckungen für den Endspurt greifen',
+  );
+});
+
+// ============================================================================
+// Test 5: Real GW2 Mid-Tier Audit (Lederer 125–250 vs. gw2crafts)
+// Prevents 128x Baumwollballen/Leinenballen, 64x Insignia grinding, and 8x Bag filler
+// ============================================================================
+test('5. Lederer 125–250 Audit gegen gw2crafts: Keine 128x Ballen, keine 64x Insignien-Grinds und keine Taschen-Lückenfüller', () => {
+  const recipes: Recipe[] = [
+    // Rank 125: Expensive Embroidered Wool Insignia (AutoLearned) + 8 Discoverable Armor Pieces
+    {
+      id: 'insig-125',
+      outputId: 2125,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 125,
+      ingredients: [
+        { itemId: 19740, count: 2 }, // Bolt of Wool
+        { itemId: 24291, count: 3 }, // Small Fang (expensive fine material)
+      ],
+      flags: ['AutoLearned'],
+      type: 'Insignia',
+    },
+    ...Array.from({ length: 8 }, (_, idx): Recipe => ({
+      id: `armor-125-${idx}`,
+      outputId: 3125 + idx,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 125,
+      ingredients: [
+        { itemId: 1200 + (idx % 2), count: 1 }, // Basic Wool/Leather Panel
+        { itemId: 2125, count: 1 },             // Insignia
+      ],
+      flags: [],
+      type: idx % 2 === 0 ? 'Coat' : 'Boots',
+    })),
+
+    // Rank 150: Baumwollballen (Refinement), Basic Panels (Component), 12-Slot Bag (Bag), and 8 Discoverable Armor Pieces
+    {
+      id: 'bolt-cotton-150',
+      outputId: 19742,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 150,
+      ingredients: [{ itemId: 19741, count: 2 }], // Cotton Scrap (7c)
+      flags: ['AutoLearned'],
+      type: 'Refinement',
+    },
+    {
+      id: 'panel-cotton-150-a',
+      outputId: 1501,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 150,
+      ingredients: [
+        { itemId: 19742, count: 2 }, // 2x Bolt of Cotton
+        { itemId: 19794, count: 1 }, // Spool of Cotton Thread (24c vendor)
+      ],
+      flags: ['AutoLearned'],
+      type: 'Component',
+    },
+    {
+      id: 'panel-cotton-150-b',
+      outputId: 1502,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 150,
+      ingredients: [
+        { itemId: 19742, count: 1 },
+        { itemId: 19794, count: 1 },
+      ],
+      flags: ['AutoLearned'],
+      type: 'Component',
+    },
+    {
+      id: 'bag-12-slot-150',
+      outputId: 9150,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 150,
+      ingredients: [
+        { itemId: 19742, count: 10 },
+        { itemId: 13007, count: 1 }, // Major Rune of Holding (50s vendor)
+      ],
+      flags: ['AutoLearned'],
+      type: 'Bag',
+    },
+    {
+      id: 'insig-150',
+      outputId: 2150,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 150,
+      ingredients: [
+        { itemId: 19742, count: 1 },
+        { itemId: 24279, count: 3 }, // Blood (fine material)
+      ],
+      flags: ['AutoLearned'],
+      type: 'Insignia',
+    },
+    ...Array.from({ length: 8 }, (_, idx): Recipe => ({
+      id: `armor-150-${idx}`,
+      outputId: 3150 + idx,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 150,
+      ingredients: [
+        { itemId: 1501, count: 1 },
+        { itemId: 1502, count: 1 },
+        { itemId: 2150, count: 1 },
+      ],
+      flags: [],
+      type: idx % 2 === 0 ? 'Coat' : 'Gloves',
+    })),
+
+    // Rank 175: Starke Baumwoll-Insignie (AutoLearned Insignia) + 8 Discoverable Armor Pieces
+    {
+      id: 'insig-175-mighty',
+      outputId: 2175,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 175,
+      ingredients: [
+        { itemId: 19742, count: 2 },
+        { itemId: 24280, count: 3 }, // Vial of Thick Blood (240c each)
+        { itemId: 19794, count: 6 },
+      ],
+      flags: ['AutoLearned'],
+      type: 'Insignia',
+    },
+    ...Array.from({ length: 8 }, (_, idx): Recipe => ({
+      id: `armor-175-${idx}`,
+      outputId: 3175 + idx,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 175,
+      ingredients: [
+        { itemId: 1501, count: 1 },
+        { itemId: 1502, count: 1 },
+        { itemId: 2175, count: 1 },
+      ],
+      flags: [],
+      type: idx % 2 === 0 ? 'Coat' : 'Leggings',
+    })),
+
+    // Rank 200: Starke bestickte Baumwoll-Insignie (AutoLearned Insignia) + 8 Discoverable Armor Pieces
+    {
+      id: 'insig-200-embroidered',
+      outputId: 2200,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 200,
+      ingredients: [
+        { itemId: 19742, count: 2 },
+        { itemId: 24280, count: 3 }, // Vial of Thick Blood (600c each)
+        { itemId: 19794, count: 4 },
+      ],
+      flags: ['AutoLearned'],
+      type: 'Insignia',
+    },
+    ...Array.from({ length: 8 }, (_, idx): Recipe => ({
+      id: `armor-200-${idx}`,
+      outputId: 3200 + idx,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 200,
+      ingredients: [
+        { itemId: 1501, count: 1 },
+        { itemId: 1502, count: 1 },
+        { itemId: 2200, count: 1 },
+      ],
+      flags: [],
+      type: idx % 2 === 0 ? 'Shoulders' : 'Helm',
+    })),
+
+    // Rank 225: Leinenballen (Refinement) + Basic Linen Panel (Component) + Discoverable Armor
+    {
+      id: 'bolt-linen-225',
+      outputId: 19744,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 225,
+      ingredients: [{ itemId: 19743, count: 2 }], // Linen Scrap (19c)
+      flags: ['AutoLearned'],
+      type: 'Refinement',
+    },
+    {
+      id: 'panel-linen-225',
+      outputId: 2251,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 225,
+      ingredients: [
+        { itemId: 19744, count: 2 },
+        { itemId: 19793, count: 1 },
+      ],
+      flags: ['AutoLearned'],
+      type: 'Component',
+    },
+  ];
+
+  const byOutput = new Map<number, Recipe[]>();
+  for (const r of recipes) {
+    byOutput.set(r.outputId, [r]);
+  }
+
+  const prices = new Map<number, PriceInfo>([
+    [19740, { sell: 18, buy: 14 } as PriceInfo],
+    [24291, { sell: 55, buy: 45 } as PriceInfo],
+    [1200, { sell: 40, buy: 30 } as PriceInfo],
+    [1201, { sell: 40, buy: 30 } as PriceInfo],
+    [19741, { sell: 7, buy: 5 } as PriceInfo],
+    [19742, { sell: 16, buy: 12 } as PriceInfo],
+    [19794, { sell: 24, buy: 24 } as PriceInfo],
+    // Simulate scalped TP listings for intermediate panels (50s each on TP, vs ~56c self-crafted!)
+    [1501, { sell: 5000, buy: 100 } as PriceInfo],
+    [1502, { sell: 5000, buy: 100 } as PriceInfo],
+    [24279, { sell: 80, buy: 60 } as PriceInfo],
+    [24280, { sell: 580, buy: 490 } as PriceInfo],
+    [19743, { sell: 19, buy: 15 } as PriceInfo],
+    [19744, { sell: 40, buy: 32 } as PriceInfo],
+    [19793, { sell: 32, buy: 32 } as PriceInfo],
+  ]);
+
+  // Check both Normal (cost) and Bulk (fast) modes, even if craftIntermediates was left false!
+  for (const mode of ['cost', 'fast'] as const) {
+    const plan = planLevelRoute({
+      discipline: 'Leatherworker',
+      fromRank: 125,
+      toRank: 245,
+      recipes,
+      recipesByOutput: byOutput,
+      prices,
+      options: {
+        allowDiscovery: mode === 'cost',
+        craftIntermediates: false,
+        mode,
+      },
+    });
+
+    // 1. Inventory Bags ('Bag') must NEVER be used as leveling steps
+    const bagSteps = plan.steps.filter((s) => s.recipe.type === 'Bag');
+    assert.equal(bagSteps.length, 0, `[${mode}] Taschen dürfen niemals als Leveling-Schritt gewählt werden`);
+
+    // 2. Refinements (Baumwollballen / Leinenballen) must stay around ~36-42 crafts (10 ranks), NEVER 128 crafts!
+    const cottonStep = plan.steps.find((s) => s.recipe.id === 'bolt-cotton-150');
+    assert.ok(cottonStep, `[${mode}] Baumwollballen muss am Tier-Start 150 genutzt werden`);
+    assert.ok(
+      cottonStep.crafts <= 45,
+      `[${mode}] Baumwollballen darf maximal ~42x hergestellt werden (nicht 128x!), erhalten: ${cottonStep.crafts}`,
+    );
+
+    const linenStep = plan.steps.find((s) => s.recipe.id === 'bolt-linen-225');
+    assert.ok(linenStep, `[${mode}] Leinenballen muss am Tier-Start 225 genutzt werden`);
+    assert.ok(
+      linenStep.crafts <= 45,
+      `[${mode}] Leinenballen darf maximal ~42x hergestellt werden (nicht 128x!), erhalten: ${linenStep.crafts}`,
+    );
+
+    // 3. Insignias must NEVER be ground 64x as standalone leveling steps!
+    const insigniaSteps = plan.steps.filter((s) => s.recipe.type === 'Insignia');
+    assert.equal(
+      insigniaSteps.length,
+      0,
+      `[${mode}] Teure Insignien dürfen niemals 64x als eigenständiger Leveling-Schritt gegrindet werden (gefunden: ${insigniaSteps.map((s) => `${s.recipe.id}:${s.crafts}x`).join(', ')})`,
+    );
+  }
+});
+
+
+

@@ -44,10 +44,10 @@ An open-source desktop companion and HUD overlay for Guild Wars 2. Omnitria prov
 Omnitria addresses common friction points in Guild Wars 2 by centralizing gameplay and progression tools into an in-game desktop overlay:
 
 - **World Boss and Meta Timers:** Eliminates tab-switching to browser timers by computing active and upcoming events locally based on the official 2-hour UTC rotation cycle.
-- **Crafting Leveling (0–500):** Calculates low-cost discipline leveling routes using a bulk-first model (0–30 refinements, single discoveries, and repeat bulk batches) combined with live Trading Post and Master Craftsman vendor prices.
+- **Crafting Leveling (0–500) & Daily Tracker:** Calculates low-cost discipline leveling routes using a bulk-first model combined with live Trading Post prices, and tracks 9 daily ascended crafting cooldowns with net profitability calculations.
 - **Inventory Indexing:** Searches all account storage locations (Material Storage, Bank tabs, Shared Inventory slots, Character Bags, Equipped Gear) in a single unified view.
 - **Achievement Progression:** Ranks uncompleted achievements mathematically by obtainable Achievement Points (AP), completion ratio, and required effort, respecting official account caps.
-- **Legendary Armory:** Generates complete bill-of-materials trees for Generations 1, 2, and 3 Legendary weapons, automatically subtracting owned account materials.
+- **Full Legendary Armory:** Multi-category coverage (Weapons Gen 1–4, Rings, Accessories, Amulets, Backpacks, Relic, Armor) with complete bill-of-materials trees, owned account material deductions, and live `/v2/account/legendaryarmory` synchronization.
 
 The application operates without injecting code into the game process. Game integration relies strictly on official read-only APIs and the shared memory `MumbleLink` interface.
 
@@ -112,26 +112,21 @@ The following capabilities are implemented and verified in the current release:
 ### Discipline Leveling and Crafting Planner
 
 - **Supported Disciplines:** Full 0–500 route calculation for Weaponsmith, Huntsman, Artificer, Armorsmith, Leatherworker, and Tailor. Jeweler is capped at rank 400. Chef routes support ranks 0–450 with documented guidance for the 450–500 Gourmet Training questline.
-- **Bulk-First Progression Engine:**
-  - *Tier-Start Refinements (0–25, 75–100, etc.):* Leverages low-cost material refinements to gain decay-free initial levels.
-  - *Sub-Tier Discovery and Bulk Batches:* Executes 1x discovery craft to register the recipe in the player's station, then immediately schedules up to 25 bulk repeat crafts using that recipe while the experience multiplier remains effective ($f \ge 0.28$).
-  - Avoids the repetitive inventory swapping required by 100+ single-discovery approaches while maintaining low net gold costs.
-- **Auto-Learned Recipe Integration:** Prioritizes base auto-learned recipes (refinements, utility potions, standard gear) across ranks 0–400 to bypass discovery overhead.
-- **Leveling Strategies:**
-  - *Budget Bulk Leveling (Recommended):* Optimized balance of refinements, single discoveries, and repeat bulk crafting.
-  - *Fast-Track Leveling:* Minimizes total steps and click operations using larger bulk batches.
-  - *Prioritize Account Stock:* Directs production toward materials already present in account storage.
-  - *Discovery and Collection:* Maximizes unique discoveries for players seeking to unlock complete crafting station books.
-- **Procurement Toggle:** Choose between *Craft Ingredients Self* (recursive breakdown of components from raw materials) and *Buy Finished Components* (purchasing components directly from the Trading Post).
+- **Two Distinct, `gw2crafts.net`-Calibrated Leveling Paths:**
+  - *💰 Most Economical (Normal / Discoveries):* Minimizes gold cost matching `gw2crafts.net` gold parity (~1.5–3g for 0–400, ~5–6g for 0–500). Uses a 10-rank tier-start refinement window (~36–42x bolts/ingots instead of decayed 128x grinds), basic non-fine components (*Panels, Linings, Blades, Hilts*), and strictly 1x multi-prefix equipment discoveries (+100–200% bonus XP).
+  - *⚡ Most Economical Bulk Crafting (Bulk / Fast):* Uses tier-start refinements (~36–42x) and basic components where available, and in mid-tier brackets where the GW2 API provides only expensive `AutoLearned` Insignias/Inscriptions, unlocks 1 single cheap weapon/armor recipe and bulk-repeats it (~15x) just like `gw2crafts_fast` — completely avoiding costly 64x fine-material Insignia grinds. Exotic 1x discoveries kick in automatically at rank 450 (`450–500`).
+- **Streamlined Unified Control Dashboard:**
+  - Single master dashboard combining character ranks, material procurement strategy, 2 prominent Hero Mode cards (*Bulk* vs. *Normal*), and a 4-stat KPI summary footer.
+  - Automatic protection against unlisted or scalped Trading Post intermediate components, plus exclusion of 8–20 slot inventory bags (`Bag`) from leveling routes.
 - **Cost Optimization and Resale Offsets:**
   - Evaluates live Black Lion Trading Post buy and sell prices.
   - Calculates Net Cost by estimating equipment liquidation resale proceeds (accounting for the standard 15% Trading Post transaction fee: 5% listing fee + 10% exchange fee).
   - Caps resale deductions on low-volume items to avoid illiquid buy-order distortions.
 - **Master Craftsman Vendor Catalog:**
-  - Automatically evaluates Master Craftsman NPC vendor prices (`min(vendor, tp)`) for thread, charcoal, flux, thermocatalytic reagents, cooking staples (flour, sugar, vinegar, yeast, butter), and karma ingredients.
+  - Automatically evaluates Master Craftsman NPC vendor prices (`min(vendor, tp)`) for thread, charcoal, flux, thermocatalytic reagents, all 5 *Runes of Holding*, cooking staples (flour, sugar, vinegar, yeast, butter), and karma ingredients.
   - Indexes purchasable recipe sheets for inscriptions and insignias.
 - **GW2Crafts Benchmarking:** Routes are validated against offline snapshots of standard GW2Crafts guides, filtering out uncraftable precursor collection items and untradable account-bound materials in the 400–500 range.
-- **UI Architecture:** Features a dedicated Discipline Suite header, interactive Tier 1–6 roadmap cards with step counts and costs, a real-time KPI summary strip, and a Next Action spotlight card.
+- **UI Architecture:** Features a dedicated Discipline Suite header, 4-metric KPI summary strip, tabbed navigation (*Steps*, *Shopping List*, *GW2Crafts Benchmark*, *Recipe Tree*), and un-cramped step cards with 1-click completion checkmarks.
 
 ### Account-Wide Inventory Search
 
@@ -177,7 +172,7 @@ The following capabilities are implemented and verified in the current release:
 | **Credential Security** | Windows DPAPI | Electron `safeStorage` encrypted API key persistence |
 | **State & Storage** | LocalStorage & In-Memory Stores | Bounds persistence, UI preferences, and API caches |
 | **Styling & Design** | Vanilla CSS | Tokenized variables, WCAG 2.2 AA compliant typography scale |
-| **Automated Testing** | Node.js Test Runner (`node --test`) | 147 unit and integration tests covering security, domain, and API logic |
+| **Automated Testing** | Node.js Test Runner (`node --test`) | 163 unit and integration tests covering security, domain, spatial, and API logic |
 
 ---
 
@@ -185,7 +180,7 @@ The following capabilities are implemented and verified in the current release:
 
 ### Standalone Windows Binary
 
-1. Download `Omnitria-v0.3.3-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.3.4-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (fully portable, no installation required).
 3. Run `Omnitria.exe`.
 
@@ -283,7 +278,7 @@ guildwars2-omnitria/
 │   ├── i18n/               # Localization dictionaries (German and English)
 │   ├── App.tsx             # Root application component
 │   └── types.ts            # TypeScript interface definitions
-├── tests/                  # Automated test suite (147 test cases)
+├── tests/                  # Automated test suite (163 test cases)
 └── package.json            # Project configuration and dependency definitions
 ```
 
@@ -310,7 +305,34 @@ Guild Wars 2 and ArenaNet are trademarks or registered trademarks of NCSOFT Corp
 ## Latest Version Changelog
 
 <details open>
-<summary>Latest Version – v0.3.3</summary>
+<summary>Latest Version – v0.3.4</summary>
+
+### Added
+- **Full Legendary Armory Expansion:** Expanded tracking beyond weapons to include Rings (*Coalescence*, *Conflux*), Accessories (*Aurora*, *Vision*), Amulets (*Prismatic Champion's Regalia*, *Transcendence*), Backpacks (*Ad Infinitum*, *The Ascension*, *Warbringer*), Relics (*Legendary Relic*), and 6-piece Armor Sets (*Obsidian Armor*, *Perfected Envoy Armor*).
+- **Hierarchical Mystic Forge & Crafting BOM Trees:** Offline recipe trees for non-weapon legendaries with material requirement calculation, account stock deductions, and live Trading Post gold valuation.
+- **Account Legendary Armory API Synchronization (`/v2/account/legendaryarmory`):** Golden "Unlocked in Armory" badges, owned count banners, automatic 100% progress evaluation, and a "Hide Unlocked" quick-filter toggle.
+- **Multi-Category Navigation:** Primary master-list category bar (*All, Weapons, Trinkets & Relic, Backpacks, Armor*) and context-aware slot filters.
+- **Daily Timegated Crafting Tracker (`/v2/account/dailycrafting`):** Real-time cooldown tracking across 9 core ascended daily timegates with live net profitability calculations (deducting 15% TP fees and Master Craftsman NPC vendor offsets).
+- **Trading Post Delivery Box Alert (`/v2/commerce/delivery`):** Header and Mini-HUD alerts for pending coins/items with 1-click Lion's Arch fast-travel waypoint copy (`[&BEYAAAA=]`).
+- **Crafting Planner Overhaul & `gw2crafts.net` Calibration:**
+  - Restricted tier-start refinements to the fresh first 10 ranks (~36–42x bolts/ingots instead of decayed 128x grinds).
+  - Eliminated 64x fine-material Insignia/Inscription grinds in both *⚡ Bulk Mode* (using `1x Discovery + ~15x Repeat` in mid-tier brackets) and *💰 Normal Mode* (using `~6–7x` 1-time multi-prefix discoveries).
+  - Excluded 8–20 slot inventory bags (`Bag`) from leveling routes and added official Master Craftsman vendor prices for all 5 *Runes of Holding*.
+  - Added automatic self-craft fallback against unlisted or scalped Trading Post intermediate components.
+
+### Improved
+- **Unified Master Crafting Dashboard:** Merged character ranks, material procurement strategy, bulk vs. normal mode selection, and cost KPIs into one seamless panel (`planner-unified-dashboard`).
+- **Daily Crafting Card UI:** Overhauled cramped layout into a spacious, responsive 2-tier card grid (`minmax(360px, 1fr)`) with clean status badges (`Ready` / `Done`), discipline labels, and 1-click waypoint buttons.
+- **Storage Hub Clarity:** Replaced cryptic abbreviations with human-readable storage location badges (*Material Storage*, *Bank*, *Shared Inventory*, *Character Bags*).
+- **Innovative Item Inspector:** Added 1-click in-game chat link generation (`[&...]`), prominent header wiki lookup, and stock vs. demand KPI cards.
+- **MumbleLink Spatial Navigation:** Added live directional compass wayfinding and world map auto-hide (`mumbleAutoMapDim`).
+- **Automated Test Suite:** Expanded to 163 automated unit and integration tests (100% passing).
+- **Localization Parity:** Maintained 100% key parity across English and German dictionaries.
+
+</details>
+
+<details>
+<summary>v0.3.3</summary>
 
 ### Added
 - Unified Crafting Suite header displaying discipline profile, rank range stepper, character API verification status, and quick-target buttons.
@@ -319,16 +341,11 @@ Guild Wars 2 and ArenaNet are trademarks or registered trademarks of NCSOFT Corp
 - Real-time KPI summary strip tracking net leveling cost, gross outlay, Master Craftsman savings, and completion progress.
 - Interactive Tier 1 to Tier 6 roadmap cards with step counts, costs, and click-to-scroll navigation (automatically adapting to 400 cap for Jeweler).
 - Next Action Spotlight card highlighting the immediate crafting step with combined discovery and bulk craft tags.
-- Automated download counter script and workflow filtering out automated security scanner downloads and checksum files.
 
 ### Improved
-- Bulk-first leveling engine combining tier-start refinements (0–25/30) with 1x discovery and immediate repeat bulk crafts (up to 25x), eliminating repetitive single-item discovery swapping across all 8 disciplines.
+- Bulk-first leveling engine combining tier-start refinements (0–25/30) with 1x discovery and immediate repeat bulk crafts (up to 25x).
 - Integration of auto-learned recipes across ranks 0–400 to bypass discovery overhead whenever economical.
 - Step cards redesigned to a single-checkbox layout, removing redundant button clutter.
-- Localization parity updated across English and German dictionaries (849 keys).
-
-### Fixed
-- Corrected download badge metrics by filtering out automated security scans and checksum assets from total counts.
 
 </details>
 

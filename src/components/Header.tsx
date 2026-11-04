@@ -9,10 +9,13 @@ import {
   Compass,
   Globe,
   Sparkles,
+  Package,
 } from 'lucide-react';
 import type { OverlaySettings, OverlayTab } from '../types';
 import omnitriaIcon from '../../assets/icon.png';
 import { useAccountState } from '../data/gw2/account';
+import { Coin } from './common/ui';
+import { playCopyChime } from '../data/audio';
 import { useTranslation } from '../i18n';
 
 interface HeaderProps {
@@ -63,6 +66,18 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     const api = (window as unknown as { electronAPI?: { closeWindow: () => void } }).electronAPI;
     if (api) api.closeWindow();
   };
+
+  const handleCopyTpWaypoint = () => {
+    const wp = '[&BEYAAAA=]';
+    navigator.clipboard?.writeText(wp).catch(() => {});
+    const api = (window as unknown as { electronAPI?: { copyToClipboard?: (t: string) => void } }).electronAPI;
+    if (api?.copyToClipboard) api.copyToClipboard(wp);
+    if (settings.soundEnabled) playCopyChime();
+  };
+
+  const deliveryItemsCount = account.delivery?.items?.reduce((acc, [, c]) => acc + c, 0) ?? 0;
+  const deliveryCoins = account.delivery?.coins ?? 0;
+  const hasDelivery = deliveryCoins > 0 || deliveryItemsCount > 0;
 
   const getSubTitle = () => {
     switch (currentTab) {
@@ -125,6 +140,25 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* Action Controls & GW2 Square Close Button */}
         <div className="gw2-header-controls">
+          {/* Trading Post Delivery Alert */}
+          {hasDelivery && (
+            <button
+              type="button"
+              className="gw2-nav-icon-btn tp-delivery-pill"
+              onClick={handleCopyTpWaypoint}
+              title={t('delivery.tooltip', {
+                coins: `${Math.floor(deliveryCoins / 10000)}g ${Math.floor((deliveryCoins % 10000) / 100)}s ${deliveryCoins % 100}c`,
+                count: deliveryItemsCount,
+              })}
+              aria-label={t('delivery.badge')}
+            >
+              <Package size={13} className="text-gold" aria-hidden="true" />
+              <span className="font-mono text-xs gold font-bold">
+                {deliveryCoins > 0 ? `${Math.floor(deliveryCoins / 10000)}g` : `${deliveryItemsCount}x`}
+              </span>
+            </button>
+          )}
+
           {/* Quick Language Toggle */}
           <button
             type="button"

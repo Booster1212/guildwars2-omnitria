@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import type { LegendaryModel, LegendaryWeapon, WeaponSlot } from '../../domain/legendary';
-import { getGenerationLabel, WEAPON_TYPE_DE, weaponSlot } from '../../domain/legendary';
+import type { LegendaryModel, LegendaryWeapon, WeaponSlot, LegendaryMainCategory } from '../../domain/legendary';
+import { getGenerationLabel, WEAPON_TYPE_DE, weaponSlot, categoryOfSlot } from '../../domain/legendary';
 import { getItem } from '../../data/gw2/items';
+import { useAccountState } from '../../data/gw2/account';
 import { useProgress, progressActions } from '../../data/progressStore';
 import { ItemIcon, ProgressBar } from '../common/ui';
-import { Search, Star } from 'lucide-react';
+import { Search, Star, Check, Sparkles, Shield, Compass, Swords } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 interface WeaponListProps {
@@ -21,13 +22,23 @@ export const WeaponList: React.FC<WeaponListProps> = ({
   weaponProgressMap,
 }) => {
   const { t, lang } = useTranslation();
+  const account = useAccountState();
+  const armoryMap = account.armoryMap;
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<LegendaryMainCategory>('all');
   const [selectedSlot, setSelectedSlot] = useState<WeaponSlot | 'all'>('all');
   const [selectedGen, setSelectedGen] = useState<number | 'all'>('all');
   const [onlyTracked, setOnlyTracked] = useState(false);
+  const [hideUnlocked, setHideUnlocked] = useState(false);
   const progress = useProgress();
 
   const trackedSet = useMemo(() => new Set(progress.tracked), [progress.tracked]);
+
+  // When category changes, reset slot filter if it doesn't match
+  const handleCategoryChange = (cat: LegendaryMainCategory) => {
+    setSelectedCategory(cat);
+    setSelectedSlot('all');
+  };
 
   const filteredWeapons = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -37,9 +48,15 @@ export const WeaponList: React.FC<WeaponListProps> = ({
       const nameDe = (item?.name ?? '').toLowerCase();
       const nameEn = w.nameEn.toLowerCase();
       const slot = weaponSlot(w, item);
+      const cat = categoryOfSlot(slot);
 
       // Search match
       if (q && !nameDe.includes(q) && !nameEn.includes(q) && !w.type.toLowerCase().includes(q)) {
+        return false;
+      }
+
+      // Category filter
+      if (selectedCategory !== 'all' && cat !== selectedCategory) {
         return false;
       }
 
@@ -52,9 +69,12 @@ export const WeaponList: React.FC<WeaponListProps> = ({
       // Tracked filter
       if (onlyTracked && !trackedSet.has(w.id)) return false;
 
+      // Hide unlocked filter
+      if (hideUnlocked && armoryMap && armoryMap.has(w.id)) return false;
+
       return true;
     });
-  }, [model.weapons, search, selectedSlot, selectedGen, onlyTracked, trackedSet]);
+  }, [model.weapons, search, selectedCategory, selectedSlot, selectedGen, onlyTracked, hideUnlocked, armoryMap, trackedSet]);
 
   // Separate tracked weapons to display pinned on top if no search is active
   const { pinnedTracked, regularWeapons } = useMemo(() => {
@@ -73,8 +93,10 @@ export const WeaponList: React.FC<WeaponListProps> = ({
   const renderWeaponRow = (w: LegendaryWeapon, isPinned = false) => {
     const isSelected = w.id === selectedWeaponId;
     const isTracked = trackedSet.has(w.id);
+    const isUnlocked = armoryMap ? armoryMap.has(w.id) : false;
+    const unlockedCount = isUnlocked ? (armoryMap?.get(w.id) ?? 1) : 0;
     const item = getItem(w.id);
-    const prog = weaponProgressMap[w.id] ?? 0;
+    const prog = isUnlocked ? 1 : (weaponProgressMap[w.id] ?? 0);
     const genInfo = getGenerationLabel(w.generation, lang);
     const rawType = item?.weaponType ?? w.type;
     const typeLabel = lang === 'en' ? rawType : (WEAPON_TYPE_DE[rawType] ?? rawType);
@@ -84,7 +106,7 @@ export const WeaponList: React.FC<WeaponListProps> = ({
         key={w.id}
         className={`master-list-row weapon-row ${isSelected ? 'selected' : ''} ${
           isPinned ? 'pinned-row' : ''
-        }`}
+        } ${isUnlocked ? 'armory-unlocked-row' : ''}`}
         onClick={() => onSelectWeapon(w.id)}
       >
         <button
@@ -105,7 +127,13 @@ export const WeaponList: React.FC<WeaponListProps> = ({
         <div className="row-content">
           <div className="row-title-bar">
             <span className="row-name font-serif r-Legendary">{item?.name ?? w.nameEn}</span>
-            {!w.hasRecipe && (
+            {isUnlocked && (
+              <span className="armory-unlocked-tag font-sans" title={`${t('legendary.unlockedInArmory')} (${unlockedCount}×)`}>
+                <Check size={11} className="armory-check-icon" />
+                <span>{lang === 'en' ? 'Armory' : 'Rüstkammer'}</span>
+              </span>
+            )}
+            {!w.hasRecipe && !isUnlocked && (
               <span className="incomplete-tag" title="Incomplete">
                 {lang === 'en' ? 'Incomplete' : 'Unvollständig'}
               </span>
@@ -129,6 +157,49 @@ export const WeaponList: React.FC<WeaponListProps> = ({
 
   return (
     <div className="gw2-master-list weapons-master-list">
+      {/* Category Tabs: Weapons, Trinkets, Backpacks, Armor, All */}
+      <div className="legendary-cat-bar">
+        <button
+          type="button"
+          className={`legendary-cat-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('all')}
+        >
+          <Sparkles size={11} />
+          <span>{t('legendary.category.all')}</span>
+        </button>
+        <button
+          type="button"
+          className={`legendary-cat-btn ${selectedCategory === 'weapons' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('weapons')}
+        >
+          <Swords size={11} />
+          <span>{t('legendary.category.weapons')}</span>
+        </button>
+        <button
+          type="button"
+          className={`legendary-cat-btn ${selectedCategory === 'trinkets' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('trinkets')}
+        >
+          <Compass size={11} />
+          <span>{t('legendary.category.trinkets')}</span>
+        </button>
+        <button
+          type="button"
+          className={`legendary-cat-btn ${selectedCategory === 'back' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('back')}
+        >
+          <span>{t('legendary.category.back')}</span>
+        </button>
+        <button
+          type="button"
+          className={`legendary-cat-btn ${selectedCategory === 'armor' ? 'active' : ''}`}
+          onClick={() => handleCategoryChange('armor')}
+        >
+          <Shield size={11} />
+          <span>{t('legendary.category.armor')}</span>
+        </button>
+      </div>
+
       {/* Header with Search and Quick Filters */}
       <div className="list-search-section">
         <div className="list-search-input-wrap">
@@ -150,10 +221,33 @@ export const WeaponList: React.FC<WeaponListProps> = ({
             onChange={(e) => setSelectedSlot(e.target.value as WeaponSlot | 'all')}
           >
             <option value="all">{t('legendary.allSlots')}</option>
-            <option value="oneHand">{t('legendary.slotOneHand')}</option>
-            <option value="twoHand">{t('legendary.slotTwoHand')}</option>
-            <option value="offHand">{t('legendary.slotOffHand')}</option>
-            <option value="aquatic">{t('legendary.slotAquatic')}</option>
+            {/* Conditional slots based on category */}
+            {(selectedCategory === 'all' || selectedCategory === 'weapons') && (
+              <>
+                <option value="oneHand">{t('legendary.slotOneHand')}</option>
+                <option value="twoHand">{t('legendary.slotTwoHand')}</option>
+                <option value="offHand">{t('legendary.slotOffHand')}</option>
+                <option value="aquatic">{t('legendary.slotAquatic')}</option>
+              </>
+            )}
+            {(selectedCategory === 'all' || selectedCategory === 'trinkets') && (
+              <>
+                <option value="ring">{t('legendary.slot.ring')}</option>
+                <option value="accessory">{t('legendary.slot.accessory')}</option>
+                <option value="amulet">{t('legendary.slot.amulet')}</option>
+                <option value="relic">{t('legendary.slot.relic')}</option>
+              </>
+            )}
+            {(selectedCategory === 'all' || selectedCategory === 'back') && (
+              <option value="back">{t('legendary.category.back')}</option>
+            )}
+            {(selectedCategory === 'all' || selectedCategory === 'armor') && (
+              <>
+                <option value="armorHeavy">{t('legendary.slot.armorHeavy')}</option>
+                <option value="armorMedium">{t('legendary.slot.armorMedium')}</option>
+                <option value="armorLight">{t('legendary.slot.armorLight')}</option>
+              </>
+            )}
           </select>
 
           <select
@@ -173,11 +267,23 @@ export const WeaponList: React.FC<WeaponListProps> = ({
           <button
             className={`btn-filter-toggle ${onlyTracked ? 'active' : ''}`}
             onClick={() => setOnlyTracked(!onlyTracked)}
-            title="Tracked weapons filter"
+            title="Tracked items filter"
           >
             <Star size={11} fill={onlyTracked ? '#d2b268' : 'none'} />
             <span>{t('legendary.trackedOnly', { count: trackedSet.size })}</span>
           </button>
+
+          {armoryMap && armoryMap.size > 0 && (
+            <button
+              type="button"
+              className={`btn-filter-toggle ${hideUnlocked ? 'active' : ''}`}
+              onClick={() => setHideUnlocked(!hideUnlocked)}
+              title={t('legendary.hideUnlocked')}
+            >
+              <Check size={11} />
+              <span>{t('legendary.hideUnlocked')}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -200,7 +306,7 @@ export const WeaponList: React.FC<WeaponListProps> = ({
         {regularWeapons.map((w) => renderWeaponRow(w, false))}
 
         {filteredWeapons.length === 0 && (
-          <div className="empty-panel">{lang === 'en' ? 'No legendary weapons found for these filter criteria.' : 'Keine legendären Waffen für diese Filterkriterien gefunden.'}</div>
+          <div className="empty-panel">{lang === 'en' ? 'No legendary items found for these filter criteria.' : 'Keine legendären Gegenstände für diese Filterkriterien gefunden.'}</div>
         )}
       </div>
     </div>

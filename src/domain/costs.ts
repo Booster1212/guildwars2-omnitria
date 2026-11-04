@@ -65,6 +65,13 @@ export const KNOWN_VENDOR_PRICES: ReadonlyMap<number, number> = new Map([
   [19791, 48],  // Spule Seidenfaden (Spool of Silk Thread)
   [19790, 64],  // Spule Gazefaden (Spool of Gossamer Thread)
 
+  // Master Craftsman Runes of Holding (Taschenrunen)
+  [13010, 200],    // Schwache Rune der Tasche (Minor Rune of Holding – 2 Silver)
+  [13006, 1480],   // Rune der Tasche (Rune of Holding – 14 Silver 80 Copper)
+  [13007, 5000],   // Beachtliche Rune der Tasche (Major Rune of Holding – 50 Silver)
+  [13008, 20000],  // Große Rune der Tasche (Greater Rune of Holding – 2 Gold)
+  [13009, 100000], // Überlegene Rune der Tasche (Superior Rune of Holding – 10 Gold)
+
   // Legendary components with fixed vendor prices (official vendor prices in copper)
   [19676, 10000], // Eisiger Runenstein (Icy Runestone – 1 Gold from Rojan the Penitent)
 ]);

@@ -35,6 +35,10 @@ export const LegendaryView: React.FC<LegendaryViewProps> = React.memo(({ userAch
   const weaponProgressMap = useMemo(() => {
     const map: Record<number, number> = {};
     for (const w of model.weapons) {
+      if (account.armoryMap?.has(w.id)) {
+        map[w.id] = 1;
+        continue;
+      }
       if (!w.hasRecipe) {
         map[w.id] = 0;
         continue;
@@ -49,7 +53,7 @@ export const LegendaryView: React.FC<LegendaryViewProps> = React.memo(({ userAch
       map[w.id] = res.progress;
     }
     return map;
-  }, [model, account.stockMap, progress.legendary]);
+  }, [model, account.stockMap, account.armoryMap, progress.legendary]);
 
   const activeMaterialId = materialHistory[materialHistory.length - 1] ?? null;
 
