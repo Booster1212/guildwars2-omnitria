@@ -102,7 +102,8 @@ jobs:
           if ($releaseExists) {
             Write-Host "::notice::Release fuer Tag '$tagName' existiert bereits auf GitHub. Aktualisiere Release-Assets..."
             gh release upload "$tagName" $assets --clobber
-            Write-Host "Release-Assets fuer '$tagName' wurden erfolgreich aktualisiert."
+            gh release edit "$tagName" --tag "$tagName" --title "Omnitria $tagName" --draft=false --latest
+            Write-Host "Release-Assets fuer '$tagName' wurden erfolgreich aktualisiert und veroeffentlicht."
             exit 0
           }
 
