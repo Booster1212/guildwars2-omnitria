@@ -634,8 +634,208 @@ test('5. Lederer 125–250 Audit gegen gw2crafts: Keine 128x Ballen, keine 64x I
       0,
       `[${mode}] Teure Insignien dürfen niemals 64x als eigenständiger Leveling-Schritt gegrindet werden (gefunden: ${insigniaSteps.map((s) => `${s.recipe.id}:${s.crafts}x`).join(', ')})`,
     );
+
+    // 4. Since craftIntermediates === false ("Buy all components"), no buyable intermediate (like panels 1501/1502 or bolts 19742) may be in prepSteps!
+    for (const st of plan.steps) {
+      const buyablePrep = st.prepSteps.filter((p) => prices.has(p.outputId));
+      assert.equal(
+        buyablePrep.length,
+        0,
+        `[${mode}] Bei "Alle Komponenten kaufen" (craftIntermediates=false) dürfen keine kaufbaren Komponenten in prepSteps stehen`,
+      );
+    }
   }
 });
+
+// ============================================================================
+// 6. Purchase List & PrepSteps Parity: "Buy Everything" vs "Self-Craft" (Jagende Gesetzlosen-Stiefel)
+// ============================================================================
+test('6. "Buy all components" shows zero prepSteps; "Self-craft" lists complete bottom-up chain including Wool Patch', () => {
+  // Exact reproduction of Leatherworker 140 -> 150: Jagende Gesetzlosen-Stiefel
+  // Raw materials:
+  // - 19728: Dünnes Lederstück (Thin Leather Section)
+  // - 19739: Wollreste (Wool Scrap)
+  // - 19789: Spule Wollfaden (Spool of Wool Thread)
+  // - 24350: Kleine Klaue (Small Claw)
+  // Intermediates:
+  // - 19733: Getrockneter dünner Lederflicken (2x 19728)
+  // - 19740: Wollballen (2x 19739)
+  // - 71225: Wollflicken / Wool Patch (1x 19733 + 1x 19740)
+  // - 19815: Jagende bestickte Woll-Insignie (1x 71225 + 8x 24350)
+  // - 13094: Dünner Stiefelhals (2x 19733 + 1x 19789)
+  // - 13030: Dünne Stiefelsohle (2x 19733)
+  // Target:
+  // - 10500: Jagende Gesetzlosen-Stiefel (1x 19815 + 1x 13094 + 1x 13030)
+  const recipes: Recipe[] = [
+    {
+      id: 'ref-leather-75',
+      outputId: 19733,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 75,
+      ingredients: [{ itemId: 19728, count: 2 }],
+      flags: ['AutoLearned'],
+      type: 'Refinement',
+    },
+    {
+      id: 'ref-wool-75',
+      outputId: 19740,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 75,
+      ingredients: [{ itemId: 19739, count: 2 }],
+      flags: ['AutoLearned'],
+      type: 'Refinement',
+    },
+    {
+      id: 'comp-wool-patch-125',
+      outputId: 71225,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 125,
+      ingredients: [
+        { itemId: 19733, count: 1 },
+        { itemId: 19740, count: 1 },
+      ],
+      flags: ['AutoLearned'],
+      type: 'Component',
+    },
+    {
+      id: 'insig-hunters-wool-125',
+      outputId: 19815,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 125,
+      ingredients: [
+        { itemId: 71225, count: 1 },
+        { itemId: 24350, count: 8 },
+      ],
+      flags: ['AutoLearned'],
+      type: 'Insignia',
+    },
+    {
+      id: 'comp-boot-upper-75',
+      outputId: 13094,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 75,
+      ingredients: [
+        { itemId: 19733, count: 2 },
+        { itemId: 19789, count: 1 },
+      ],
+      flags: ['AutoLearned'],
+      type: 'Component',
+    },
+    {
+      id: 'comp-boot-sole-75',
+      outputId: 13030,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 75,
+      ingredients: [{ itemId: 19733, count: 2 }],
+      flags: ['AutoLearned'],
+      type: 'Component',
+    },
+    {
+      id: 'boots-hunters-outlaw-125',
+      outputId: 10500,
+      outputCount: 1,
+      disciplines: ['Leatherworker'],
+      rating: 125,
+      ingredients: [
+        { itemId: 19815, count: 1 },
+        { itemId: 13094, count: 1 },
+        { itemId: 13030, count: 1 },
+      ],
+      flags: [],
+      type: 'Boots',
+    },
+  ];
+
+  const byOutput = new Map<number, Recipe[]>();
+  for (const r of recipes) {
+    byOutput.set(r.outputId, [r]);
+  }
+
+  // Realistic TP prices where direct components are more expensive than raw materials,
+  // and Insignia / Leather Square have varying TP prices:
+  const prices = new Map<number, PriceInfo>([
+    [19728, { sell: 10, buy: 8 } as PriceInfo],
+    [19739, { sell: 12, buy: 10 } as PriceInfo],
+    [19789, { sell: 16, buy: 16 } as PriceInfo],
+    [24350, { sell: 40, buy: 30 } as PriceInfo],
+    [19733, { sell: 15, buy: 12 } as PriceInfo],
+    [19740, { sell: 20, buy: 16 } as PriceInfo],
+    [71225, { sell: 30, buy: 22 } as PriceInfo],
+    [19815, { sell: 250, buy: 180 } as PriceInfo],
+    [13094, { sell: 150, buy: 90 } as PriceInfo],
+    [13030, { sell: 140, buy: 85 } as PriceInfo],
+    [10500, { sell: 320, buy: 240 } as PriceInfo],
+  ]);
+
+  // Case A: "Buy all components" (craftIntermediates = false)
+  const planBuyAll = planLevelRoute({
+    discipline: 'Leatherworker',
+    fromRank: 140,
+    toRank: 150,
+    recipes,
+    recipesByOutput: byOutput,
+    prices,
+    options: { allowDiscovery: true, craftIntermediates: false, mode: 'fast' },
+  });
+
+  assert.equal(planBuyAll.steps.length, 1);
+  const stepBuy = planBuyAll.steps[0];
+  assert.equal(stepBuy.prepSteps.length, 0, 'Buy all components must have 0 prepSteps');
+  assert.equal(planBuyAll.intermediates.length, 0, 'Buy all components must have 0 intermediates');
+  // Direct components must be in purchases
+  assert.equal(planBuyAll.purchases.has(19815), true, 'Insignia must be bought directly');
+  assert.equal(planBuyAll.purchases.has(13094), true, 'Boot Upper must be bought directly');
+  assert.equal(planBuyAll.purchases.has(13030), true, 'Boot Sole must be bought directly');
+  // Sub-materials must NOT be in purchases
+  assert.equal(planBuyAll.purchases.has(19733), false);
+  assert.equal(planBuyAll.purchases.has(71225), false);
+
+  // Case B: "Self-craft ingredients" (craftIntermediates = true)
+  const planCraftAll = planLevelRoute({
+    discipline: 'Leatherworker',
+    fromRank: 140,
+    toRank: 150,
+    recipes,
+    recipesByOutput: byOutput,
+    prices,
+    options: { allowDiscovery: true, craftIntermediates: true, mode: 'fast' },
+  });
+
+  assert.equal(planCraftAll.steps.length, 1);
+  const stepCraft = planCraftAll.steps[0];
+  // All 6 intermediate recipes must be in prepSteps:
+  // 19733 (Leather Square), 19740 (Wool Bolt), 71225 (Wool Patch), 19815 (Insignia), 13094 (Upper), 13030 (Sole)
+  const prepIds = stepCraft.prepSteps.map((p) => p.outputId);
+  assert.deepEqual(
+    new Set(prepIds),
+    new Set([19733, 19740, 71225, 19815, 13094, 13030]),
+    'All 6 intermediates including Wool Patch (71225) and Insignia (19815) must be in prepSteps',
+  );
+
+  // Topological order check: 19733 and 19740 MUST appear before 71225 (Wool Patch),
+  // and 71225 MUST appear before 19815 (Insignia)!
+  const idxLeather = prepIds.indexOf(19733);
+  const idxWool = prepIds.indexOf(19740);
+  const idxPatch = prepIds.indexOf(71225);
+  const idxInsig = prepIds.indexOf(19815);
+  assert.ok(idxLeather < idxPatch, 'Cured Thin Leather Square must be crafted before Wool Patch');
+  assert.ok(idxWool < idxPatch, 'Bolt of Wool must be crafted before Wool Patch');
+  assert.ok(idxPatch < idxInsig, 'Wool Patch must be crafted before Embroidered Wool Insignia');
+
+  // Purchases must only contain raw base materials (19728, 19739, 19789, 24350), matching craftingCalculator!
+  assert.deepEqual(
+    new Set(planCraftAll.purchases.keys()),
+    new Set([19728, 19739, 19789, 24350]),
+    'Purchases in Self-Craft mode must strictly contain the raw base materials',
+  );
+});
+
 
 
 

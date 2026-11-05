@@ -89,13 +89,6 @@ jobs:
             $releaseExists = $false
           }
 
-          if ($releaseExists) {
-            Write-Host "::notice::Release fuer Tag '$tagName' existiert bereits auf GitHub. Aktualisiere Release-Assets..."
-            gh release upload "$tagName" $assets --clobber
-            Write-Host "Release-Assets fuer '$tagName' wurden erfolgreich aktualisiert."
-            exit 0
-          }
-
           # Sammle alle erzeugten Artefakte aus dem Ordner release/
           $assets = Get-ChildItem -Path release -File | ForEach-Object { $_.FullName }
           if (-not $assets -or $assets.Count -eq 0) {
@@ -105,6 +98,13 @@ jobs:
 
           Write-Host "Folgende Artefakte werden als Release-Assets angehaengt:"
           $assets | ForEach-Object { Write-Host " - $(Split-Path $_ -Leaf)" }
+
+          if ($releaseExists) {
+            Write-Host "::notice::Release fuer Tag '$tagName' existiert bereits auf GitHub. Aktualisiere Release-Assets..."
+            gh release upload "$tagName" $assets --clobber
+            Write-Host "Release-Assets fuer '$tagName' wurden erfolgreich aktualisiert."
+            exit 0
+          }
 
           # Release automatisch erstellen und Assets anhaengen
           gh release create "$tagName" $assets `

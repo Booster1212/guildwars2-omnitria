@@ -206,14 +206,9 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const handleSelectMode = (mode: PlannerMode) => {
     progressActions.setPlanningMode(mode);
-    const patch: { allowDiscovery?: boolean; craftIntermediates?: boolean } = {};
+    const patch: { allowDiscovery?: boolean } = {};
     if ((mode === 'cost' || mode === 'completionist') && !allowDiscovery) {
       patch.allowDiscovery = true;
-    }
-    if ((mode === 'cost' || mode === 'fast') && !craftIntermediates) {
-      patch.craftIntermediates = true;
-      setStrategy('all_craft');
-      setItemOverrides(new Map());
     }
     if (Object.keys(patch).length > 0) {
       progressActions.setCharacterDiscipline(selectedCharacter, discipline, patch);
@@ -349,14 +344,21 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   const itemMinRankMap = useMemo(() => {
     const map = new Map<number, number>();
     if (!plan) return map;
+    const doneSet = new Set(doneSteps);
+    const skipSet = new Set(skippedSteps);
     for (const st of plan.steps) {
+      if (onlyOpenSteps && (doneSet.has(st.key) || skipSet.has(st.key))) continue;
       for (const p of st.purchases) {
         const prev = map.get(p.itemId) ?? Infinity;
         if (st.fromRank < prev) map.set(p.itemId, st.fromRank);
       }
+      for (const ing of st.ingredients) {
+        const prev = map.get(ing.itemId) ?? Infinity;
+        if (st.fromRank < prev) map.set(ing.itemId, st.fromRank);
+      }
     }
     return map;
-  }, [plan]);
+  }, [plan, onlyOpenSteps, doneSteps, skippedSteps]);
 
   // Compute Character Leveling & Progression Plan (Lv 1–80 & Masteries)
   const accountAccess = useMemo(() => getAccountAccessList(account.data), [account.data]);
@@ -529,6 +531,51 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const effectiveTotalSteps = Math.max(0, stepCounts.total - stepCounts.skipped);
   const progressFrac = effectiveTotalSteps > 0 ? Math.min(1, stepCounts.done / effectiveTotalSteps) : 0;
+
+  // Active purchases & intermediates respecting onlyOpenSteps (doneSteps/skippedSteps) and custom overrides
+  const activePurchases = useMemo(() => {
+    if (!plan) return new Map<number, number>();
+    if (strategy === 'custom' && craftingPlanResult) {
+      const customMap = new Map<number, number>();
+      for (const mat of craftingPlanResult.materials) {
+        if (mat.action !== 'craft' && mat.grossDemand > 0) {
+          customMap.set(mat.itemId, mat.grossDemand);
+        }
+      }
+      return customMap;
+    }
+    if (!onlyOpenSteps || (doneSteps.length === 0 && skippedSteps.length === 0)) {
+      return plan.purchases;
+    }
+    const doneSet = new Set(doneSteps);
+    const skipSet = new Set(skippedSteps);
+    const openPurchases = new Map<number, number>();
+    for (const st of plan.steps) {
+      if (doneSet.has(st.key) || skipSet.has(st.key)) continue;
+      for (const p of st.purchases) {
+        openPurchases.set(p.itemId, (openPurchases.get(p.itemId) ?? 0) + p.qty);
+      }
+    }
+    return openPurchases;
+  }, [plan, strategy, craftingPlanResult, onlyOpenSteps, doneSteps, skippedSteps]);
+
+  const activeIntermediates = useMemo(() => {
+    if (!plan) return [];
+    if (!onlyOpenSteps || (doneSteps.length === 0 && skippedSteps.length === 0)) {
+      return plan.intermediates;
+    }
+    const doneSet = new Set(doneSteps);
+    const skipSet = new Set(skippedSteps);
+    const imMap = new Map<string, { recipe: (typeof plan.intermediates)[number]['recipe']; crafts: number }>();
+    for (const st of plan.steps) {
+      if (doneSet.has(st.key) || skipSet.has(st.key)) continue;
+      for (const prep of st.prepSteps ?? []) {
+        const ex = imMap.get(prep.recipe.id);
+        imMap.set(prep.recipe.id, { recipe: prep.recipe, crafts: (ex?.crafts ?? 0) + prep.crafts });
+      }
+    }
+    return Array.from(imMap.values());
+  }, [plan, onlyOpenSteps, doneSteps, skippedSteps]);
 
   if (recipeDb.status === 'loading') {
     return (
@@ -958,7 +1005,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           >
             <ShoppingBag size={13} />
             <span>
-              {t('crafting.shoppingTab')} ({plan?.purchases.size ?? 0})
+              {t('crafting.shoppingTab')} ({activePurchases.size})
             </span>
           </button>
           <button
@@ -1894,7 +1941,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               onClick={() => setActiveTab('shopping')}
             >
               <ShoppingBag size={12} />
-              <span>{t('planner.view.shopping')} ({plan?.purchases.size ?? 0})</span>
+              <span>{t('planner.view.shopping')} ({activePurchases.size})</span>
             </button>
             <button
               type="button"
@@ -1918,7 +1965,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               onClick={() => setActiveTab('intermediates')}
             >
               <Sparkles size={12} />
-              <span>{t('planner.view.intermediates')} ({plan?.intermediates.length ?? 0})</span>
+              <span>{t('planner.view.intermediates')} ({activeIntermediates.length})</span>
             </button>
           </div>
 
@@ -1947,7 +1994,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           {activeTab === 'shopping' && plan && (
             <div className="planner-shopping-wrap">
               {(() => {
-                const rawPurchases = Array.from(plan.purchases.entries());
+                const rawPurchases = Array.from(activePurchases.entries());
                 const hasUntradable = rawPurchases.some(([id]) => {
                   const it = getItem(id);
                   return isUntradable(it) && !KNOWN_VENDOR_PRICES.has(id);
@@ -2279,11 +2326,11 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           {/* Tab 6: Intermediate Components */}
           {activeTab === 'intermediates' && plan && (
             <div className="planner-intermediates-wrap">
-              {plan.intermediates.length === 0 ? (
+              {activeIntermediates.length === 0 ? (
                 <div className="empty-panel">{t('crafting.noIntermediatesPlanned')}</div>
               ) : (
                 <div className="intermediates-grid">
-                  {plan.intermediates.map((im, i) => {
+                  {activeIntermediates.map((im, i) => {
                     const outItem = getItem(im.recipe.outputId);
                     return (
                       <div key={i} className="intermediate-card">

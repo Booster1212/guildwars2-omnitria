@@ -39,7 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Distinguished true tier-start refinements (*Bolts, Leather Squares, Ingots, Planks* at `0, 75, 150, 225, 300, 400`) from mid-tier insignia/inscription sub-components (*Wool/Cotton/Linen/Silk Patches* and *Iron/Steel/Darksteel/Mithril Plated Dowels* at `125, 200, 275, 350`) and crafting backpack tools, preventing `128x` patch or `64x` insignia grinds against the full 13,213-recipe live GW2 API dataset.
 * **Smart Intermediate Buy-vs-Craft Resolution & Sub-Tier Quality XP Scaling:**
   * In `cost` and `fast` modes, `acq()` now compares self-craft cost against Trading Post buy price for intermediate refinements and insignias/inscriptions (self-crafting only when cheaper or unlisted), caps speculative low-level TP resale credit (`20%` below rank 400, `35%` at 400+), and models Fine (`Tier+25`), Masterwork (`Tier+50`), Rare (`375`), and Exotic (`400+`) sub-tier XP progression so `0–400` and `0–500` routes match `gw2crafts.net` costs and craft counts.
-* ** Regenerated All 19 UI Screenshots (`docs/screenshots/`):**
+* **Purchase List & Material Strategy Parity (`Buy All Components` vs. `Self-Craft Ingredients`):**
+  * Separated candidate cost evaluation (`evalAcq`) from step ingredient resolution (`acq` / `resolve`) so selecting **Buy all components** (`craftIntermediates: false`) never forces self-crafted preparation steps (`prepSteps`) for tradable components and lists exact direct ingredients in the Shopping List.
+  * Synchronized **Self-craft ingredients** (`craftIntermediates: true`) with `craftingCalculator.ts` (`Total Material Demand` & `Crafting Tree`) with topological bottom-up sorting (ensuring sub-components like *Wool Patch* are always listed after their refinements and before their Insignia), and wired the Shopping List to filter out completed/skipped steps when `onlyOpenSteps` is enabled.
+* **Regenerated All 19 UI Screenshots (`docs/screenshots/`):**
   * Updated all 19 visual walkthrough screenshots for `v0.3.5`.
 
 ---

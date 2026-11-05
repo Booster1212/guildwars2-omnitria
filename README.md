@@ -318,6 +318,8 @@ Guild Wars 2 and ArenaNet are trademarks or registered trademarks of NCSOFT Corp
   - Added Stale-While-Revalidate IndexedDB persistence (`prices:v1`) for Trading Post prices and automatic startup prefetching (`prefetchAccountItemsAndPrices`) for near-instantaneous Inventory & PvE Hub loading.
   - Upgraded GW2 API client concurrency (`MAX_CONCURRENT = 8`, `MIN_INTERVAL_MS = 25ms`) with `onChunk` progressive UI streaming after every 200-ID batch.
   - Eliminated false *"Bound"* placeholders while prices are loading by tracking `isPriceLoading(id)` / `isItemLoading(id)` and inspecting explicit `AccountBound` / `SoulbindOnAcquire` flags.
+- **Crafting Purchase List & Material Strategy Parity:**
+  - Separated candidate cost scoring (`evalAcq`) from step procurement (`acq`) so **Buy all components** never generates preparation steps for tradable components and lists direct ingredients in the Shopping List, while **Self-craft ingredients** lists the complete bottom-up preparation chain (including sub-components like *Wool Patch*) in exact crafting order and respects `onlyOpenSteps`.
 
 </details>
 

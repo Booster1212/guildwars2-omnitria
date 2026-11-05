@@ -486,46 +486,59 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const candidates = nonSkippedCandidates.length > 0 ? nonSkippedCandidates : allCandidates;
 
   // ---- Beschaffungsentscheidung je (Item, Rang) -----------------------------------------------
-  const memo = new Map<string, Acq>();
-  const acq = (itemId: number, rank: number, depth: number, stack: Set<number>): Acq => {
+  const isIntermediateUsable = (r: Recipe, rank: number, itemPrice: number | null): boolean => {
+    if (!r.disciplines.includes(discipline) || r.rating > rank) return false;
+    for (const ing of r.ingredients) {
+      if (ASCENDED_ACCOUNT_BOUND_INGREDIENTS.has(ing.itemId)) {
+        const owned = stock ? (stock.get(ing.itemId) ?? 0) : 0;
+        if (owned < ing.count) return false;
+      }
+    }
+    if (isLearned(r)) return true;
+    if (Boolean(options.allowDiscovery) && isDiscovery(r)) return true;
+    if (itemPrice === null) return true;
+    return false;
+  };
+
+  // 1. Economic evaluation helper used ONLY during candidate scoring (evalCandidate) so scalped
+  //    TP component listings do not distort route recipe selection when craftIntermediates is false.
+  const evalMemo = new Map<string, Acq>();
+  const evalAcq = (itemId: number, rank: number, depth: number, stack: Set<number>): Acq => {
     const mk = `${itemId}@${rank}`;
-    const cached = memo.get(mk);
+    const cached = evalMemo.get(mk);
     if (cached) return cached;
     const price = unitPrice(prices.get(itemId), itemId);
     let best: Acq = { unit: price, via: price !== null ? 'buy' : 'unknown' };
     if (depth < 8 && !stack.has(itemId)) {
       stack.add(itemId);
       for (const r of recipesByOutput.get(itemId) ?? []) {
-        if (!r.disciplines.includes(discipline) || r.rating > rank) continue;
-        // If the item cannot be bought on TP/vendor (price === null), crafting it is the only viable in-game path!
-        // Otherwise, honor isUsableAtRank(r, rank)
-        if (!isUsableAtRank(r, rank) && price !== null) continue;
+        if (!isIntermediateUsable(r, rank, price)) continue;
         let sum = 0;
         let hasPricedIngredient = false;
+        let hasUnpricedUncovered = false;
         for (const ing of r.ingredients) {
-          const a = acq(ing.itemId, rank, depth + 1, stack);
+          const a = evalAcq(ing.itemId, rank, depth + 1, stack);
           if (a.unit !== null) {
             sum += a.unit * ing.count;
             hasPricedIngredient = true;
+          } else {
+            const owned = stock ? (stock.get(ing.itemId) ?? 0) : 0;
+            if (owned < ing.count) hasUnpricedUncovered = true;
           }
         }
+        if (hasUnpricedUncovered && price !== null) continue;
         const craftUnit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
         if (options.craftIntermediates) {
           if (mode === 'cost' || mode === 'fast') {
-            // In gw2crafts-calibrated Cost/Fast modes, self-craft an intermediate only when it is cheaper
-            // than buying on the Trading Post (or when unlisted/untradable on the TP).
             if (craftUnit !== null && (best.unit === null || craftUnit <= best.unit)) {
               best = { unit: craftUnit, via: 'craft', recipe: r };
             }
           } else {
-            // Legacy/manual mode: prefer self-crafting ('craft') over buying ('buy') to fulfill preparation chains.
             if (best.via !== 'craft' || (craftUnit !== null && (best.unit === null || craftUnit < best.unit))) {
               best = { unit: craftUnit, via: 'craft', recipe: r };
             }
           }
         } else if (price === null && craftUnit !== null) {
-          // Even when craftIntermediates is off, if an intermediate item is unlisted/unbuyable on TP,
-          // self-crafting is mandatory so recipes using it are not falsely penalized as unbuyable (+25g).
           if (best.unit === null || craftUnit < best.unit) {
             best = { unit: craftUnit, via: 'craft', recipe: r };
           }
@@ -535,7 +548,62 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
           craftUnit !== null &&
           craftUnit * 1.35 < price
         ) {
-          // Protect against illiquid TP scalper listings on intermediate armor panels / weapon parts
+          if (best.unit === null || craftUnit < best.unit) {
+            best = { unit: craftUnit, via: 'craft', recipe: r };
+          }
+        }
+      }
+      stack.delete(itemId);
+    }
+    evalMemo.set(mk, best);
+    return best;
+  };
+
+  // 2. Actual procurement resolver used by resolve() for step prepSteps & shopping list:
+  //    - When options.craftIntermediates === false ("Buy all components"): NEVER self-craft any
+  //      item that can be bought on TP/vendor (price !== null). Zero prepSteps for buyable items!
+  //    - When options.craftIntermediates === true ("Self-craft ingredients"): self-craft all
+  //      eligible discipline intermediates down to base materials, matching craftingCalculator.ts.
+  const memo = new Map<string, Acq>();
+  const acq = (itemId: number, rank: number, depth: number, stack: Set<number>): Acq => {
+    const mk = `${itemId}@${rank}`;
+    const cached = memo.get(mk);
+    if (cached) return cached;
+    const price = unitPrice(prices.get(itemId), itemId);
+    let best: Acq = { unit: price, via: price !== null ? 'buy' : 'unknown' };
+
+    // If user explicitly chose "Buy all components" (craftIntermediates === false) and item is buyable,
+    // strictly buy it directly without generating preparation steps.
+    if (!options.craftIntermediates && price !== null) {
+      memo.set(mk, best);
+      return best;
+    }
+
+    if (depth < 8 && !stack.has(itemId)) {
+      stack.add(itemId);
+      for (const r of recipesByOutput.get(itemId) ?? []) {
+        if (!isIntermediateUsable(r, rank, price)) continue;
+        let sum = 0;
+        let hasPricedIngredient = false;
+        let hasUnpricedUncovered = false;
+        for (const ing of r.ingredients) {
+          const a = acq(ing.itemId, rank, depth + 1, stack);
+          if (a.unit !== null) {
+            sum += a.unit * ing.count;
+            hasPricedIngredient = true;
+          } else {
+            const owned = stock ? (stock.get(ing.itemId) ?? 0) : 0;
+            if (owned < ing.count) hasUnpricedUncovered = true;
+          }
+        }
+        if (hasUnpricedUncovered && price !== null) continue;
+        const craftUnit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
+        if (options.craftIntermediates) {
+          if (best.via !== 'craft' || (craftUnit !== null && (best.unit === null || craftUnit < best.unit))) {
+            best = { unit: craftUnit, via: 'craft', recipe: r };
+          }
+        } else if (price === null && craftUnit !== null) {
+          // Mandatory fallback only when item is account-bound / unbuyable on TP
           if (best.unit === null || craftUnit < best.unit) {
             best = { unit: craftUnit, via: 'craft', recipe: r };
           }
@@ -608,7 +676,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     let unknown = 0;
     let stockCoveredCount = 0;
     for (const ing of c.recipe.ingredients) {
-      const a = acq(ing.itemId, rank, 0, new Set());
+      const a = evalAcq(ing.itemId, rank, 0, new Set());
       const owned = stock ? (stock.get(ing.itemId) ?? 0) : 0;
       if (owned >= ing.count) {
         stockCoveredCount++;
@@ -922,7 +990,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
           outputId: a.recipe.outputId,
           crafts: currentCrafts,
           outputCount: outCount,
-          depth,
+          depth: Math.max(prepEx?.depth ?? 0, depth),
           ingredients: a.recipe.ingredients.map((ing) => ({
             itemId: ing.itemId,
             qty: ing.count * currentCrafts,
@@ -950,7 +1018,11 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
 
     // Sortierung in exakter Produktionsreihenfolge: tiefste Unterprodukte (z.B. Seidenballen) zuerst,
     // darauf aufbauende Zwischenprodukte (z.B. Seiden-Insignie) danach
-    const prepSteps = Array.from(stepPrepMap.values()).sort((a, b) => b.depth - a.depth);
+    const prepSteps = Array.from(stepPrepMap.values()).sort((a, b) => {
+      if (b.recipe.ingredients.some((i) => i.itemId === a.outputId)) return -1;
+      if (a.recipe.ingredients.some((i) => i.itemId === b.outputId)) return 1;
+      return b.depth - a.depth;
+    });
 
     let cost = 0;
     let unpricedCount = 0;
