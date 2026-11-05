@@ -110,4 +110,5 @@ export interface OverlaySettings {
   autoDimInCombat?: boolean;
   autoDimOnWorldMap?: boolean;
   highlightCurrentMapEvents?: boolean;
+  combatSpatialHudEnabled?: boolean;
 }

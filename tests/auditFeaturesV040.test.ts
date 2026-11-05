@@ -276,21 +276,36 @@ test('5.1 encodeItemChatCode produces official GW2 base64 in-game chat links', a
 
 test('5.2 calculateSpatialWayfinding computes live distances and directional headings', async () => {
   const { calculateSpatialWayfinding, EVENT_CONTINENT_COORDS } = await import('../src/data/gw2/mumble.ts');
+  const { EVENTS } = await import('../src/data/events.ts');
 
   assert.ok(EVENT_CONTINENT_COORDS['svanir-shaman'], 'Svanir Shaman coords must be registered');
+  for (const ev of EVENTS) {
+    assert.ok(EVENT_CONTINENT_COORDS[ev.id], `Event ${ev.id} must have authentic continent coordinates`);
+  }
 
-  // Player located 1000m south of Svanir Shaman [24950, 16420], camera looking North (rotation = 0)
-  const wayfinding = calculateSpatialWayfinding('svanir-shaman', 24950, 16420, 0);
+  const [svanirX, svanirY] = EVENT_CONTINENT_COORDS['svanir-shaman'];
+
+  // Player located 1000m south of Svanir Shaman, camera looking North (rotation = 0)
+  const wayfinding = calculateSpatialWayfinding('svanir-shaman', svanirX, svanirY + 1000, 0);
   assert.ok(wayfinding);
   assert.equal(wayfinding.distanceLabel, '1.0 km');
   assert.equal(wayfinding.arrow, '⬆'); // Ahead / North
   assert.equal(wayfinding.cardinal, 'N');
+  assert.equal(wayfinding.angleDeg, 0);
 
-  // Player located 4000m away, camera looking East (rotation = PI/2)
-  const wayfindingRot = calculateSpatialWayfinding('svanir-shaman', 24950, 19420, Math.PI / 2);
+  // Player located 4000m south, camera looking East (rotation = PI/2)
+  const wayfindingRot = calculateSpatialWayfinding('svanir-shaman', svanirX, svanirY + 4000, Math.PI / 2);
   assert.ok(wayfindingRot);
   assert.equal(wayfindingRot.distanceLabel, '4.0 km');
   assert.equal(wayfindingRot.arrow, '⬅'); // Left relative to facing East
+  assert.equal(wayfindingRot.angleDeg, 270);
+
+  // Player with North-locked minimap (compassRotation = 0) but 3D camera facing West (camFrontX = -1, camFrontZ = 0)
+  const wayfindingCam = calculateSpatialWayfinding('svanir-shaman', svanirX, svanirY + 500, 0, -1, 0);
+  assert.ok(wayfindingCam);
+  assert.equal(wayfindingCam.distanceLabel, '500 m');
+  assert.equal(wayfindingCam.arrow, '➡'); // Target is North, which is to the Right when facing West
+  assert.equal(wayfindingCam.angleDeg, 90);
 });
 
 test('5.3 Spatial, World Map Dimming and Daily Crafting keys maintain 100% DE/EN parity', () => {

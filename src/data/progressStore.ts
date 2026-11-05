@@ -116,7 +116,7 @@ export function createEmptyCharacterDiscipline(discipline?: string): CharacterDi
     doneSteps: [],
     skippedSteps: [],
     deferredSteps: [],
-    allowDiscovery: false,
+    allowDiscovery: true,
     craftIntermediates: true,
   };
 }

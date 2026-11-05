@@ -221,7 +221,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
         totalCost: tCost,
       };
     });
-  }, [allRowItems, prices.map]);
+  }, [allRowItems, prices.map, prices.version]);
 
   // Overall financial and category metrics
   const metrics = useMemo(() => {

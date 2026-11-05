@@ -37,6 +37,7 @@ export interface AccountInventoryItem {
   locations: ItemStorageLocation[];
   unitPrice: number | null;
   totalValue: number | null;
+  isBound?: boolean;
 }
 
 export type InventoryLocationFilter =
@@ -221,6 +222,9 @@ export function buildAccountInventoryIndex(
     const p = prices?.get(itemId);
     const uPrice = unitPrice(p, itemId);
     const totalValue = uPrice !== null ? uPrice * totalStock : null;
+    const isBound = Boolean(
+      meta?.flags?.some((f) => f === 'AccountBound' || f === 'SoulbindOnAcquire'),
+    );
 
     results.push({
       itemId,
@@ -240,6 +244,7 @@ export function buildAccountInventoryIndex(
       locations,
       unitPrice: uPrice,
       totalValue,
+      isBound,
     });
   }
 

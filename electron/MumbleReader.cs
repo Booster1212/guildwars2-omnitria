@@ -6,6 +6,11 @@ using System.Threading;
 
 namespace Omnitria.Mumble {
     class Program {
+        static string Fmt(float v) {
+            if (float.IsNaN(v) || float.IsInfinity(v)) return "0";
+            return v.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         static void Main(string[] args) {
             Console.OutputEncoding = Encoding.UTF8;
             MemoryMappedFile mmf = null;
@@ -44,6 +49,13 @@ namespace Omnitria.Mumble {
                                 identity = identity.Substring(0, lastBrace + 1);
                             }
 
+                            float avatarX = accessor.ReadSingle(8);
+                            float avatarZ = accessor.ReadSingle(16);
+                            float avatarFrontX = accessor.ReadSingle(20);
+                            float avatarFrontZ = accessor.ReadSingle(28);
+                            float camFrontX = accessor.ReadSingle(568);
+                            float camFrontZ = accessor.ReadSingle(576);
+
                             uint mapId = accessor.ReadUInt32(1136);
                             uint mapType = accessor.ReadUInt32(1140);
                             uint shardId = accessor.ReadUInt32(1144);
@@ -55,6 +67,9 @@ namespace Omnitria.Mumble {
                             float compassRotation = accessor.ReadSingle(1164);
                             float playerX = accessor.ReadSingle(1168);
                             float playerY = accessor.ReadSingle(1172);
+                            float mapCenterX = accessor.ReadSingle(1176);
+                            float mapCenterY = accessor.ReadSingle(1180);
+                            float mapScale = accessor.ReadSingle(1184);
 
                             bool isMapOpen = (uiState & 0x01) != 0;
                             bool isCompassTopRight = (uiState & 0x02) != 0;
@@ -66,7 +81,7 @@ namespace Omnitria.Mumble {
 
                             string safeId = string.IsNullOrEmpty(identity) || !identity.StartsWith("{") ? "{}" : identity;
 
-                            Console.WriteLine("{{\"connected\":true,\"tick\":{0},\"mapId\":{1},\"mapType\":{2},\"shardId\":{3},\"instance\":{4},\"buildId\":{5},\"uiState\":{6},\"isMapOpen\":{7},\"isInCombat\":{8},\"gameHasFocus\":{9},\"compassWidth\":{10},\"compassHeight\":{11},\"compassRotation\":{12},\"playerX\":{13},\"playerY\":{14},\"identity\":{15}}}",
+                            Console.WriteLine("{{\"connected\":true,\"tick\":{0},\"mapId\":{1},\"mapType\":{2},\"shardId\":{3},\"instance\":{4},\"buildId\":{5},\"uiState\":{6},\"isMapOpen\":{7},\"isInCombat\":{8},\"gameHasFocus\":{9},\"doesCompassHaveRotation\":{10},\"compassWidth\":{11},\"compassHeight\":{12},\"compassRotation\":{13},\"playerX\":{14},\"playerY\":{15},\"mapCenterX\":{16},\"mapCenterY\":{17},\"mapScale\":{18},\"camFrontX\":{19},\"camFrontZ\":{20},\"avatarX\":{21},\"avatarZ\":{22},\"avatarFrontX\":{23},\"avatarFrontZ\":{24},\"identity\":{25}}}",
                                 uiTick,
                                 mapId,
                                 mapType,
@@ -77,11 +92,21 @@ namespace Omnitria.Mumble {
                                 isMapOpen ? "true" : "false",
                                 isInCombat ? "true" : "false",
                                 gameHasFocus ? "true" : "false",
+                                doesCompassHaveRotation ? "true" : "false",
                                 compassWidth,
                                 compassHeight,
-                                compassRotation.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                                playerX.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                                playerY.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                                Fmt(compassRotation),
+                                Fmt(playerX),
+                                Fmt(playerY),
+                                Fmt(mapCenterX),
+                                Fmt(mapCenterY),
+                                Fmt(mapScale),
+                                Fmt(camFrontX),
+                                Fmt(camFrontZ),
+                                Fmt(avatarX),
+                                Fmt(avatarZ),
+                                Fmt(avatarFrontX),
+                                Fmt(avatarFrontZ),
                                 safeId
                             );
                             Console.Out.Flush();

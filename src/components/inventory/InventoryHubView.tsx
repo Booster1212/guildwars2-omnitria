@@ -5,8 +5,8 @@ import {
   getCharacterDisciplineInfo,
   type AccountCharacter,
 } from '../../data/gw2/account';
-import { getItem, useItems } from '../../data/gw2/items';
-import { usePrices } from '../../data/gw2/prices';
+import { getItem, isItemLoading, useItems } from '../../data/gw2/items';
+import { isPriceLoading, usePrices } from '../../data/gw2/prices';
 import { useProgress, progressActions } from '../../data/progressStore';
 import { useLegendaryModel } from '../../data/legendaryModel';
 import { buildTree, flattenTree } from '../../domain/recipeTree';
@@ -178,7 +178,7 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
   // Build consolidated account inventory index
   const inventoryIndex = useMemo(() => {
     return buildAccountInventoryIndex(account.data, getItem, prices.map);
-  }, [account.data, itemsState.version, prices.map, lang]);
+  }, [account.data, itemsState.version, prices.map, prices.version, lang]);
 
   const inventoryByItem = useMemo(() => {
     const m = new Map<number, (typeof inventoryIndex)[number]>();
@@ -854,6 +854,8 @@ export const InventoryHubView: React.FC<InventoryHubViewProps> = ({
                                   </div>
                                 )}
                               </div>
+                            ) : !item.isBound && (isPriceLoading(item.itemId) || isItemLoading(item.itemId)) ? (
+                              <span className="dim text-xs animate-pulse">…</span>
                             ) : (
                               <span className="dim text-xs">
                                 {lang === 'en' ? 'Bound / –' : 'Gebunden / –'}

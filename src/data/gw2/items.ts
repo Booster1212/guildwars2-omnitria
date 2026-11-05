@@ -119,6 +119,10 @@ function convert(a: ApiItem): GameItem {
 let batchQueue: number[] = [];
 let batchPromise: Promise<void> | null = null;
 
+export function isItemLoading(id: number): boolean {
+  return requested.has(id) && !items.has(id) && !missing.has(id);
+}
+
 export async function ensureItems(ids: readonly number[]): Promise<void> {
   await ready;
   const need = ids.filter((id) => id > 0 && !items.has(id) && !missing.has(id) && !requested.has(id));
@@ -134,7 +138,22 @@ export async function ensureItems(ids: readonly number[]): Promise<void> {
       batchQueue = [];
       batchPromise = null;
       if (!toFetch.length) return;
-      const res = await fetchByIds<ApiItem>('items', toFetch, { lang: currentLang });
+      const res = await fetchByIds<ApiItem>(
+        'items',
+        toFetch,
+        { lang: currentLang },
+        undefined,
+        undefined,
+        (chunkItems) => {
+          if (chunkItems.length > 0) {
+            for (const a of chunkItems) {
+              items.set(a.id, convert(a));
+            }
+            version++;
+            emitter.emit();
+          }
+        },
+      );
       res.items.forEach((a) => items.set(a.id, convert(a)));
       if (res.error) {
         loadError = res.error;

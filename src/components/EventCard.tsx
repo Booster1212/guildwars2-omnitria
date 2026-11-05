@@ -275,8 +275,25 @@ export const EventCard: React.FC<EventCardProps> = React.memo(({
   const isOnCurrentMap = Boolean(mumble.connected && isEventOnMap(event, mumble.mapId));
   const wayfinding = useMemo(() => {
     if (!isOnCurrentMap) return null;
-    return calculateSpatialWayfinding(event.id, mumble.playerX, mumble.playerY, mumble.compassRotation);
-  }, [isOnCurrentMap, event.id, mumble.playerX, mumble.playerY, mumble.compassRotation]);
+    return calculateSpatialWayfinding(
+      event.id,
+      mumble.playerX,
+      mumble.playerY,
+      mumble.compassRotation,
+      mumble.camFrontX,
+      mumble.camFrontZ,
+      event.mapId
+    );
+  }, [
+    isOnCurrentMap,
+    event.id,
+    event.mapId,
+    mumble.playerX,
+    mumble.playerY,
+    mumble.compassRotation,
+    mumble.camFrontX,
+    mumble.camFrontZ,
+  ]);
 
   const progress = useProgress();
   const completionsCount = progress.eventCompletions[event.id] ?? 0;

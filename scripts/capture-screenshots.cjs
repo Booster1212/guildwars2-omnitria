@@ -64,17 +64,58 @@ ipcMain.on('store-write', (_event, name, json) => {
   fs.writeFileSync(path.join(storeDir, `${name}.json`), json, 'utf8');
 });
 
-ipcMain.handle('app-get-version', () => '0.2.0');
+ipcMain.handle('app-get-version', () => '0.3.5');
 ipcMain.handle('app-check-update', async () => ({
   ok: true,
-  currentVersion: '0.2.0',
-  latestVersion: '0.2.0',
-  latestTag: 'v0.2.0',
+  currentVersion: '0.3.5',
+  latestVersion: '0.3.5',
+  latestTag: 'v0.3.5',
   hasUpdate: false,
-  releaseName: 'Omnitria v0.2.0',
+  releaseName: 'Omnitria v0.3.5',
   publishedAt: new Date().toISOString(),
   htmlUrl: 'https://github.com/Booster1212/guildwars2-omnitria/releases',
 }));
+
+ipcMain.handle('mumble-get-data', () => ({
+  connected: true,
+  tick: 128450,
+  mapId: 53, // Sparkfly Fen (Tequatl)
+  mapType: 4,
+  shardId: 2007,
+  instance: 1,
+  buildId: 209026,
+  uiState: 8,
+  isMapOpen: false,
+  isInCombat: false,
+  gameHasFocus: true,
+  doesCompassHaveRotation: false,
+  compassWidth: 362,
+  compassHeight: 177,
+  compassRotation: 0,
+  playerX: 48648,
+  playerY: 38710,
+  mapCenterX: 48648,
+  mapCenterY: 38710,
+  mapScale: 4.0,
+  camFrontX: 0.08,
+  camFrontZ: 0.996,
+  avatarX: 120.4,
+  avatarZ: -210.8,
+  avatarFrontX: 0.08,
+  avatarFrontZ: 0.996,
+  identity: {
+    name: 'Lyra Dawnblade',
+    profession: 1,
+    spec: 62,
+    race: 2,
+    map_id: 53,
+    world_id: 2007,
+    commander: true,
+    fov: 0.873,
+    uisz: 1,
+  },
+}));
+ipcMain.handle('mumble-restart', () => ({ ok: true }));
 
 ipcMain.on('window-set-mode', () => {});
 ipcMain.on('window-set-opacity', () => {});
@@ -233,7 +274,7 @@ function buildSeedStoragePayload() {
         deaths: 142,
         crafting: [
           { discipline: 'Armorsmith', rating: 500, active: true },
-          { discipline: 'Weaponsmith', rating: 500, active: true },
+          { discipline: 'Weaponsmith', rating: 150, active: true },
         ],
         bagCount: 6,
         bagSlotsTotal: 120,
@@ -340,11 +381,23 @@ function buildSeedStoragePayload() {
       [68, 3250],   // Imperial Favor
     ],
     knownRecipes: [1001, 1002, 1003, 1004],
+    dailyCrafting: [
+      'deldrimor_steel_ingot',
+      'bolt_of_damask',
+      'elonian_leather_square',
+      'charged_quartz_crystal',
+    ],
+    delivery: {
+      coins: 425000, // 42g 50s
+      items: [[19721, 25]],
+    },
     armory: [
       [30689, 1],
       [30699, 1],
       [30687, 1],
       [30698, 1],
+      [91234, 1], // Coalescence
+      [81908, 1], // Aurora
     ],
     crafting: {
       Armorsmith: { rating: 500, character: 'Lyra Dawnblade' },
@@ -370,10 +423,10 @@ function buildSeedStoragePayload() {
     crafting: {
       Weaponsmith: {
         target: 500,
-        start: 325,
+        start: 150,
         doneSteps: [],
-        allowDiscovery: false,
-        craftIntermediates: false,
+        allowDiscovery: true,
+        craftIntermediates: true,
       },
       Huntsman: {
         target: 500,
@@ -725,8 +778,12 @@ app.whenReady().then(async () => {
         const start = Date.now();
         function check() {
           const loadingState = document.querySelector('.planner-loading-state');
-          const planStrip = document.querySelector('.plan-stats-strip, .steps-container, .planner-controls-panel');
-          if ((!loadingState && planStrip) || (Date.now() - start > 45000)) {
+          const planStrip = document.querySelector('.plan-stats-strip, .steps-container, .planner-controls-panel, .planner-unified-dashboard');
+          const costEl = document.querySelector('.pud-kpi-footer, .planner-kpi-box');
+          const priceMeta = document.querySelector('.pwt-price-meta');
+          const hasPricesLoaded = priceMeta && !priceMeta.textContent.includes('Live TP');
+          const hasValidRoute = costEl && hasPricesLoaded && !costEl.textContent.includes('42785') && !costEl.textContent.includes('2211');
+          if ((!loadingState && planStrip && hasValidRoute) || (Date.now() - start > 18000)) {
             resolve(true);
           } else {
             setTimeout(check, 500);

@@ -700,6 +700,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {t('settings.mumbleHighlightMap')}
                 </label>
               </div>
+
+              <div className="checkbox-setting-row">
+                <input
+                  type="checkbox"
+                  id="mumbleCombatSpatialHudToggle"
+                  className="gw2-checkbox"
+                  checked={settings.combatSpatialHudEnabled !== false}
+                  onChange={(e) => onUpdateSettings({ combatSpatialHudEnabled: e.target.checked })}
+                />
+                <label
+                  htmlFor="mumbleCombatSpatialHudToggle"
+                  className="checkbox-label"
+                  title={t('settings.mumbleCombatSpatialHudHint')}
+                >
+                  {t('settings.mumbleCombatSpatialHud')}
+                </label>
+              </div>
             </div>
           </div>
 

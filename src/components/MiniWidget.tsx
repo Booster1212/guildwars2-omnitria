@@ -140,7 +140,12 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
     let list = instances;
 
     if (activeTab === 'active') {
-      list = list.filter((i) => i.isActive || i.startsInSeconds <= 5 * 60);
+      list = list.filter(
+        (i) =>
+          i.isActive ||
+          i.startsInSeconds <= 5 * 60 ||
+          (mumble.connected && isEventOnMap(i.event, mumble.mapId) && i.startsInSeconds <= 60 * 60)
+      );
     } else if (activeTab === 'metas') {
       list = list.filter((i) => isMetaEvent(i.event));
     } else if (activeTab === 'core') {
@@ -149,14 +154,20 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
       list = list.filter((i) => !i.isActive && i.startsInSeconds <= 30 * 60);
     }
 
-    // Sort: Active first (by remaining time), then upcoming (by start time)
+    // Sort: Active first (by remaining time), then current map events, then upcoming (by start time)
     return [...list].sort((a, b) => {
       if (a.isActive && !b.isActive) return -1;
       if (!a.isActive && b.isActive) return 1;
+      if (mumble.connected && mumble.mapId) {
+        const aOnMap = isEventOnMap(a.event, mumble.mapId);
+        const bOnMap = isEventOnMap(b.event, mumble.mapId);
+        if (aOnMap && !bOnMap) return -1;
+        if (!aOnMap && bOnMap) return 1;
+      }
       if (a.isActive && b.isActive) return a.endsInSeconds - b.endsInSeconds;
       return a.startsInSeconds - b.startsInSeconds;
     });
-  }, [instances, activeTab]);
+  }, [instances, activeTab, mumble.connected, mumble.mapId]);
 
   // Display up to 10 events (scrollable container)
   const displayItems = useMemo(() => filteredInstances.slice(0, 10), [filteredInstances]);
@@ -301,7 +312,15 @@ export const MiniWidget: React.FC<MiniWidgetProps> = React.memo(({
             const dwMatch = dwMatchMap.get(inst.event.id) || { isDaily: false, isWeekly: false };
             const isOnCurrentMap = Boolean(mumble.connected && isEventOnMap(inst.event, mumble.mapId));
             const wayfinding = isOnCurrentMap
-              ? calculateSpatialWayfinding(inst.event.id, mumble.playerX, mumble.playerY, mumble.compassRotation)
+              ? calculateSpatialWayfinding(
+                  inst.event.id,
+                  mumble.playerX,
+                  mumble.playerY,
+                  mumble.compassRotation,
+                  mumble.camFrontX,
+                  mumble.camFrontZ,
+                  inst.event.mapId
+                )
               : null;
 
             // 1. Ultra-Compact Mode Row

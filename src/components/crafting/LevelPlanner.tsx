@@ -94,7 +94,8 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const plannerPrefs = progress.plannerPreferences;
   const selectedCharacter = plannerPrefs?.selectedCharacter ?? null;
-  const planningMode: PlannerMode = plannerPrefs?.mode ?? 'cost';
+  const rawPlanningMode: PlannerMode = plannerPrefs?.mode ?? 'cost';
+  const planningMode: PlannerMode = rawPlanningMode === 'balanced' ? 'cost' : rawPlanningMode;
 
   // Character-specific progress & discipline state
   const charProg = progressActions.getCharacterProgress(selectedCharacter);
@@ -558,18 +559,19 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   }
 
   const isAllStepsCompleted = Boolean(plan && plan.steps.length > 0 && stepCounts.open === 0);
+  const hasPartialProgress = stepCounts.done > 0 || stepCounts.skipped > 0;
   const rawCost = isAllStepsCompleted
     ? 0
-    : craftingPlanResult
+    : (strategy === 'custom' || (onlyOpenSteps && hasPartialProgress)) && craftingPlanResult
       ? craftingPlanResult.totals.totalCost
       : (plan?.totalCost ?? 0);
   const displayCost = Number.isFinite(rawCost) ? rawCost : 0;
 
   const rawCrafts = isAllStepsCompleted
     ? 0
-    : craftingPlanResult
-      ? craftingPlanResult.totals.totalCraftRuns
-      : (plan?.totalCrafts ?? 0);
+    : plan
+      ? calculationTargets.reduce((sum, t) => sum + t.count, 0)
+      : 0;
   const displayCrafts = Number.isFinite(rawCrafts) ? rawCrafts : 0;
   const discName = getDisciplineName(discipline, lang);
 
@@ -798,7 +800,7 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             {/* Option 2: Normal / Cost Mode */}
             <button
               type="button"
-              className={`primary-mode-card ${planningMode === 'cost' || planningMode === 'balanced' ? 'active cost-mode' : ''}`}
+              className={`primary-mode-card ${planningMode === 'cost' ? 'active cost-mode' : ''}`}
               onClick={() => handleSelectMode('cost')}
             >
               <div className="primary-mode-header">

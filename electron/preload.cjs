@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // MumbleLink telemetry bridge (GW2 shared memory reader)
   mumble: {
     getData: () => ipcRenderer.invoke('mumble-get-data'),
+    restart: () => ipcRenderer.invoke('mumble-restart'),
     onUpdate: (callback) => {
       const handler = (_event, data) => callback(data);
       ipcRenderer.on('mumble-data-update', handler);

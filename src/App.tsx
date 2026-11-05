@@ -4,6 +4,7 @@ import { Gw2NavRail } from './components/Gw2NavRail';
 import { BossFilterBar } from './components/BossFilterBar';
 import { EventCard } from './components/EventCard';
 import { MiniWidget } from './components/MiniWidget';
+import { SpatialWayfindingHud } from './components/SpatialWayfindingHud';
 import { Toast } from './components/Toast';
 import { getEventSchedule, formatCallout, LOOT_ITEM_ID_MAP, isBossEvent, isMetaEvent } from './data/events';
 import { playCopyChime } from './data/audio';
@@ -47,6 +48,7 @@ const DEFAULT_SETTINGS: OverlaySettings = {
   autoSelectMumbleCharacter: true,
   autoDimInCombat: true,
   highlightCurrentMapEvents: true,
+  combatSpatialHudEnabled: true,
 };
 
 export const App: React.FC = () => {
@@ -58,6 +60,7 @@ export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<OverlayTab>('events');
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [trackedEventId, setTrackedEventId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [clickThroughActive, setClickThroughActive] = useState<boolean>(false);
 
@@ -528,8 +531,9 @@ export const App: React.FC = () => {
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
   }, [settings.messageTemplate, settings.soundEnabled, settings.soundVolume, lang]);
 
-  // Action 2: Wegmarken-Code kopieren (Copies waypoint chat code into clipboard for manual travel)
+  // Action 2: Wegmarken-Code kopieren (Copies waypoint chat code into clipboard for manual travel & locks spatial beacon)
   const handleTeleport = useCallback(async (inst: EventInstance) => {
+    setTrackedEventId(inst.event.id);
     const waypointTag = inst.event.waypoint;
     let copySuccessful = false;
 
@@ -618,33 +622,60 @@ export const App: React.FC = () => {
   }, [lang]);
 
   return (
-    <div
-      className={`gw2-hero-window ${isCombatDimmed ? 'mumble-in-combat' : ''} ${isMapDimmed ? 'mumble-map-open' : ''}`}
-      style={{
-        opacity: isOverlayDimmed ? 0 : settings.opacity,
-        pointerEvents: isOverlayDimmed ? 'none' : undefined,
-        visibility: isOverlayDimmed ? 'hidden' : undefined,
-        outline: clickThroughActive ? '2px dashed var(--gw2-cyan)' : undefined,
-      }}
-    >
-      {/* Draggable Titlebar & Authentic GW2 Heldin Header */}
-      <Header
-        settings={settings}
-        currentTab={currentTab}
-        onSelectTab={handleSelectTab}
-        onUpdateSettings={updateSettings}
-        onOpenSettings={handleOpenSettings}
-        isElectron={isElectron}
-        accountName={accountInfo?.name}
-        hasUpdate={Boolean(updateInfo?.hasUpdate)}
-        latestVersion={updateInfo?.latestVersion}
-      />
-
-      {clickThroughActive && (
-        <div className="gw2-clickthrough-banner" role="status" aria-live="polite">
-          {t('app.clickThroughActive')}
-        </div>
+    <>
+      {/* Persistent Combat Spatial Wayfinding Beacon: stays visible even when main overlay is hidden in combat */}
+      {isCombatDimmed && !isMapDimmed && settings.mumbleEnabled !== false && settings.combatSpatialHudEnabled !== false && mumble.connected && (
+        <SpatialWayfindingHud
+          mumble={mumble}
+          instances={allInstances}
+          trackedEventId={trackedEventId}
+          onSelectTrackedEvent={setTrackedEventId}
+          onTeleport={handleTeleport}
+          isCombatFloating={true}
+          isClickThrough={true}
+        />
       )}
+
+      <div
+        className={`gw2-hero-window ${isCombatDimmed ? 'mumble-in-combat' : ''} ${isMapDimmed ? 'mumble-map-open' : ''}`}
+        style={{
+          opacity: isOverlayDimmed ? 0 : settings.opacity,
+          pointerEvents: isOverlayDimmed ? 'none' : undefined,
+          visibility: isOverlayDimmed ? 'hidden' : undefined,
+          outline: clickThroughActive ? '2px dashed var(--gw2-cyan)' : undefined,
+        }}
+      >
+        {/* Draggable Titlebar & Authentic GW2 Heldin Header */}
+        <Header
+          settings={settings}
+          currentTab={currentTab}
+          onSelectTab={handleSelectTab}
+          onUpdateSettings={updateSettings}
+          onOpenSettings={handleOpenSettings}
+          isElectron={isElectron}
+          accountName={accountInfo?.name}
+          hasUpdate={Boolean(updateInfo?.hasUpdate)}
+          latestVersion={updateInfo?.latestVersion}
+        />
+
+        {clickThroughActive && (
+          <div className="gw2-clickthrough-banner" role="status" aria-live="polite">
+            {t('app.clickThroughActive')}
+          </div>
+        )}
+
+        {/* Live Docked Spatial Wayfinding Beacon (Out of Combat) */}
+        {!isOverlayDimmed && settings.mumbleEnabled !== false && settings.combatSpatialHudEnabled !== false && mumble.connected && (
+          <SpatialWayfindingHud
+            mumble={mumble}
+            instances={allInstances}
+            trackedEventId={trackedEventId}
+            onSelectTrackedEvent={setTrackedEventId}
+            onTeleport={handleTeleport}
+            isCombatFloating={false}
+            isClickThrough={clickThroughActive}
+          />
+        )}
 
       {/* Main Content Area */}
       {settings.widgetMode ? (
@@ -834,6 +865,7 @@ export const App: React.FC = () => {
           />
         </Suspense>
       )}
-    </div>
+      </div>
+    </>
   );
 };

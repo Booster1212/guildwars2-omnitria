@@ -26,11 +26,21 @@ export interface MumbleData {
   isMapOpen?: boolean;
   isInCombat?: boolean;
   gameHasFocus?: boolean;
+  doesCompassHaveRotation?: boolean;
   compassWidth?: number;
   compassHeight?: number;
   compassRotation?: number;
   playerX?: number;
   playerY?: number;
+  mapCenterX?: number;
+  mapCenterY?: number;
+  mapScale?: number;
+  camFrontX?: number;
+  camFrontZ?: number;
+  avatarX?: number;
+  avatarZ?: number;
+  avatarFrontX?: number;
+  avatarFrontZ?: number;
   identity?: MumbleIdentity;
 }
 
@@ -175,42 +185,187 @@ export function isEventOnMap(event: WorldEvent, currentMapId?: number): boolean 
 }
 
 /**
- * Canonical continent coordinates for major world bosses and meta events for real-time spatial navigation.
+ * Canonical Guild Wars 2 continent coordinates for all 58 world bosses and meta events
+ * (extracted from official ArenaNet /v2/continents PoI & Waypoint coordinates).
  */
 export const EVENT_CONTINENT_COORDS: Record<string, [number, number]> = {
-  'svanir-shaman': [24950, 15420],
-  'fire-elemental': [16850, 22400],
-  'shadow-behemoth': [19450, 18900],
-  'great-jungle-wurm': [16450, 19200],
-  'claw-of-jormag': [26100, 11400],
-  'tequatl': [18350, 21850],
-  'shatterer': [28700, 17200],
-  'megadestroyer': [20500, 23800],
-  'karka-queen': [14200, 24100],
-  'triple-trouble': [19200, 22900],
-  'tarir': [10400, 18800],
-  'chak-gerent': [9400, 20100],
-  'dragons-stand': [8200, 18600],
-  'dragons-end': [38200, 41200],
+  // Core Tyria World Bosses & Orr Temples
+  'svanir-shaman': [55804, 29098],
+  'fire-elemental': [40841, 33722],
+  'jungle-wurm': [42351, 32965],
+  'great-jungle-wurm': [42351, 32965], // Legacy alias
+  'shadow-behemoth': [44959, 30336],
+  'taidha-covington': [48916, 33772],
+  'megadestroyer': [51987, 39515],
+  'shatterer': [62591, 29268],
+  'modniir-ulgoth': [48809, 26175],
+  'inquest-golem': [53918, 39300],
+  'claw-of-jormag': [56298, 25884],
+  'tequatl': [48648, 38361],
+  'karka-queen': [45606, 36767],
+  'triple-trouble': [49401, 34072],
+  'cathedral-of-zephyrs': [44889, 40703],
+  'cathedral-of-eternal-radiance': [45970, 40323],
+  'ley-line-anomaly': [48552, 28867],
+  'cathedral-of-glorious-anticipation': [47819, 40960],
+  'cathedral-of-silence': [44209, 42598],
+  'cathedral-of-verdance': [43954, 43173],
+  'gates-of-arah': [44755, 44115],
+
+  // Living World Season 1 & 2
+  'silverwastes-vinewrath': [38451, 31737],
+  'dry-top-sandstorm': [38299, 33089],
+  'twisted-marionette': [57865, 21795],
+
+  // Heart of Thorns
+  'tarir-octovine': [34318, 33966],
+  'tarir': [34318, 33966], // Legacy alias
+  'chak-gerent': [37247, 35516],
+  'verdant-brink-night': [35166, 31785],
+  'dragons-stand': [36649, 36232],
+
+  // Path of Fire & Living World Season 4
+  'choya-pinata': [58615, 43743],
+  'buried-treasure': [60677, 42149],
+  'maws-of-torment': [59187, 50521],
+  'junundu-rising': [61423, 51140],
+  'augury-rock': [61075, 45581],
+  'serpents-ire': [67376, 53931],
+  'forged-with-fire': [64291, 53304],
+  'palawadan-jewel': [57793, 61028],
+  'death-branded-shatterer': [64762, 59142],
+  'thunderhead-peaks': [58329, 35779],
+
+  // Icebrood Saga
+  'grothmar-metal-concert': [61288, 19612],
+  'drakkar': [56616, 17815],
+  'drizzlewood-south': [50992, 21878],
+  'drizzlewood-north': [50444, 19441],
+  'dragonstorm': [57865, 21795],
+
+  // End of Dragons
+  'aetherblade-assault': [23191, 101452],
+  'kaineng-blackout': [26674, 99438],
+  'gangs-of-echovald': [30896, 101005],
+  'dragons-end': [33826, 102383],
+  'gyala-delve': [37815, 103075],
+
+  // Secrets of the Obscure
+  'skywatch-tower': [24327, 23533],
+  'defense-of-amnytas': [23898, 21159],
+  'convergences-public': [24103, 22231],
+  'inner-nayos-eparch': [22367, 23761],
+  'nayos-heitors-gate': [21734, 22801],
+
+  // Janthir Wilds & Visions of Eternity
+  'lowland-shore-gathering': [42924, 22730],
+  'janthir-syntri-titans': [40128, 14659],
+  'janthir-convergence': [40825, 16638],
+  'janthir-bava-nisos': [36051, 11654],
+  'castora-starlit-weald': [42039, 22798],
+  'castora-ruins-eternity': [42039, 22798],
+};
+
+/** Fallback continent centers by mapId */
+export const MAP_CONTINENT_CENTERS: Record<number, [number, number]> = {
+  15: [44416, 29248],
+  17: [48384, 26752],
+  20: [62336, 29248],
+  24: [48896, 29184],
+  28: [55424, 29952],
+  30: [55424, 25088],
+  34: [43520, 34560],
+  35: [41024, 35200],
+  39: [52864, 39680],
+  50: [48970, 30918],
+  51: [47872, 40576],
+  53: [49024, 37632],
+  62: [44544, 43904],
+  65: [45312, 40576],
+  73: [48640, 33664],
+  873: [45824, 36736],
+  988: [37760, 32640],
+  1015: [38144, 30848],
+  1041: [36352, 36992],
+  1043: [34816, 33920],
+  1045: [37248, 35456],
+  1052: [33920, 31872],
+  1210: [59816, 43584],
+  1211: [59816, 41024],
+  1226: [60032, 50752],
+  1228: [60032, 46464],
+  1248: [66048, 53952],
+  1263: [57856, 61696],
+  1301: [65364, 57976],
+  1310: [57984, 35456],
+  1330: [60992, 19392],
+  1343: [56512, 18176],
+  1370: [57792, 21824],
+  1371: [50688, 20480],
+  1422: [33792, 102400],
+  1438: [27648, 99328],
+  1442: [24576, 102400],
+  1452: [30720, 101376],
+  1490: [37376, 102912],
+  1509: [24128, 22208],
+  1510: [24256, 23488],
+  1517: [23872, 21184],
+  1526: [22016, 23296],
+  1550: [42039, 22798],
+  1554: [40555, 15984],
+  1574: [36124, 11738],
 };
 
 export interface SpatialWayfinding {
   distanceLabel: string;
+  distanceUnits: number;
   arrow: string;
   cardinal: string;
+  compassCardinal: string;
+  angleDeg: number;
+  worldAngleDeg: number;
+  turnInstructionEn: string;
+  turnInstructionDe: string;
 }
 
+const TURN_INSTRUCTIONS_EN = [
+  'Run Straight Ahead',
+  'Bear Slightly Right',
+  'Turn Right',
+  'Turn Back Right',
+  'Turn Around',
+  'Turn Back Left',
+  'Turn Left',
+  'Bear Slightly Left',
+];
+
+const TURN_INSTRUCTIONS_DE = [
+  'Geradeaus laufen',
+  'Halbrechts halten',
+  'Nach rechts laufen',
+  'Schräg hinten rechts',
+  'Umdrehen (Hinter dir)',
+  'Schräg hinten links',
+  'Nach links laufen',
+  'Halblinks halten',
+];
+
 /**
- * Computes live spatial distance & compass heading relative to player camera orientation.
+ * Computes live spatial distance & compass heading relative to player 3D camera orientation
+ * (using fCameraFront X/Z when available so North-locked minimaps still rotate the directional arrow).
  */
 export function calculateSpatialWayfinding(
   eventId: string,
   playerX?: number,
   playerY?: number,
-  compassRotation?: number
+  compassRotation?: number,
+  camFrontX?: number,
+  camFrontZ?: number,
+  mapId?: number
 ): SpatialWayfinding | null {
   if (playerX === undefined || playerY === undefined) return null;
-  const coords = EVENT_CONTINENT_COORDS[eventId];
+  if (playerX === 0 && playerY === 0) return null;
+  const coords = EVENT_CONTINENT_COORDS[eventId] ?? (mapId ? MAP_CONTINENT_CENTERS[mapId] : undefined);
   if (!coords) return null;
 
   const dx = coords[0] - playerX;
@@ -220,30 +375,50 @@ export function calculateSpatialWayfinding(
   // Convert game continent coords to human distance label
   const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${Math.round(dist)} m`;
 
-  // Angle from player to target (0 is North)
+  // Angle from player to target clockwise from North (0 is North, PI/2 is East)
   let worldRad = Math.atan2(dx, -dy);
   if (worldRad < 0) worldRad += 2 * Math.PI;
 
-  // Relative to compass rotation
-  let relRad = worldRad - (compassRotation ?? 0);
+  // Determine player camera heading clockwise from North:
+  // Prefer 3D camera forward vector (fCameraFront X=East, Z=North) because compassRotation is 0 when minimap is locked to North.
+  let headingRad = compassRotation ?? 0;
+  if (
+    camFrontX !== undefined &&
+    camFrontZ !== undefined &&
+    camFrontX * camFrontX + camFrontZ * camFrontZ > 0.0001
+  ) {
+    headingRad = Math.atan2(camFrontX, camFrontZ);
+  }
+
+  // Relative angle from player's camera direction to target
+  let relRad = worldRad - headingRad;
   while (relRad < 0) relRad += 2 * Math.PI;
   while (relRad >= 2 * Math.PI) relRad -= 2 * Math.PI;
 
   const deg = (relRad * 180) / Math.PI;
+  const worldDeg = (worldRad * 180) / Math.PI;
   const cardinals = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const arrows = ['⬆', '↗', '➡', '↘', '⬇', '↙', '⬅', '↖'];
   const idx = Math.round(deg / 45) % 8;
+  const compassIdx = Math.round(worldDeg / 45) % 8;
 
   return {
     distanceLabel: distLabel,
+    distanceUnits: Math.round(dist),
     arrow: arrows[idx],
     cardinal: cardinals[idx],
+    compassCardinal: cardinals[compassIdx],
+    angleDeg: Math.round(deg) % 360,
+    worldAngleDeg: Math.round(worldDeg) % 360,
+    turnInstructionEn: TURN_INSTRUCTIONS_EN[idx],
+    turnInstructionDe: TURN_INSTRUCTIONS_DE[idx],
   };
 }
 
 // Global in-memory state store for reactive MumbleLink updates
 let currentMumbleData: MumbleData = { connected: false };
 let lastNotifiedAt = 0;
+let didRequestReaderUpgrade = false;
 const listeners = new Set<() => void>();
 
 function notifyMumbleListeners() {
@@ -257,7 +432,6 @@ function notifyMumbleListeners() {
 /**
  * Returns true if the incoming update contains semantically meaningful changes
  * for the UI (combat state, map ID, character name/profession, window focus, connection).
- * Ignoring pure coordinate/tick jitter prevents up to 20 re-renders per second.
  */
 function hasSemanticMumbleChange(prev: MumbleData, next: MumbleData): boolean {
   if (prev.connected !== next.connected) return true;
@@ -271,13 +445,30 @@ function hasSemanticMumbleChange(prev: MumbleData, next: MumbleData): boolean {
   return false;
 }
 
+/**
+ * Returns true if player position or 3D camera direction changed enough to update wayfinding arrows smoothly.
+ */
+function hasSpatialMumbleChange(prev: MumbleData, next: MumbleData): boolean {
+  if (!next.connected) return false;
+  if (Math.abs((prev.playerX ?? 0) - (next.playerX ?? 0)) >= 1.5) return true;
+  if (Math.abs((prev.playerY ?? 0) - (next.playerY ?? 0)) >= 1.5) return true;
+  if (Math.abs((prev.camFrontX ?? 0) - (next.camFrontX ?? 0)) >= 0.025) return true;
+  if (Math.abs((prev.camFrontZ ?? 0) - (next.camFrontZ ?? 0)) >= 0.025) return true;
+  if (Math.abs((prev.compassRotation ?? 0) - (next.compassRotation ?? 0)) >= 0.025) return true;
+  return false;
+}
+
 function updateMumbleData(next: MumbleData) {
   const prev = currentMumbleData;
   currentMumbleData = next;
 
   const now = Date.now();
-  // Fire immediately if state changed (combat, map, character), or throttle heartbeats to 1s
-  if (hasSemanticMumbleChange(prev, next) || now - lastNotifiedAt >= 1000) {
+  // Fire immediately on state changes, at ~16 FPS (60ms) when moving/rotating camera, or 1s heartbeat when idle
+  if (
+    hasSemanticMumbleChange(prev, next) ||
+    (hasSpatialMumbleChange(prev, next) && now - lastNotifiedAt >= 60) ||
+    now - lastNotifiedAt >= 1000
+  ) {
     lastNotifiedAt = now;
     notifyMumbleListeners();
   }
@@ -289,6 +480,7 @@ if (typeof window !== 'undefined') {
     electronAPI?: {
       mumble?: {
         getData: () => Promise<MumbleData>;
+        restart?: () => Promise<{ ok: boolean }>;
         onUpdate: (cb: (data: MumbleData) => void) => () => void;
       };
     };
@@ -296,11 +488,23 @@ if (typeof window !== 'undefined') {
 
   if (electron?.mumble) {
     electron.mumble.getData().then((data) => {
-      if (data) updateMumbleData(data);
+      if (data) {
+        if (data.connected && data.camFrontX === undefined && !didRequestReaderUpgrade) {
+          didRequestReaderUpgrade = true;
+          electron.mumble?.restart?.().catch(() => {});
+        }
+        updateMumbleData(data);
+      }
     }).catch(() => {});
 
     electron.mumble.onUpdate((data) => {
-      if (data) updateMumbleData(data);
+      if (data) {
+        if (data.connected && data.camFrontX === undefined && !didRequestReaderUpgrade) {
+          didRequestReaderUpgrade = true;
+          electron.mumble?.restart?.().catch(() => {});
+        }
+        updateMumbleData(data);
+      }
     });
   }
 }

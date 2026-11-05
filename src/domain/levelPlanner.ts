@@ -278,7 +278,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   const { discipline, fromRank, toRank, recipes, recipesByOutput, prices, options } = input;
   const known = options.knownRecipeIds ?? null;
   const doneKeys = options.doneStepKeys ?? null;
-  const mode = options.mode;
+  const mode = options.mode === 'balanced' ? 'cost' : options.mode;
   const stock = options.stock ?? null;
   const skippedIds = options.skippedRecipeIds ?? null;
   const goalItems = options.goalItemIds ?? null;
@@ -388,19 +388,31 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       const { span } = XP_MODEL[c.category];
       const maxR = Math.min(maxPossibleRank, c.recipe.rating + span);
       const isInsigniaOrInscription = c.recipe.type === 'Insignia' || c.recipe.type === 'Inscription';
+      const isTierStartRefinement =
+        c.category === 'refinement' && c.recipe.rating === getTierStartRank(c.recipe.rating);
+      const isBasicTierComponent =
+        c.category === 'component' &&
+        !isInsigniaOrInscription &&
+        (c.recipe.rating === getTierStartRank(c.recipe.rating) || c.recipe.rating < 75);
+      const isInsigniaOrMidTierCraft =
+        isInsigniaOrInscription ||
+        (c.category === 'refinement' && !isTierStartRefinement) ||
+        (c.category === 'component' && !isBasicTierComponent);
       // Healthy XP window before severe decay sets in:
-      // - Refinements only lock out item discoveries for the first 10 ranks (~36-42 crafts max, never 128x!)
-      // - Basic Components (Panels/Linings/Blades/Hilts, 0 fine materials) extend the tier-start bulk window to +20 (+25 when mode is unset)
+      // - Tier-Start Refinements only lock out item discoveries for the first 10 ranks (~36-42 crafts max, never 128x!)
+      // - Basic Components (Panels/Linings/Blades/Hilts, 0 fine materials) extend the tier-start bulk window to +25
       const nonInsigniaSpan =
-        c.category === 'refinement' || c.category === 'component'
-          ? 20
+        isTierStartRefinement
+          ? 10
+          : isBasicTierComponent
+          ? 25
           : span;
       const maxNonInsigniaR = Math.min(maxPossibleRank, c.recipe.rating + nonInsigniaSpan);
       const tierStartLockSpan =
-        c.category === 'refinement'
+        isTierStartRefinement
           ? 10
-          : !isInsigniaOrInscription && c.category === 'component'
-          ? (mode === 'cost' || mode === 'fast' ? 20 : 25)
+          : isBasicTierComponent
+          ? (mode === 'cost' ? 20 : 25)
           : 0;
       const maxRefinementLockR = Math.min(maxPossibleRank, c.recipe.rating + tierStartLockSpan);
       for (let rk = c.recipe.rating; rk < maxR; rk++) {
@@ -408,7 +420,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         if (rk < maxRefinementLockR) {
           hasLearnedRefinementAtRank[rk] = 1;
         }
-        if (!isInsigniaOrInscription && rk < maxNonInsigniaR) {
+        if (!isInsigniaOrMidTierCraft && rk < maxNonInsigniaR) {
           hasNonInsigniaLearnedAtRank[rk] = 1;
         }
       }
@@ -448,20 +460,21 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       return false;
     }
 
-    // Rank >= 400: Active discovery recommendation for exotic tier / endgame
-    if (rank >= 400) return true;
     // Completionist mode allows discovery at all ranks
     if (mode === 'completionist') return true;
     // Chef relies on discoveries across all cooking levels
     if (discipline === 'Chef') return true;
 
-    // For standard disciplines below 400:
-    // hasLearnedRefinementAtRank is 1 for the first 10 ranks of a tier when a Refinement exists (~36-42 crafts max),
+    // For standard disciplines (including Tier 6 start at 400–420):
+    // hasLearnedRefinementAtRank is 1 for the first 10 ranks of a tier when a Tier-Start Refinement exists (~36-42 crafts max),
     // and extends up to +20 (+25 when mode is unset) only when a non-insignia Basic Component exists.
     const tierStart = getTierStartRank(rank);
     if (rank < tierStart + 25 && hasLearnedRefinementAtRank[rank] === 1 && categoryOf(r.type) === 'item') {
       return false;
     }
+
+    // Rank >= 400: Active discovery recommendation for exotic tier / endgame (only rating >= 400 recipes)
+    if (rank >= 400) return r.rating >= 400;
 
     return true;
   };
@@ -498,10 +511,17 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         }
         const craftUnit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
         if (options.craftIntermediates) {
-          // When craftIntermediates is enabled, prefer self-crafting ('craft') over buying ('buy')
-          // to gain crafting experience, utilize basic materials, and fulfill preparation chains.
-          if (best.via !== 'craft' || (craftUnit !== null && (best.unit === null || craftUnit < best.unit))) {
-            best = { unit: craftUnit, via: 'craft', recipe: r };
+          if (mode === 'cost' || mode === 'fast') {
+            // In gw2crafts-calibrated Cost/Fast modes, self-craft an intermediate only when it is cheaper
+            // than buying on the Trading Post (or when unlisted/untradable on the TP).
+            if (craftUnit !== null && (best.unit === null || craftUnit <= best.unit)) {
+              best = { unit: craftUnit, via: 'craft', recipe: r };
+            }
+          } else {
+            // Legacy/manual mode: prefer self-crafting ('craft') over buying ('buy') to fulfill preparation chains.
+            if (best.via !== 'craft' || (craftUnit !== null && (best.unit === null || craftUnit < best.unit))) {
+              best = { unit: craftUnit, via: 'craft', recipe: r };
+            }
           }
         } else if (price === null && craftUnit !== null) {
           // Even when craftIntermediates is off, if an intermediate item is unlisted/unbuyable on TP,
@@ -530,6 +550,24 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
   // ---- Rezeptwahl je Rang ----------------------------------------------------------------------
   const plannedDiscoveries = new Set<string>();
 
+  // In Guild Wars 2, crafting an equipment item (weapon/armor) in a mid/late sub-tier bracket
+  // includes the XP from crafting its sub-components (Insignia/Inscription + 2 Parts) as well as
+  // the GW2 item quality XP bonus (Fine at Tier+25, Masterwork at Tier+50, Rare at 375, Exotic at 400+).
+  // Calibrated against gw2crafts.net Normal and Fast guides:
+  // - Tier+25 (Fine: 25, 100, 175, 250, 325): ~6 discoveries in Normal, or 1x Discover + ~16-18x Repeat in Fast
+  // - Tier+50 (Masterwork: 50, 125, 200, 275, 350): ~5 discoveries in Normal, or 1x Discover + ~9-11x Repeat in Fast
+  // - 375 (Rare: 375-400): ~5 1x Rare discoveries in both Normal and Fast
+  // - 400+ (Exotic: 400-500): ~25-28 1x Exotic discoveries
+  const getItemSubTierXpFactor = (r: Recipe, cat: XpCategory): number => {
+    if (cat !== 'item' || (mode !== 'cost' && mode !== 'fast')) return 1;
+    if (r.rating >= 400) return 1.25;
+    if (r.rating === 375) return 1.70;
+    const offset = r.rating - getTierStartRank(r.rating);
+    if (offset >= 50) return 1.85; // Masterwork (50, 125, 200, 275, 350)
+    if (offset >= 25) return 1.38; // Fine (25, 100, 175, 250, 325)
+    return 1.25;
+  };
+
   interface Choice {
     recipe: Recipe;
     category: XpCategory;
@@ -543,18 +581,27 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const isDisc = !isLearned(c.recipe) && !isAlreadyPlanned && isDiscovery(c.recipe);
     // Any undiscovered recipe allowed by isUsableAtRank grants the GW2 discovery XP multiplier on first craft
     const useDiscMultiplier = isDisc;
-    const rpc = ranksPerCraft(c.category, rank, c.recipe.rating, useDiscMultiplier);
+    const baseRpc = ranksPerCraft(c.category, rank, c.recipe.rating, useDiscMultiplier);
+    const rpc = baseRpc * getItemSubTierXpFactor(c.recipe, c.category);
     if (rpc <= 0 || !Number.isFinite(rpc)) return null;
 
     const effectiveSpan = (isDisc && c.category === 'item' && c.recipe.rating >= 400) ? 120 : XP_MODEL[c.category].span;
     const f = 1 - (rank - c.recipe.rating) / effectiveSpan;
     if (f <= 0.02) return null;
 
-    // Terminal decay cutoff: When a non-discovery recipe has consumed >= 80% of its XP span (f < 0.20),
-    // crafting it yields negligible XP and causes catastrophic overproduction (e.g. 77x inscriptions, 84x shields).
-    // In Cost and Fast modes, stop grinding decayed recipes.
-    if (!isDisc && f < 0.20 && (mode === 'cost' || mode === 'fast')) {
-      return null;
+    // Terminal decay cutoff:
+    // - For non-discovery recipes: stop grinding when >= 80% of XP span is consumed (f < 0.20).
+    // - For discovery recipes in Cost/Fast modes: below 400, only discover recipes from the active 25-rank
+    //   sub-bracket (rank - rating < 25) so each discovery awards 2-4 ranks instead of 1 decayed rank;
+    //   at 400+, only discover rating >= 400 exotic/master recipes.
+    if (mode === 'cost' || mode === 'fast') {
+      if (!isDisc && f < 0.20) {
+        return null;
+      }
+      if (isDisc) {
+        if (rank >= 400 && c.recipe.rating < 400) return null;
+        if (rank < 400 && rank - c.recipe.rating >= 25) return null;
+      }
     }
 
     let cost = 0;
@@ -584,8 +631,10 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     // Deduct expected resale proceeds and amortize recipe sheet unlock costs
     const resale = calculateExpectedResaleValue(c.recipe.outputId, c.recipe.outputCount || 1, prices, input.items);
     const unlockCost = getRecipeUnlockCost(c.recipe, known, prices);
-    // Guard against illiquid TP buy order trap: capped resale deduction (max 75% of cost)
-    const maxResaleCredit = cost * 0.75;
+    // Guard against illiquid TP buy order trap: on gw2crafts.net, expected recovery is ~11% below 400 and ~22% at 400-500.
+    // Capping resale credit at 20% (<400) / 35% (400+) ensures the planner selects genuinely cheap recipes
+    // instead of 65s Rare/Giver's items with thin speculative TP buy orders.
+    const maxResaleCredit = cost * (rank >= 400 ? 0.35 : 0.20);
     const cappedResale = Math.min(resale.unit, maxResaleCredit);
     const netCraftCost = Math.max(0, cost - cappedResale);
     const amortizedUnlock = unlockCost > 0 ? unlockCost / 3 : 0;
@@ -598,6 +647,16 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     let effectiveCostPerRank = ((netCraftCost + amortizedUnlock) * decayPenalty) / rpc;
 
     const isInsigniaOrInscription = c.recipe.type === 'Insignia' || c.recipe.type === 'Inscription';
+    const isTierStartRefinement =
+      c.category === 'refinement' && c.recipe.rating === getTierStartRank(c.recipe.rating);
+    const isBasicTierComponent =
+      c.category === 'component' &&
+      !isInsigniaOrInscription &&
+      (c.recipe.rating === getTierStartRank(c.recipe.rating) || c.recipe.rating < 75);
+    const isInsigniaOrMidTierCraft =
+      isInsigniaOrInscription ||
+      (c.category === 'refinement' && !isTierStartRefinement) ||
+      (c.category === 'component' && !isBasicTierComponent);
     const ranksIntoRecipe = rank - c.recipe.rating;
 
     // Ab Level 400: Prioritize discovery bonus of exotics!
@@ -607,54 +666,43 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
 
     // Apply transparent mode-specific weighting (calibrated against gw2crafts.net):
     // 1. Höchste Kosteneffizienz (Cost Mode - Günstigster Weg von 0–500):
-    // Philosophie: Refinements nur für die ersten ~10 Ränge am Tier-Start (~36-42x statt 128x),
+    // Philosophie: Tier-Start Refinements nur für die ersten ~10 Ränge am Tier-Start (~36-42x statt 128x),
     // gefolgt von günstigen Basis-Komponenten (ohne edle Materialien) und gezielten 1x-Entdeckungen.
     if (mode === 'cost') {
-      if (rank < 400) {
-        if (c.category === 'refinement') {
-          if (ranksIntoRecipe < 10) {
-            effectiveCostPerRank *= 0.25;
-          } else {
-            // Stop grinding refinements past 10 ranks (prevents 128x Baumwollballen / Leinenballen)
-            effectiveCostPerRank *= 4.0;
-          }
-        } else if (isDisc) {
-          // 1x Discoveries are the most cost-efficient path in cost mode (2.5x bonus XP, no repeat waste)
-          effectiveCostPerRank *= 0.35;
-        } else if (c.category === 'component') {
-          if (!isInsigniaOrInscription) {
-            // Basic components (Panels, Linings, Blades, Hilts) use 0 fine materials
-            effectiveCostPerRank *= ranksIntoRecipe < 15 ? 0.65 : 1.5;
-          } else {
-            // Standalone Insignia/Inscription grinding (64x) wastes 192+ fine materials — strongly penalize
-            effectiveCostPerRank *= ranksIntoRecipe < 10 ? 2.5 : 5.0;
-          }
+      if (isTierStartRefinement) {
+        if (ranksIntoRecipe < 10) {
+          effectiveCostPerRank *= 0.25;
+        } else {
+          // Stop grinding refinements past 10 ranks (prevents 128x Baumwollballen / Leinenballen)
+          effectiveCostPerRank *= 4.0;
         }
-      } else {
-        // 400–500: Discoveries of exotics are the most economical path (avoiding ascended gates)
-        if (isDisc) {
-          effectiveCostPerRank *= 0.45;
-        }
+      } else if (isBasicTierComponent) {
+        // Basic components (Panels, Linings, Blades, Hilts) use 0 fine materials
+        effectiveCostPerRank *= ranksIntoRecipe < 15 ? 0.65 : 1.5;
+      } else if (isInsigniaOrMidTierCraft) {
+        // Standalone Insignia/Inscription/Patch/Dowel grinding (64x-128x) wastes fine materials — strongly penalize
+        effectiveCostPerRank *= ranksIntoRecipe < 10 ? 2.5 : 5.0;
+      } else if (isDisc) {
+        // 1x Discoveries are the most cost-efficient path in cost mode (2.5x bonus XP, no repeat waste)
+        effectiveCostPerRank *= rank < 400 ? 0.35 : 0.45;
       }
     } else if (mode === 'fast') {
       // Fast / Bulk mode (calibrated against gw2crafts_fast):
-      // - Tier start (first 10 ranks): Refinements (~36-42x)
+      // - Tier start (first 10 ranks): Tier-Start Refinements (~36-42x)
       // - Basic components (Panels/Linings/Blades/Hilts): bulk craft while fresh
-      // - Mid-tier sub-brackets (where only expensive Insignias/Inscriptions are AutoLearned):
-      //   discover 1 single cheap Weapon/Armor and bulk-repeat it (~15x) instead of 64x Insignias!
+      // - Mid-tier sub-brackets (where only expensive Insignias/Inscriptions/Patches/Dowels are AutoLearned):
+      //   discover 1 single cheap Weapon/Armor and bulk-repeat it (~15x) instead of 64x Insignias or 128x Patches!
       if (rank < 450) {
-        if (c.category === 'refinement') {
+        if (isTierStartRefinement) {
           if (ranksIntoRecipe < 10) {
             effectiveCostPerRank *= 0.30;
           } else {
             effectiveCostPerRank *= 4.0;
           }
-        } else if (c.category === 'component') {
-          if (!isInsigniaOrInscription) {
-            effectiveCostPerRank *= ranksIntoRecipe < 15 ? 0.55 : 1.5;
-          } else {
-            effectiveCostPerRank *= ranksIntoRecipe < 10 ? 2.5 : 5.0;
-          }
+        } else if (isBasicTierComponent) {
+          effectiveCostPerRank *= ranksIntoRecipe < 15 ? 0.55 : 1.5;
+        } else if (isInsigniaOrMidTierCraft) {
+          effectiveCostPerRank *= ranksIntoRecipe < 10 ? 2.5 : 5.0;
         } else if (isDisc && c.category === 'item') {
           effectiveCostPerRank *= 0.40;
         }
@@ -750,19 +798,20 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     // Once discovered, it enters the recipe book and yields standard learned XP on any subsequent craft.
     if (isDisc) {
       plannedDiscoveries.add(String(chosen.recipe.id));
-      const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, true);
+      const xpFactor = getItemSubTierXpFactor(chosen.recipe, chosen.category);
+      const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, true) * xpFactor;
       const ranksGained = Math.max(1, Math.round(rpc));
       let currentRank = Math.min(effectiveToRank, n + ranksGained);
       let repeatCrafts = 0;
 
       // In Normal/Cost mode, finished equipment items (weapons and armor) are strictly 1x discoveries
       // (1 craft = 1 discovery bonus, no repeat waste).
-      // In Fast/Bulk mode below 450 (when no non-insignia AutoLearned recipe exists at this mid-tier bracket),
-      // we unlock 1 single equipment recipe and bulk-repeat it (~15x) up to the next 25-rank milestone,
-      // matching gw2crafts_fast (which does 1x Discovery + ~15x Repeat instead of grinding 64x Insignias!).
+      // In Fast/Bulk mode below 450 (except Rare 375 sub-tier where gw2crafts_fast also uses 5x 1-craft Rare discoveries),
+      // we unlock 1 single equipment recipe and bulk-repeat it (~10-18x) up to the next 25-rank milestone,
+      // matching gw2crafts_fast (which does 1x Discovery + ~10-18x Repeat instead of grinding 64x Insignias!).
       const shouldBulkAfterDiscovery =
         mode !== 'completionist' &&
-        (chosen.category !== 'item' || (mode === 'fast' && n < 450));
+        (chosen.category !== 'item' || (mode === 'fast' && n < 450 && chosen.recipe.rating !== 375));
 
       if (shouldBulkAfterDiscovery && currentRank < effectiveToRank) {
         // Target next sub-tier milestone (ranks 25, 50, 75, 100, etc.)
@@ -770,7 +819,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         const maxRepeats = 25;
 
         while (currentRank < effectiveToRank && currentRank < subTierCap && repeatCrafts < maxRepeats) {
-          const rpcRepeat = ranksPerCraft(chosen.category, currentRank, chosen.recipe.rating, false);
+          const rpcRepeat = ranksPerCraft(chosen.category, currentRank, chosen.recipe.rating, false) * xpFactor;
           if (rpcRepeat <= 0 || !Number.isFinite(rpcRepeat)) break;
 
           const span = XP_MODEL[chosen.category].span;
@@ -798,7 +847,8 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
       n = currentRank - 1; // loop increment will advance to currentRank
     } else {
       // Leveling for learned / repeated recipes (accumulation across ranks)
-      const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, false);
+      const xpFactor = getItemSubTierXpFactor(chosen.recipe, chosen.category);
+      const rpc = ranksPerCraft(chosen.category, n, chosen.recipe.rating, false) * xpFactor;
       const craftsToAdd = rpc > 0 && Number.isFinite(1 / rpc) ? 1 / rpc : 1;
       if (prev && prev.recipe.id === chosen.recipe.id && prev.toRank === n) {
         prev.toRank = n + 1;

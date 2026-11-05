@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.5] - 2026-11-05
+
+### Added & Improved
+
+#### 1. MumbleLink 3D Spatial Wayfinding & Combat HUD Beacon (`electron/MumbleReader.cs`, `src/data/gw2/mumble.ts`, `src/components/SpatialWayfindingHud.tsx`, `src/App.tsx`, `src/components/SettingsModal.tsx`)
+* **3D Camera Vector Heading (`fCameraFront`):**
+  * Upgraded `electron/MumbleReader.cs` and recompiled `electron/mumble-reader.exe` to read `camFrontX` (byte offset `568`), `camFrontZ` (byte offset `576`), `avatarX`/`avatarZ`, and `mapCenterX`/`mapCenterY` directly from Guild Wars 2 shared memory, with `NaN`/`Infinity` float sanitization.
+  * Solved the North-locked minimap limitation where `compassRotation` remained `0.0`: `calculateSpatialWayfinding` now computes the player's true 3D camera heading (`Math.atan2(camFrontX, camFrontZ)`) so directional arrows rotate smoothly in real time as you turn your camera.
+  * Added `hasSpatialMumbleChange` (~16 FPS / `60ms` delta streaming when moving or turning the camera, `0%` idle CPU when stationary).
+* **Authentic ArenaNet Continent Coordinates for All 58 Events:**
+  * Populated `EVENT_CONTINENT_COORDS` with verified official ArenaNet `/v2/continents` PoI and Waypoint coordinates for all 58 World Bosses and Meta Events across Core Tyria, HoT, PoF, LWS, IBS, EoD, SotO, and Janthir Wilds, plus `MAP_CONTINENT_CENTERS` fallbacks.
+* **Persistent Click-Through Combat HUD Beacon (`SpatialWayfindingHud.tsx`):**
+  * Added a dedicated floating tactical wayfinding marker (`pointer-events: none`) rendered outside `.gw2-hero-window` that stays visible even when the main overlay auto-hides during combat (`isCombatDimmed`).
+  * Displays a live 360° rotating directional arrow (highlighting emerald when aligned straight ahead), turn-by-turn guidance (*Run Straight Ahead*, *Turn Left*, *Turn Right*, *Turn Around*), live distance (`m` / `km`), compass cardinal, and event countdown timer.
+* **Docked Spatial Bar & Settings Toggle (`combatSpatialHudEnabled`):**
+  * Out of combat, displays an interactive Spatial Wayfinding Bar below the header with 1-click Waypoint target locking and `<` / `>` event cycling.
+  * Added an enable/disable checkbox in **Settings → MumbleLink Telemetry** (*"Show Spatial Compass & Combat HUD Beacon"*).
+
+#### 2. Instant Item & Trading Post Price Streaming (`src/data/gw2/client.ts`, `src/data/gw2/prices.ts`, `src/data/gw2/items.ts`, `src/data/gw2/account.ts`, `src/components/inventory/InventoryHubView.tsx`)
+* **Eliminated False *"Bound"* Placeholders During Price Fetch:**
+  * Added `isPriceLoading(id)` and `isItemLoading(id)` tracking alongside explicit `AccountBound` / `SoulbindOnAcquire` flag inspection (`isBound`). Tradeable items now show a subtle pulsing loading indicator (`…`) while prices stream in instead of falsely displaying `Bound` or `–`.
+  * Fixed immutable snapshot creation (`pricesSnapshot`) in `usePrices` so React components re-render immediately as each price batch arrives.
+* **High-Throughput Progressive Chunk Streaming:**
+  * Upgraded `src/data/gw2/client.ts` concurrency from `3` to `8` (`MIN_INTERVAL_MS = 25ms`, well within ArenaNet's 300 req/min burst allowance) and added `onChunk` progressive streaming so UI views update after every 200-ID batch instead of waiting for all batches to finish.
+* **Persistent IndexedDB Price Cache (`prices:v1`) & Startup Prefetching:**
+  * Added Stale-While-Revalidate IndexedDB persistence for Trading Post prices (`src/data/gw2/prices.ts`) and automatic background prefetching (`prefetchAccountItemsAndPrices` in `src/data/gw2/account.ts`), making Inventory & PvE Hub item and price loading nearly instantaneous across sessions.
+
+#### 3. Live-API `gw2crafts.net` Leveling Route Calibration (`src/domain/levelPlanner.ts`, `src/components/crafting/LevelPlanner.tsx`)
+* **Mid-Tier Patch & Plated Dowel Discrimination:**
+  * Distinguished true tier-start refinements (*Bolts, Leather Squares, Ingots, Planks* at `0, 75, 150, 225, 300, 400`) from mid-tier insignia/inscription sub-components (*Wool/Cotton/Linen/Silk Patches* and *Iron/Steel/Darksteel/Mithril Plated Dowels* at `125, 200, 275, 350`) and crafting backpack tools, preventing `128x` patch or `64x` insignia grinds against the full 13,213-recipe live GW2 API dataset.
+* **Smart Intermediate Buy-vs-Craft Resolution & Sub-Tier Quality XP Scaling:**
+  * In `cost` and `fast` modes, `acq()` now compares self-craft cost against Trading Post buy price for intermediate refinements and insignias/inscriptions (self-crafting only when cheaper or unlisted), caps speculative low-level TP resale credit (`20%` below rank 400, `35%` at 400+), and models Fine (`Tier+25`), Masterwork (`Tier+50`), Rare (`375`), and Exotic (`400+`) sub-tier XP progression so `0–400` and `0–500` routes match `gw2crafts.net` costs and craft counts.
+* ** Regenerated All 19 UI Screenshots (`docs/screenshots/`):**
+  * Updated all 19 visual walkthrough screenshots for `v0.3.5`.
+
+---
+
 ## [0.3.4] - 2026-11-05
 
 ### Added & Improved

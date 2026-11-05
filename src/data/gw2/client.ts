@@ -43,8 +43,8 @@ export async function gw2ApiGet<T>(url: string): Promise<ApiResult<T>> {
   }
 }
 
-const MAX_CONCURRENT = 4;
-const MIN_INTERVAL_MS = 130; // ~460 Anfragen/Minute, bleibt unter dem Limit
+const MAX_CONCURRENT = 8;
+const MIN_INTERVAL_MS = 25; // Fast parallel burst within ArenaNet's 300-request token bucket
 let active = 0;
 let lastStart = 0;
 const waiters: (() => void)[] = [];
@@ -114,6 +114,7 @@ export async function fetchByIds<T>(
   query: Record<string, string | number | undefined> = {},
   token?: string,
   onProgress?: (done: number, total: number) => void,
+  onChunk?: (chunkItems: T[], chunkIds: readonly (number | string)[]) => void,
 ): Promise<BatchResult<T>> {
   const unique = [...new Set(ids)];
   const chunks: (number | string)[][] = [];
@@ -124,8 +125,14 @@ export async function fetchByIds<T>(
   await Promise.all(
     chunks.map(async (chunk) => {
       const res = await apiGet<T[]>(buildUrl(endpoint, { ...query, ids: chunk.join(',') }, token));
-      if (res.ok && Array.isArray(res.data)) out.push(...res.data);
-      else if (res.status !== 404) error = res.error ?? `HTTP ${res.status}`;
+      if (res.ok && Array.isArray(res.data)) {
+        out.push(...res.data);
+        onChunk?.(res.data, chunk);
+      } else if (res.status === 404) {
+        onChunk?.([], chunk);
+      } else {
+        error = res.error ?? `HTTP ${res.status}`;
+      }
       done++;
       onProgress?.(done, chunks.length);
     }),

@@ -15,6 +15,8 @@
 import { useSyncExternalStore } from 'react';
 import { apiGet, buildUrl, describeApiError } from './client.ts';
 import { createEmitter } from './cache.ts';
+import { ensureItems } from './items.ts';
+import { ensurePrices } from './prices.ts';
 import { progressActions } from '../progressStore.ts';
 
 const STORAGE_KEY = 'gw2_overlay_account_data_v1';
@@ -125,8 +127,44 @@ function loadPersisted(): AccountData | null {
   }
 }
 
+const CORE_WARMUP_ITEMS = [
+  19675, 19976, 19721, 19925, 19678, 19677, 24295, 24358,
+  46742, 46744, 46745, 46738, 46739, 46736, 43772, 66913, 66917, 66923,
+];
+
+export function prefetchAccountItemsAndPrices(data: AccountData | null): void {
+  if (typeof window === 'undefined' || !data) return;
+  const ids = new Set<number>(CORE_WARMUP_ITEMS);
+  for (const [id] of data.stock ?? []) {
+    if (id > 0) ids.add(id);
+  }
+  for (const rawId of Object.keys(data.breakdown ?? {})) {
+    const id = Number(rawId);
+    if (id > 0) ids.add(id);
+  }
+  for (const ch of data.characters ?? []) {
+    for (const [id] of ch.bagItems ?? []) {
+      if (id > 0) ids.add(id);
+    }
+    for (const [id] of ch.equipment ?? []) {
+      if (id > 0) ids.add(id);
+    }
+  }
+  for (const [id] of data.delivery?.items ?? []) {
+    if (id > 0) ids.add(id);
+  }
+  const list = Array.from(ids);
+  if (list.length > 0) {
+    void ensureItems(list);
+    void ensurePrices(list);
+  }
+}
+
 const initial = loadPersisted();
 let state: AccountState = derive(initial, initial ? 'ready' : 'none');
+if (initial && typeof window !== 'undefined') {
+  setTimeout(() => prefetchAccountItemsAndPrices(initial), 30);
+}
 
 function setState(next: AccountState) {
   state = next;
@@ -458,6 +496,7 @@ export async function syncAccountData(apiKey: string): Promise<void> {
     console.error('Account-Cache konnte nicht gespeichert werden', e);
   }
   setState(derive(data, 'ready'));
+  prefetchAccountItemsAndPrices(data);
 }
 
 export function clearAccountData(): void {

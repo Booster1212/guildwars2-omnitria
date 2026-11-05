@@ -1,6 +1,8 @@
-const { spawnSync } = require('child_process');
-const path = require('path');
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 
@@ -15,4 +17,5 @@ const res = spawnSync(electronExe, [script], {
 
 console.log('[Runner] Completed with code:', res.status);
 process.exit(res.status || 0);
+
 

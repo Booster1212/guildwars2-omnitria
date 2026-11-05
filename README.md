@@ -154,9 +154,10 @@ The following capabilities are implemented and verified in the current release:
   - `F10`: Toggle mouse click-through mode (permits clicking through the overlay into the game).
 - **MumbleLink Telemetry (`mumble-reader.exe`):**
   - Reads the official Windows memory-mapped file `MumbleLink` in read-only mode.
+  - *3D Spatial Wayfinding & Combat HUD Beacon:* Reads 3D camera forward vectors (`fCameraFront`) and continent coordinates across all 58 events to render a 360° rotating directional arrow, distance (`m` / `km`), and turn-by-turn guidance. Remains visible as a click-through HUD marker even when the main overlay is hidden during combat (toggleable in Settings).
   - *Character Synchronization:* Detects the logged-in character name and automatically syncs active discipline ranks in the Level Planner.
   - *Map Detection:* Reads current coordinates and zone IDs to highlight local events.
-  - *In-Combat Auto-Stealth:* Reads the game's UI state bitmask (`uiState & 0x40`). When combat is detected, the overlay automatically hides and passes input directly to the game client.
+  - *In-Combat Auto-Stealth:* Reads the game's UI state bitmask (`uiState & 0x40`). When combat is detected, the main overlay automatically hides and passes input directly to the game client.
 - **Persistence:** Overlay position, window dimensions, and active mode are stored in `overlay-window-bounds.json` across sessions.
 
 ---
@@ -180,7 +181,7 @@ The following capabilities are implemented and verified in the current release:
 
 ### Standalone Windows Binary
 
-1. Download `Omnitria-v0.3.4-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
+1. Download `Omnitria-v0.3.5-windows-x64.zip` from [GitHub Releases](https://github.com/Booster1212/guildwars2-omnitria/releases).
 2. Extract the archive to any folder (fully portable, no installation required).
 3. Run `Omnitria.exe`.
 
@@ -305,7 +306,23 @@ Guild Wars 2 and ArenaNet are trademarks or registered trademarks of NCSOFT Corp
 ## Latest Version Changelog
 
 <details open>
-<summary>Latest Version – v0.3.4</summary>
+<summary>Latest Version – v0.3.5</summary>
+
+### Added
+- **MumbleLink 3D Spatial Wayfinding & Combat HUD Beacon (`SpatialWayfindingHud`):**
+  - Upgraded `electron/MumbleReader.cs` and `electron/mumble-reader.exe` to extract 3D camera forward vectors (`camFrontX`, `camFrontZ`) and avatar vectors from shared memory, enabling smooth ~16 FPS directional arrow rotation even with a North-locked minimap (`compassRotation = 0`).
+  - Populated `EVENT_CONTINENT_COORDS` with official ArenaNet `/v2/continents` PoI and Waypoint coordinates for all 58 World Bosses and Meta Events.
+  - Added a persistent, click-through **Combat HUD Beacon** (`pointer-events: none`) that stays visible when the main overlay auto-hides in combat (`isCombatDimmed`), showing a 360° rotating directional arrow, turn-by-turn guidance (*Run Straight Ahead*, *Turn Left*, *Turn Right*, *Turn Around*), live distance, and countdown timer.
+  - Added an interactive docked Spatial Wayfinding Bar below the header with 1-click Waypoint target locking, `<` / `>` event cycling, and an enable/disable setting (`combatSpatialHudEnabled`) in **Settings → MumbleLink Telemetry**.
+- **Instant Item & Trading Post Price Streaming:**
+  - Added Stale-While-Revalidate IndexedDB persistence (`prices:v1`) for Trading Post prices and automatic startup prefetching (`prefetchAccountItemsAndPrices`) for near-instantaneous Inventory & PvE Hub loading.
+  - Upgraded GW2 API client concurrency (`MAX_CONCURRENT = 8`, `MIN_INTERVAL_MS = 25ms`) with `onChunk` progressive UI streaming after every 200-ID batch.
+  - Eliminated false *"Bound"* placeholders while prices are loading by tracking `isPriceLoading(id)` / `isItemLoading(id)` and inspecting explicit `AccountBound` / `SoulbindOnAcquire` flags.
+
+</details>
+
+<details>
+<summary>v0.3.4</summary>
 
 ### Added
 - **Full Legendary Armory Expansion:** Expanded tracking beyond weapons to include Rings (*Coalescence*, *Conflux*), Accessories (*Aurora*, *Vision*), Amulets (*Prismatic Champion's Regalia*, *Transcendence*), Backpacks (*Ad Infinitum*, *The Ascension*, *Warbringer*), Relics (*Legendary Relic*), and 6-piece Armor Sets (*Obsidian Armor*, *Perfected Envoy Armor*).

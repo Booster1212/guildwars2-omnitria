@@ -546,6 +546,8 @@ export const TRANSLATIONS = {
     'settings.mumbleAutoMapDim': 'Auf der Weltkarte automatisch ausblenden (Vollbild-Karte)',
     'settings.mumbleAutoMapDimHint': 'Blendet das Overlay beim Öffnen der Weltkarte (M) automatisch aus, um die Karte nicht zu verdecken.',
     'settings.mumbleHighlightMap': 'Events auf deiner aktuellen Karte hervorheben',
+    'settings.mumbleCombatSpatialHud': 'Spatial-Kompass & Kampf-HUD-Wegweiser anzeigen (auch im Kampf sichtbar)',
+    'settings.mumbleCombatSpatialHudHint': 'Zeigt den 360°-Richtungspfeil und die Distanz zum aktiven/verfolgten Boss-Event an – bleibt als durchklickbares Mini-Banner auch während des Kampfes sichtbar.',
     'events.onYourMap': 'DEINE KARTE',
     'events.onYourMapTooltip': 'Dieses Event findet direkt auf deiner aktuellen Karte statt!',
 
@@ -1482,6 +1484,8 @@ export const TRANSLATIONS = {
     'settings.mumbleAutoMapDim': 'Auto-hide on in-game World Map (full-screen map)',
     'settings.mumbleAutoMapDimHint': 'Automatically hides the overlay when pressing M to open the world map, allowing unobstructed map navigation.',
     'settings.mumbleHighlightMap': 'Highlight events occurring on your current map',
+    'settings.mumbleCombatSpatialHud': 'Show Spatial Compass & Combat HUD Beacon (remains visible in combat)',
+    'settings.mumbleCombatSpatialHudHint': 'Displays the live 360° directional arrow and distance to the active/tracked boss event — stays visible as a click-through mini beacon even during combat.',
     'events.onYourMap': 'ON YOUR MAP',
     'events.onYourMapTooltip': 'This event is happening on your current map!',
 
