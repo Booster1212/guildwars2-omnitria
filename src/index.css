@@ -6737,6 +6737,302 @@ button {
   flex-wrap: wrap;
 }
 
+/* ========================================================
+   PROMINENT 3-STRATEGY HERO SECTION
+   ======================================================== */
+.pud-strategy-hero-section {
+  padding: 14px 16px;
+  background: #11141c;
+  border-bottom: 1px solid rgba(212, 163, 89, 0.15);
+}
+
+.pud-strategy-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.pud-shh-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pud-shh-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gw2-gold-bright, #fcd34d);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.pud-shh-subtitle {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.pud-route-method-switcher {
+  display: flex;
+  align-items: center;
+}
+
+.route-mode-pill-toggle {
+  display: inline-flex;
+  background: #0d1017;
+  border: 1px solid #242c3d;
+  border-radius: 4px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.route-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.route-pill-btn:hover {
+  color: #f1f5f9;
+}
+
+.route-pill-btn.active.cost {
+  background: #152421;
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+}
+
+.route-pill-btn.active.fast {
+  background: #241d13;
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);
+}
+
+/* 3-Card Deck Grid */
+.pud-strategy-cards-deck {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .pud-strategy-cards-deck {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pud-strat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #151923;
+  border: 1px solid #263143;
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  min-height: 115px;
+}
+
+.pud-strat-card:hover {
+  background: #1a202d;
+  border-color: #3f4e6b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* Card Active States */
+.pud-strat-card.active.opt-hybrid {
+  background: linear-gradient(180deg, #211c12 0%, #151821 100%);
+  border-color: #f59e0b;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25), inset 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+.pud-strat-card.active.buy-all {
+  background: linear-gradient(180deg, #101c26 0%, #151821 100%);
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 0 0 1px rgba(56, 189, 248, 0.3);
+}
+
+.pud-strat-card.active.craft-all {
+  background: linear-gradient(180deg, #10241b 0%, #151821 100%);
+  border-color: #10b981;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25), inset 0 0 0 1px rgba(16, 185, 129, 0.3);
+}
+
+.psc-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.psc-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.psc-icon-wrap.opt-hybrid {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.psc-icon-wrap.buy-all {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.psc-icon-wrap.craft-all {
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.psc-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.psc-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.pud-strat-card.active.opt-hybrid .psc-title {
+  color: #fbbf24;
+}
+
+.pud-strat-card.active.buy-all .psc-title {
+  color: #38bdf8;
+}
+
+.pud-strat-card.active.craft-all .psc-title {
+  color: #34d399;
+}
+
+.psc-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+}
+
+.pud-strat-card.active .psc-tag {
+  color: #cbd5e1;
+}
+
+.psc-rec-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fef08a;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.psc-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #94a3b8;
+  margin: 0 0 10px 0;
+  flex: 1;
+}
+
+.pud-strat-card.active .psc-desc {
+  color: #cbd5e1;
+}
+
+.psc-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+  color: #64748b;
+}
+
+.pud-strat-card.active .psc-status-indicator {
+  color: #f1f5f9;
+}
+
+.psc-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #64748b;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.pud-strat-card.active.opt-hybrid .psc-radio-dot {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+}
+
+.pud-strat-card.active.buy-all .psc-radio-dot {
+  border-color: #38bdf8;
+  background: #38bdf8;
+  box-shadow: 0 0 6px #38bdf8;
+}
+
+.pud-strat-card.active.craft-all .psc-radio-dot {
+  border-color: #10b981;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.pud-custom-overrides-strip {
+  display: flex;
+  align-items: center;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-top: 10px;
+  color: #fef3c7;
+}
+
+.pud-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(14, 17, 23, 0.7);
+  border-bottom: 1px solid rgba(212, 163, 89, 0.1);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .pud-material-row {
   padding: 9px 16px;
   background: rgba(14, 17, 23, 0.65);

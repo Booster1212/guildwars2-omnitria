@@ -306,7 +306,26 @@ Guild Wars 2 and ArenaNet are trademarks or registered trademarks of NCSOFT Corp
 ## Latest Version Changelog
 
 <details open>
-<summary>Latest Version – v0.3.5</summary>
+<summary>Latest Version – v0.3.6</summary>
+
+### Added & Improved
+- **Crafting Planner Engine Overhaul (`Berufsplaner`) & 3 Distinct Strategies:**
+  - **Mode A: BUY EVERYTHING (`buy_everything`):** Minimizes player effort and crafting operations. Automatically buys finished intermediate products directly from the Trading Post or vendors. Zero intermediate preparation steps (`prepSteps = []`).
+  - **Mode B: CRAFT EVERYTHING (`craft_everything`):** Recursively manufactures intermediate products down to raw base materials whenever valid discipline recipes exist. Consumes owned intermediate products first.
+  - **Mode C: OPTIMAL HYBRID (`optimal_hybrid` - Recommended):** Minimizes total gold expenditure by dynamically evaluating direct purchase vs. recursive crafting cost, factoring in owned inventory (cost 0 copper) and batch multi-yield surpluses.
+- **Strict 7-Tier Material Accounting Ledger:** Every material requirement in `plan.materials` tracks 7 explicit tiers: `grossDemand`, `ownedStock`, `stockConsumed`, `netDeficit`, `manufactured`, `intermediateYield`, and `remainingToBuy`.
+- **Resolved Intermediate Inventory Blindness:** Owned intermediate stock is deducted *before* decomposing into raw materials. Owning 100 Refined Ingots satisfies requirements directly without triggering purchases for raw ore.
+- **Sequential Multi-Yield Surplus Pooling:** Surpluses from batch recipes (e.g. 5x dowels) are returned to the active `inventoryPool` and tracked under `intermediateYield` for subsequent steps, eliminating over-purchasing.
+- **Authentic Guild Wars 2 Crafting XP Mathematics:** Updated `ranksPerCraft` with authentic $(1 + \text{mod})$ rarity discovery multipliers (Fine: $2.0\times$, Masterwork: $3.0\times$, Rare: $4.25\times$, Exotic: $5.0\times$) matching GW2 Wiki and `gw2craft`.
+- **Eliminated Shopping List & Demand Table Split-Brain Divergence:** Fixed double-subtraction bug in `LevelPlanner.tsx`. Both the Shopping List and Demand Table now bind directly to the single source of truth in `plan.materials`.
+- **Prominent 3-Card Material Strategy Hero UI:** Transformed cramped segmented buttons into a prominent 3-card centerpiece with distinctive color glow themes, clear tags, active radio indicators, and tooltips.
+- **Streamlined Header & Decluttered Master Dashboard:** Integrated compact route method pill toggle (`[ ✨ Normal ]  [ ⚡ Bulk ]`) right in the strategy header, significantly reducing vertical bloat.
+- **Automated Benchmark Audit Test Suite:** Added unit tests verifying all 12 competitive benchmark scenarios, expanding the test suite to 176 passing tests.
+
+</details>
+
+<details>
+<summary>v0.3.5</summary>
 
 ### Added
 - **MumbleLink 3D Spatial Wayfinding & Combat HUD Beacon (`SpatialWayfindingHud`):**

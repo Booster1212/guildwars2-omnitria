@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { isUntradable, type DisciplineId } from '../../domain/types';
+import { isUntradable, type DisciplineId, type CraftingStrategyMode } from '../../domain/types';
 import { KNOWN_VENDOR_PRICES, unitPrice } from '../../domain/costs';
 import {
   planLevelRoute,
@@ -152,10 +152,14 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   const [shoppingSearch, setShoppingSearch] = useState('');
   const [shoppingFilter, setShoppingFilter] = useState<'all' | 'missing' | 'tp' | 'vendor'>('all');
 
-  // Strategy for self-crafting vs. buying
-  const [strategy, setStrategy] = useState<CraftingStrategy>(
-    craftIntermediates ? 'all_craft' : 'all_buy',
-  );
+  // Strategy for intermediate products: Buy Everything, Craft Everything, or Optimal Hybrid
+  const persistedStrategy: CraftingStrategyMode =
+    discProgress.craftingStrategy ??
+    (discProgress.craftIntermediates !== undefined
+      ? (discProgress.craftIntermediates ? 'craft_everything' : 'buy_everything')
+      : 'optimal_hybrid');
+
+  const [strategy, setStrategy] = useState<CraftingStrategy>(persistedStrategy);
   const [itemOverrides, setItemOverrides] = useState<Map<number, ItemProcurement>>(new Map());
   const [onlyOpenSteps, setOnlyOpenSteps] = useState<boolean>(true);
   const [showSkippedSteps, setShowSkippedSteps] = useState<boolean>(false);
@@ -166,12 +170,12 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   const [expandedStepKeys, setExpandedStepKeys] = useState<Set<string>>(new Set());
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 
-  // Sync strategy when persisted craftIntermediates changes
+  // Sync strategy when persisted strategy changes
   React.useEffect(() => {
     if (strategy !== 'custom') {
-      setStrategy(craftIntermediates ? 'all_craft' : 'all_buy');
+      setStrategy(persistedStrategy);
     }
-  }, [craftIntermediates]);
+  }, [persistedStrategy]);
 
   // Handlers for updating persisted character-specific discipline settings
   const handleStartChange = (val: number) => {
@@ -197,10 +201,12 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
   const handleToggleIntermediates = () => {
     const next = !craftIntermediates;
+    const nextStrat: CraftingStrategyMode = next ? 'craft_everything' : 'buy_everything';
     progressActions.setCharacterDiscipline(selectedCharacter, discipline, {
       craftIntermediates: next,
+      craftingStrategy: nextStrat,
     });
-    setStrategy(next ? 'all_craft' : 'all_buy');
+    setStrategy(nextStrat);
     setItemOverrides(new Map());
   };
 
@@ -219,8 +225,14 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     setStrategy(strat);
     if (strat !== 'custom') {
       setItemOverrides(new Map());
+      const stratMode = (strat === 'all_buy'
+        ? 'buy_everything'
+        : strat === 'all_craft'
+          ? 'craft_everything'
+          : strat) as CraftingStrategyMode;
       progressActions.setCharacterDiscipline(selectedCharacter, discipline, {
-        craftIntermediates: strat === 'all_craft',
+        craftingStrategy: stratMode,
+        craftIntermediates: stratMode === 'craft_everything',
       });
     }
   };
@@ -283,6 +295,13 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
   // Compute crafting route with mode-aware prioritization
   const plan = useMemo(() => {
     if (recipeDb.status !== 'ready') return null;
+    const effectiveStrategy: CraftingStrategyMode =
+      strategy === 'buy_everything' || strategy === 'all_buy'
+        ? 'buy_everything'
+        : strategy === 'craft_everything' || strategy === 'all_craft'
+          ? 'craft_everything'
+          : 'optimal_hybrid';
+
     return planLevelRoute({
       discipline,
       fromRank: effectiveStart,
@@ -291,8 +310,9 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
       recipesByOutput: recipeDb.byOutput,
       prices: prices.map,
       options: {
+        strategy: effectiveStrategy,
         allowDiscovery,
-        craftIntermediates,
+        craftIntermediates: effectiveStrategy === 'craft_everything',
         knownRecipeIds: account.knownRecipeSet,
         doneStepKeys: new Set(discProgress.doneSteps ?? []),
         mode: planningMode,
@@ -309,8 +329,8 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
     prices.map,
     prices.updatedAt,
     prices.version,
+    strategy,
     allowDiscovery,
-    craftIntermediates,
     account.knownRecipeSet,
     discProgress.doneSteps,
     planningMode,
@@ -755,43 +775,150 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
           </div>
         </div>
 
-        {/* Tier 2: Materialstrategie & Optionen (direkt unter Ränge) */}
-        <div className="pud-material-row">
-          <div className="pwt-procurement-group">
-            <span className="pwt-group-label font-serif">{t('crafting.strategyTitle')}</span>
-            <div className="pwt-segmented-controls">
-              <button
-                type="button"
-                className={`pwt-segment-btn ${strategy === 'all_craft' ? 'active' : ''}`}
-                onClick={() => handleSetStrategy('all_craft')}
-                title={t('planner.procure.craftSelfDesc')}
-              >
-                <Hammer size={12} className="text-emerald-400" />
-                <span>{t('planner.procure.craftSelf')}</span>
-              </button>
-              <button
-                type="button"
-                className={`pwt-segment-btn ${strategy === 'all_buy' ? 'active' : ''}`}
-                onClick={() => handleSetStrategy('all_buy')}
-                title={t('planner.procure.buyDirectDesc')}
-              >
-                <ShoppingBag size={12} className="text-sky-400" />
-                <span>{t('planner.procure.buyDirect')}</span>
-              </button>
-              {itemOverrides.size > 0 && (
+        {/* Tier 2: The PROMINENT 3-Card Material Strategy Hero Section */}
+        <div className="pud-strategy-hero-section">
+          <div className="pud-strategy-hero-header">
+            <div className="pud-shh-left">
+              <span className="pud-shh-title font-serif">{t('planner.strategy.header')}</span>
+              <span className="pud-shh-subtitle">
+                {lang === 'en'
+                  ? 'Controls intermediate component procurement: automatic cost optimization, direct TP purchases, or full self-crafting.'
+                  : 'Steuert die Beschaffung von Zwischenprodukten: Automatische Kostenoptimierung, Direktkauf auf der Handelsgesellschaft oder vollständige Eigenherstellung.'}
+              </span>
+            </div>
+
+            {/* Compact Route Mode Switcher (Normal / Discoveries vs Bulk / Fast) */}
+            <div className="pud-route-method-switcher">
+              <span className="dim text-xs mr-2">{t('planner.mode.label')}</span>
+              <div className="route-mode-pill-toggle">
                 <button
                   type="button"
-                  className={`pwt-segment-btn ${strategy === 'custom' ? 'active' : ''}`}
-                  onClick={() => setStrategy('custom')}
-                  title={t('crafting.strategyCustomHint')}
+                  className={`route-pill-btn ${planningMode === 'cost' ? 'active cost' : ''}`}
+                  onClick={() => handleSelectMode('cost')}
+                  title={t('planner.mode.costDesc')}
                 >
-                  <Sliders size={12} />
-                  <span>{t('crafting.strategyCustom', { count: itemOverrides.size })}</span>
+                  <Sparkles size={11} className="inline mr-1 text-emerald-400" />
+                  <span>{t('crafting.normalTag')}</span>
                 </button>
-              )}
+                <button
+                  type="button"
+                  className={`route-pill-btn ${planningMode === 'fast' ? 'active fast' : ''}`}
+                  onClick={() => handleSelectMode('fast')}
+                  title={t('planner.mode.fastDesc')}
+                >
+                  <Zap size={11} className="inline mr-1 text-amber-400" />
+                  <span>{t('crafting.bulkTag')}</span>
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* 3 Prominent Strategy Cards Deck */}
+          <div className="pud-strategy-cards-deck">
+            {/* Mode C: Optimal Hybrid (Recommended) */}
+            <div
+              className={`pud-strat-card opt-hybrid ${strategy === 'optimal_hybrid' ? 'active' : ''}`}
+              onClick={() => handleSetStrategy('optimal_hybrid')}
+            >
+              <div className="psc-top">
+                <div className="psc-icon-wrap opt-hybrid">
+                  <Sparkles size={18} />
+                </div>
+                <div className="psc-title-group">
+                  <span className="psc-title font-serif">{t('planner.strategy.optimalHybrid')}</span>
+                  <span className="psc-tag opt-hybrid">{t('planner.strategy.optimalHybridTag')}</span>
+                </div>
+                <div className="psc-rec-badge">
+                  <CheckCircle2 size={11} className="inline mr-1" />
+                  {t('planner.strategy.optimalBadge')}
+                </div>
+              </div>
+              <p className="psc-desc">{t('planner.strategy.optimalHybridDesc')}</p>
+              <div className="psc-status-indicator">
+                <div className="psc-radio-dot" />
+                <span className="font-semibold">
+                  {strategy === 'optimal_hybrid'
+                    ? (lang === 'en' ? 'Active Strategy' : 'Aktive Strategie')
+                    : (lang === 'en' ? 'Select Mode C' : 'Modus C wählen')}
+                </span>
+              </div>
+            </div>
+
+            {/* Mode A: Buy Everything */}
+            <div
+              className={`pud-strat-card buy-all ${strategy === 'buy_everything' || strategy === 'all_buy' ? 'active' : ''}`}
+              onClick={() => handleSetStrategy('buy_everything')}
+            >
+              <div className="psc-top">
+                <div className="psc-icon-wrap buy-all">
+                  <ShoppingBag size={18} />
+                </div>
+                <div className="psc-title-group">
+                  <span className="psc-title font-serif">{t('planner.strategy.buyEverything')}</span>
+                  <span className="psc-tag buy-all">{t('planner.strategy.buyEverythingTag')}</span>
+                </div>
+              </div>
+              <p className="psc-desc">{t('planner.strategy.buyEverythingDesc')}</p>
+              <div className="psc-status-indicator">
+                <div className="psc-radio-dot" />
+                <span className="font-semibold">
+                  {(strategy === 'buy_everything' || strategy === 'all_buy')
+                    ? (lang === 'en' ? 'Active Strategy' : 'Aktive Strategie')
+                    : (lang === 'en' ? 'Select Mode A' : 'Modus A wählen')}
+                </span>
+              </div>
+            </div>
+
+            {/* Mode B: Craft Everything */}
+            <div
+              className={`pud-strat-card craft-all ${strategy === 'craft_everything' || strategy === 'all_craft' ? 'active' : ''}`}
+              onClick={() => handleSetStrategy('craft_everything')}
+            >
+              <div className="psc-top">
+                <div className="psc-icon-wrap craft-all">
+                  <Hammer size={18} />
+                </div>
+                <div className="psc-title-group">
+                  <span className="psc-title font-serif">{t('planner.strategy.craftEverything')}</span>
+                  <span className="psc-tag craft-all">{t('planner.strategy.craftEverythingTag')}</span>
+                </div>
+              </div>
+              <p className="psc-desc">{t('planner.strategy.craftEverythingDesc')}</p>
+              <div className="psc-status-indicator">
+                <div className="psc-radio-dot" />
+                <span className="font-semibold">
+                  {(strategy === 'craft_everything' || strategy === 'all_craft')
+                    ? (lang === 'en' ? 'Active Strategy' : 'Aktive Strategie')
+                    : (lang === 'en' ? 'Select Mode B' : 'Modus B wählen')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Overrides indicator strip (if itemOverrides.size > 0) */}
+          {itemOverrides.size > 0 && (
+            <div className="pud-custom-overrides-strip">
+              <Sliders size={13} className="text-amber-400 mr-2 shrink-0" />
+              <span className="text-xs">
+                {t('planner.strategy.customOverride', { count: itemOverrides.size })}
+              </span>
+              <button
+                type="button"
+                className="btn-tiny ml-auto"
+                onClick={() => {
+                  setItemOverrides(new Map());
+                  handleSetStrategy('optimal_hybrid');
+                }}
+              >
+                <RotateCcw size={10} className="inline mr-1" />
+                {t('planner.strategy.resetOverrides')}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Tier 3: Controls Bar (Toggles & Live Price Meta) */}
+        <div className="pud-controls-bar">
           <div className="pwt-toggles-group">
             {planningMode !== 'fast' && (
               <Check
@@ -825,82 +952,6 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
               <RotateCw size={10} />
             </button>
           </div>
-        </div>
-
-        {/* Tier 3: Weg der Beschaffung (Dual-Strategy Hero Selector) */}
-        <div className="pud-modes-row">
-          <div className="planner-primary-modes">
-            {/* Option 1: Bulk Mode */}
-            <button
-              type="button"
-              className={`primary-mode-card ${planningMode === 'fast' ? 'active bulk-mode' : ''}`}
-              onClick={() => handleSelectMode('fast')}
-            >
-              <div className="primary-mode-header">
-                <Zap size={16} className="text-amber-400" />
-                <span className="primary-mode-title font-serif">{t('planner.mode.fast')}</span>
-                <span className="primary-mode-tag">{t('crafting.bulkTag')}</span>
-              </div>
-              <p className="primary-mode-desc">{t('planner.mode.fastDesc')}</p>
-            </button>
-
-            {/* Option 2: Normal / Cost Mode */}
-            <button
-              type="button"
-              className={`primary-mode-card ${planningMode === 'cost' ? 'active cost-mode' : ''}`}
-              onClick={() => handleSelectMode('cost')}
-            >
-              <div className="primary-mode-header">
-                <Sparkles size={16} className="text-emerald-400" />
-                <span className="primary-mode-title font-serif">{t('planner.mode.cost')}</span>
-                <span className="primary-mode-tag">{t('crafting.normalTag')}</span>
-              </div>
-              <p className="primary-mode-desc">{t('planner.mode.costDesc')}</p>
-            </button>
-          </div>
-
-          {/* Subtle toggle for advanced modes */}
-          <div className="advanced-modes-toggle-row">
-            <button
-              type="button"
-              className="primary-mode-more-btn"
-              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-            >
-              <Sliders size={12} />
-              <span>{showAdvancedOptions ? t('crafting.hideOptions') : t('crafting.moreOptions')}</span>
-              {showAdvancedOptions ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </button>
-          </div>
-
-          {showAdvancedOptions && (
-            <div className="advanced-strategy-cards-grid mt-2">
-              {CRAFTING_STRATEGIES.filter((s) => s.id === 'goal' || s.id === 'completionist').map((strat) => {
-                const isAct = planningMode === strat.id;
-                const Icon = strat.icon;
-                const labelKey = `planner.mode.${strat.id}` as TranslationKey;
-                const descKey = `planner.mode.${strat.id}Desc` as TranslationKey;
-
-                return (
-                  <button
-                    key={strat.id}
-                    type="button"
-                    className={`strategy-card-btn ${isAct ? 'active' : ''}`}
-                    onClick={() => handleSelectMode(strat.id)}
-                  >
-                    <div className="strategy-card-top">
-                      <div className="strategy-card-icon-wrap">
-                        <Icon size={14} />
-                      </div>
-                      <span className="strategy-card-title font-semibold">{t(labelKey)}</span>
-                    </div>
-                    <div className="strategy-card-desc text-xs dim">
-                      {t(descKey)}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {/* Tier 4: Kosten am Ende (Plan KPI Summary Strip) */}
@@ -1995,20 +2046,35 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
             <div className="planner-shopping-wrap">
               {(() => {
                 const rawPurchases = Array.from(activePurchases.entries());
-                const hasUntradable = rawPurchases.some(([id]) => {
-                  const it = getItem(id);
-                  return isUntradable(it) && !KNOWN_VENDOR_PRICES.has(id);
-                });
 
-                // Enrich all purchases with metadata, stock, prices, and tier assignment
-                const enriched = rawPurchases.map(([itemId, qty]) => {
+                // Enrich materials from authentic 7-tier ledger (eliminates split-brain double stock deduction)
+                const sourceMaterials = (strategy !== 'custom' && plan.materials && plan.materials.length > 0)
+                  ? plan.materials.filter((m) => m.remainingToBuy > 0 || m.stockConsumed > 0 || m.grossDemand > 0)
+                  : rawPurchases.map(([itemId, qty]) => {
+                      const stock = account.stockMap.get(itemId) ?? 0;
+                      const missing = Math.max(0, qty - stock);
+                      return {
+                        itemId,
+                        grossDemand: qty,
+                        ownedStock: stock,
+                        stockConsumed: Math.min(qty, stock),
+                        netDeficit: missing,
+                        manufactured: 0,
+                        intermediateYield: 0,
+                        remainingToBuy: missing,
+                        isAccountBound: false,
+                        unitPrice: unitPrice(prices.map.get(itemId), itemId),
+                        totalCost: unitPrice(prices.map.get(itemId), itemId) !== null ? (unitPrice(prices.map.get(itemId), itemId)! * missing) : 0,
+                      };
+                    });
+
+                const enriched = sourceMaterials.map((m) => {
+                  const itemId = m.itemId;
                   const item = getItem(itemId);
-                  const stock = account.stockMap.get(itemId) ?? 0;
-                  const missing = Math.max(0, qty - stock);
                   const isVendor = KNOWN_VENDOR_PRICES.has(itemId);
-                  const untradable = isUntradable(item) && !isVendor;
-                  const unit = unitPrice(prices.map.get(itemId), itemId);
-                  const totalLineCost = unit !== null && missing > 0 ? unit * missing : (missing === 0 ? 0 : null);
+                  const untradable = ('isAccountBound' in m && m.isAccountBound) || (isUntradable(item) && !isVendor);
+                  const unit = m.unitPrice;
+                  const totalLineCost = unit !== null && m.remainingToBuy > 0 ? unit * m.remainingToBuy : (m.remainingToBuy === 0 ? 0 : null);
 
                   const minRank = itemMinRankMap.get(itemId);
                   const rank = minRank !== undefined && Number.isFinite(minRank) ? minRank : 0;
@@ -2021,9 +2087,10 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
 
                   return {
                     itemId,
-                    qty,
-                    stock,
-                    missing,
+                    qty: m.grossDemand,
+                    stock: m.ownedStock,
+                    stockConsumed: m.stockConsumed,
+                    missing: m.remainingToBuy,
                     isVendor,
                     untradable,
                     unit,
@@ -2033,6 +2100,8 @@ export const LevelPlanner: React.FC<LevelPlannerProps> = ({ discipline, maxRank,
                     name: item?.name ?? `#${itemId}`,
                   };
                 });
+
+                const hasUntradable = enriched.some((row) => row.untradable && row.missing > 0);
 
                 // Counts for toolbar filter pills
                 const missingCount = enriched.filter((i) => i.missing > 0).length;

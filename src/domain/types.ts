@@ -76,6 +76,25 @@ export type DisciplineId =
   | 'Chef'
   | 'Huntsman';
 
+export type CraftingStrategyMode = 'buy_everything' | 'craft_everything' | 'optimal_hybrid';
+
+export interface MaterialAccountingRecord {
+  itemId: number;
+  grossDemand: number;
+  ownedStock: number;
+  stockConsumed: number;
+  netDeficit: number;
+  manufactured: number;
+  intermediateYield: number;
+  remainingToBuy: number;
+  action: 'buy' | 'craft' | 'vendor' | 'stock' | 'untradable' | 'unknown';
+  unitPrice: number | null;
+  totalCost: number | null;
+  isIntermediate: boolean;
+  isAccountBound: boolean;
+  needsDiscovery: boolean;
+}
+
 export function isUntradable(item: GameItem | undefined): boolean {
   if (!item) return false;
   return item.flags.includes('AccountBound') || item.flags.includes('SoulbindOnAcquire');

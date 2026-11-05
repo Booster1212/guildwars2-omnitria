@@ -22,7 +22,7 @@
  *     recommendations, deprioritizes deferred tasks, and surfaces the #1 Next Recommended Action
  *     with a transparent explanation, effort estimate, and expected progression benefit.
  */
-import type { PriceInfo, Recipe, GameItem, DisciplineId } from './types.ts';
+import type { PriceInfo, Recipe, GameItem, DisciplineId, CraftingStrategyMode, MaterialAccountingRecord } from './types.ts';
 import { categoryOf, ranksPerCraft, XP_MODEL } from './craftingXp.ts';
 import type { XpCategory } from './craftingXp.ts';
 import { unitPrice } from './costs.ts';
@@ -56,8 +56,10 @@ export type CraftingStageId =
 export interface PlannerOptions {
   /** Allow discovery recipes (without AutoLearned/LearnedFromItem flags) */
   allowDiscovery: boolean;
-  /** Self-craft intermediate components if cheaper than buying */
-  craftIntermediates: boolean;
+  /** Self-craft intermediate components if cheaper than buying (legacy boolean) */
+  craftIntermediates?: boolean;
+  /** Three distinct crafting strategies: 'buy_everything' | 'craft_everything' | 'optimal_hybrid' */
+  strategy?: CraftingStrategyMode;
   /** Recipes known to account (API: /v2/account/recipes), if available */
   knownRecipeIds?: ReadonlySet<number> | null;
   /** Step keys already marked done/completed in the current session */
@@ -186,6 +188,8 @@ export interface PlanResult {
   unpricedItems: number[];
   costComparison: CostOptimizationSummary;
   gw2craftsComparison: Gw2CraftsComparisonResult;
+  materials: MaterialAccountingRecord[];
+  strategy: CraftingStrategyMode;
 }
 
 export interface CraftingStageGroup {
@@ -485,6 +489,11 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     : allCandidates;
   const candidates = nonSkippedCandidates.length > 0 ? nonSkippedCandidates : allCandidates;
 
+  const rawStrategy: CraftingStrategyMode =
+    options.strategy ??
+    (options.craftIntermediates === false ? 'buy_everything' : 'craft_everything');
+  const strategy: CraftingStrategyMode = rawStrategy;
+
   // ---- Beschaffungsentscheidung je (Item, Rang) -----------------------------------------------
   const isIntermediateUsable = (r: Recipe, rank: number, itemPrice: number | null): boolean => {
     if (!r.disciplines.includes(discipline) || r.rating > rank) return false;
@@ -500,8 +509,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     return false;
   };
 
-  // 1. Economic evaluation helper used ONLY during candidate scoring (evalCandidate) so scalped
-  //    TP component listings do not distort route recipe selection when craftIntermediates is false.
+  // 1. Economic evaluation helper used during candidate scoring (evalCandidate)
   const evalMemo = new Map<string, Acq>();
   const evalAcq = (itemId: number, rank: number, depth: number, stack: Set<number>): Acq => {
     const mk = `${itemId}@${rank}`;
@@ -509,6 +517,13 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     if (cached) return cached;
     const price = unitPrice(prices.get(itemId), itemId);
     let best: Acq = { unit: price, via: price !== null ? 'buy' : 'unknown' };
+
+    // In Buy Everything: if buyable, never craft
+    if (strategy === 'buy_everything' && price !== null) {
+      evalMemo.set(mk, best);
+      return best;
+    }
+
     if (depth < 8 && !stack.has(itemId)) {
       stack.add(itemId);
       for (const r of recipesByOutput.get(itemId) ?? []) {
@@ -528,28 +543,21 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         }
         if (hasUnpricedUncovered && price !== null) continue;
         const craftUnit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
-        if (options.craftIntermediates) {
-          if (mode === 'cost' || mode === 'fast') {
-            if (craftUnit !== null && (best.unit === null || craftUnit <= best.unit)) {
-              best = { unit: craftUnit, via: 'craft', recipe: r };
-            }
-          } else {
-            if (best.via !== 'craft' || (craftUnit !== null && (best.unit === null || craftUnit < best.unit))) {
-              best = { unit: craftUnit, via: 'craft', recipe: r };
-            }
-          }
-        } else if (price === null && craftUnit !== null) {
-          if (best.unit === null || craftUnit < best.unit) {
+
+        if (strategy === 'craft_everything') {
+          if (craftUnit !== null && (best.via !== 'craft' || (best.unit === null || craftUnit < best.unit))) {
             best = { unit: craftUnit, via: 'craft', recipe: r };
           }
-        } else if (
-          (mode === 'cost' || mode === 'fast') &&
-          price !== null &&
-          craftUnit !== null &&
-          craftUnit * 1.35 < price
-        ) {
-          if (best.unit === null || craftUnit < best.unit) {
+        } else if (strategy === 'optimal_hybrid') {
+          if (craftUnit !== null && (best.unit === null || craftUnit < best.unit)) {
             best = { unit: craftUnit, via: 'craft', recipe: r };
+          }
+        } else {
+          // buy_everything fallback when price is null
+          if (price === null && craftUnit !== null) {
+            if (best.unit === null || craftUnit < best.unit) {
+              best = { unit: craftUnit, via: 'craft', recipe: r };
+            }
           }
         }
       }
@@ -559,11 +567,49 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     return best;
   };
 
-  // 2. Actual procurement resolver used by resolve() for step prepSteps & shopping list:
-  //    - When options.craftIntermediates === false ("Buy all components"): NEVER self-craft any
-  //      item that can be bought on TP/vendor (price !== null). Zero prepSteps for buyable items!
-  //    - When options.craftIntermediates === true ("Self-craft ingredients"): self-craft all
-  //      eligible discipline intermediates down to base materials, matching craftingCalculator.ts.
+  const findIntermediateRecipe = (itemId: number, rank: number): Recipe | undefined => {
+    const list = recipesByOutput.get(itemId) ?? [];
+    const usable = list.filter((r) => isIntermediateUsable(r, rank, unitPrice(prices.get(itemId), itemId)));
+    if (!usable.length) return undefined;
+    return [...usable].sort((a, b) => {
+      const aAuto = isLearned(a) ? 0 : 1;
+      const bAuto = isLearned(b) ? 0 : 1;
+      if (aAuto !== bAuto) return aAuto - bAuto;
+      return a.rating - b.rating;
+    })[0];
+  };
+
+  const estimateCraftCost = (
+    recipe: Recipe,
+    runs: number,
+    rank: number,
+    depth: number,
+    pool: ReadonlyMap<number, number>,
+  ): number => {
+    let sum = 0;
+    for (const ing of recipe.ingredients) {
+      const needed = ing.count * runs;
+      const avail = pool.get(ing.itemId) ?? 0;
+      const deficit = Math.max(0, needed - avail);
+      if (deficit > 0) {
+        const u = unitPrice(prices.get(ing.itemId), ing.itemId);
+        if (u !== null) {
+          sum += u * deficit;
+        } else {
+          const subR = depth < 6 ? findIntermediateRecipe(ing.itemId, rank) : undefined;
+          if (subR) {
+            const subRuns = Math.ceil(deficit / Math.max(1, subR.outputCount) - 1e-9);
+            sum += estimateCraftCost(subR, subRuns, rank, depth + 1, pool);
+          } else {
+            sum += 50 * deficit;
+          }
+        }
+      }
+    }
+    return sum;
+  };
+
+  // 2. Actual procurement resolver memo used by resolve()
   const memo = new Map<string, Acq>();
   const acq = (itemId: number, rank: number, depth: number, stack: Set<number>): Acq => {
     const mk = `${itemId}@${rank}`;
@@ -572,9 +618,7 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const price = unitPrice(prices.get(itemId), itemId);
     let best: Acq = { unit: price, via: price !== null ? 'buy' : 'unknown' };
 
-    // If user explicitly chose "Buy all components" (craftIntermediates === false) and item is buyable,
-    // strictly buy it directly without generating preparation steps.
-    if (!options.craftIntermediates && price !== null) {
+    if (strategy === 'buy_everything' && price !== null) {
       memo.set(mk, best);
       return best;
     }
@@ -598,12 +642,15 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
         }
         if (hasUnpricedUncovered && price !== null) continue;
         const craftUnit = hasPricedIngredient ? sum / Math.max(1, r.outputCount) : (price ?? null);
-        if (options.craftIntermediates) {
-          if (best.via !== 'craft' || (craftUnit !== null && (best.unit === null || craftUnit < best.unit))) {
+        if (strategy === 'craft_everything') {
+          if (craftUnit !== null && (best.via !== 'craft' || (best.unit === null || craftUnit < best.unit))) {
+            best = { unit: craftUnit, via: 'craft', recipe: r };
+          }
+        } else if (strategy === 'optimal_hybrid') {
+          if (craftUnit !== null && (best.unit === null || craftUnit < best.unit)) {
             best = { unit: craftUnit, via: 'craft', recipe: r };
           }
         } else if (price === null && craftUnit !== null) {
-          // Mandatory fallback only when item is account-bound / unbuyable on TP
           if (best.unit === null || craftUnit < best.unit) {
             best = { unit: craftUnit, via: 'craft', recipe: r };
           }
@@ -959,11 +1006,17 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     }
   }
 
-  // ---- Resolve ingredients ---------------------------------------------------------------------
+  // ---- Resolve ingredients with stateful Inventory Ledger & 7-Tier Material Accounting ----
+  const inventoryPool = new Map<number, number>(stock ? Array.from(stock.entries()) : []);
+  const stockUsedPerItem = new Map<number, number>();
+  const grossDemandPerItem = new Map<number, number>();
+  const manufacturedPerItem = new Map<number, number>();
+  const intermediateYieldPerItem = new Map<number, number>();
   const purchases = new Map<number, number>();
   const intermediateMap = new Map<string, IntermediateCraft>();
   const unpriced = new Set<number>();
   const usedKeys = new Map<string, number>();
+  const actionPerItem = new Map<number, 'buy' | 'craft' | 'vendor' | 'stock' | 'untradable' | 'unknown'>();
 
   const steps: PlanStep[] = consolidatedRaw.map((rs) => {
     const crafts = Math.max(1, Math.ceil(rs.craftsExact - 1e-9));
@@ -975,39 +1028,114 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     const stepPurchases = new Map<number, number>();
     const stepPrepMap = new Map<string, StepPrepItem>();
 
-    const resolve = (itemId: number, qty: number, rank: number, depth: number) => {
-      const a = acq(itemId, rank, depth, new Set());
-      if (a.via === 'craft' && a.recipe) {
-        const outCount = Math.max(1, a.recipe.outputCount);
-        const k = Math.ceil(qty / outCount - 1e-9);
-        const ex = intermediateMap.get(a.recipe.id);
-        intermediateMap.set(a.recipe.id, { recipe: a.recipe, crafts: (ex?.crafts ?? 0) + k });
+    const resolve = (
+      itemId: number,
+      qty: number,
+      rank: number,
+      depth: number,
+      stack: Set<number>,
+    ) => {
+      grossDemandPerItem.set(itemId, (grossDemandPerItem.get(itemId) ?? 0) + qty);
 
-        const prepEx = stepPrepMap.get(a.recipe.id);
+      // 1. In all modes: consume from owned inventory stock pool first
+      const avail = inventoryPool.get(itemId) ?? 0;
+      const fromPool = Math.min(qty, avail);
+      if (fromPool > 0) {
+        inventoryPool.set(itemId, avail - fromPool);
+        const initOwned = stock ? (stock.get(itemId) ?? 0) : 0;
+        const alreadyConsumed = stockUsedPerItem.get(itemId) ?? 0;
+        const remainingOwned = Math.max(0, initOwned - alreadyConsumed);
+        const fromInitialOwned = Math.min(fromPool, remainingOwned);
+        if (fromInitialOwned > 0) {
+          stockUsedPerItem.set(itemId, alreadyConsumed + fromInitialOwned);
+        }
+      }
+
+      const netNeeded = qty - fromPool;
+      if (netNeeded <= 0) {
+        if (!actionPerItem.has(itemId)) actionPerItem.set(itemId, 'stock');
+        return;
+      }
+
+      // 2. Resolve net deficit according to the active strategy
+      const p = prices.get(itemId);
+      const up = unitPrice(p, itemId);
+      const isBuyable = up !== null;
+      const canCraft = depth < 8 && !stack.has(itemId) ? findIntermediateRecipe(itemId, rank) : undefined;
+
+      let doCraft = false;
+      if (strategy === 'buy_everything') {
+        // Mode A: Buy finished intermediate products whenever possible.
+        // Never craft buyable intermediates. Only fallback to craft if item is account-bound/unbuyable.
+        doCraft = !isBuyable && Boolean(canCraft);
+      } else if (strategy === 'craft_everything') {
+        // Mode B: Manufacture intermediates whenever a valid discipline recipe exists.
+        doCraft = Boolean(canCraft);
+      } else {
+        // Mode C (Optimal Hybrid): Compare full acquisition cost
+        if (canCraft && isBuyable) {
+          const outCount = Math.max(1, canCraft.outputCount);
+          const runs = Math.ceil(netNeeded / outCount - 1e-9);
+          const craftCost = estimateCraftCost(canCraft, runs, rank, depth, inventoryPool);
+          const buyCost = netNeeded * up;
+          doCraft = craftCost < buyCost;
+        } else {
+          doCraft = Boolean(canCraft);
+        }
+      }
+
+      if (doCraft && canCraft) {
+        actionPerItem.set(itemId, 'craft');
+        const outCount = Math.max(1, canCraft.outputCount);
+        const k = Math.ceil(netNeeded / outCount - 1e-9);
+        const produced = k * outCount;
+        const surplus = produced - netNeeded;
+        if (surplus > 0) {
+          inventoryPool.set(itemId, (inventoryPool.get(itemId) ?? 0) + surplus);
+          intermediateYieldPerItem.set(itemId, (intermediateYieldPerItem.get(itemId) ?? 0) + surplus);
+        }
+        manufacturedPerItem.set(itemId, (manufacturedPerItem.get(itemId) ?? 0) + produced);
+
+        const ex = intermediateMap.get(canCraft.id);
+        intermediateMap.set(canCraft.id, { recipe: canCraft, crafts: (ex?.crafts ?? 0) + k });
+
+        const prepEx = stepPrepMap.get(canCraft.id);
         const currentCrafts = (prepEx?.crafts ?? 0) + k;
-        stepPrepMap.set(a.recipe.id, {
-          recipe: a.recipe,
-          outputId: a.recipe.outputId,
+        stepPrepMap.set(canCraft.id, {
+          recipe: canCraft,
+          outputId: canCraft.outputId,
           crafts: currentCrafts,
           outputCount: outCount,
           depth: Math.max(prepEx?.depth ?? 0, depth),
-          ingredients: a.recipe.ingredients.map((ing) => ({
+          ingredients: canCraft.ingredients.map((ing) => ({
             itemId: ing.itemId,
             qty: ing.count * currentCrafts,
           })),
-          needsDiscovery: !isLearned(a.recipe),
+          needsDiscovery: !isLearned(canCraft),
         });
 
-        for (const ing of a.recipe.ingredients) {
-          resolve(ing.itemId, ing.count * k, rank, depth + 1);
+        stack.add(itemId);
+        for (const ing of canCraft.ingredients) {
+          resolve(ing.itemId, ing.count * k, rank, depth + 1, stack);
         }
+        stack.delete(itemId);
       } else {
-        stepPurchases.set(itemId, (stepPurchases.get(itemId) ?? 0) + qty);
-        purchases.set(itemId, (purchases.get(itemId) ?? 0) + qty);
+        const actionKind = isBuyable ? 'buy' : 'untradable';
+        actionPerItem.set(itemId, actionKind);
+        stepPurchases.set(itemId, (stepPurchases.get(itemId) ?? 0) + netNeeded);
+        purchases.set(itemId, (purchases.get(itemId) ?? 0) + netNeeded);
       }
     };
+
     const ingredients: StepMaterial[] = rs.recipe.ingredients.map((i) => ({ itemId: i.itemId, qty: i.count * crafts }));
-    for (const ing of ingredients) resolve(ing.itemId, ing.qty, rs.fromRank, 0);
+    for (const ing of ingredients) resolve(ing.itemId, ing.qty, rs.fromRank, 0, new Set());
+
+    // Produced step output items enter the inventory pool for subsequent steps
+    const stepProduced = crafts * Math.max(1, rs.recipe.outputCount || 1);
+    inventoryPool.set(rs.recipe.outputId, (inventoryPool.get(rs.recipe.outputId) ?? 0) + stepProduced);
+    manufacturedPerItem.set(rs.recipe.outputId, (manufacturedPerItem.get(rs.recipe.outputId) ?? 0) + stepProduced);
+    grossDemandPerItem.set(rs.recipe.outputId, (grossDemandPerItem.get(rs.recipe.outputId) ?? 0) + stepProduced);
+    actionPerItem.set(rs.recipe.outputId, 'craft');
 
     const discoveryIngredients: StepMaterial[] = rs.isDiscovery
       ? rs.recipe.ingredients.map((i) => ({ itemId: i.itemId, qty: i.count }))
@@ -1143,6 +1271,51 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     steps.length,
   );
 
+  const allEncounteredItems = new Set<number>();
+  for (const [id] of grossDemandPerItem) allEncounteredItems.add(id);
+  for (const [id] of purchases) allEncounteredItems.add(id);
+  for (const [id] of stockUsedPerItem) allEncounteredItems.add(id);
+  for (const [id] of manufacturedPerItem) allEncounteredItems.add(id);
+  if (stock) {
+    for (const [id] of stock) {
+      if (grossDemandPerItem.has(id)) allEncounteredItems.add(id);
+    }
+  }
+
+  const materials: MaterialAccountingRecord[] = Array.from(allEncounteredItems).map((itemId) => {
+    const grossDemand = grossDemandPerItem.get(itemId) ?? 0;
+    const ownedStock = stock ? (stock.get(itemId) ?? 0) : 0;
+    const stockConsumed = stockUsedPerItem.get(itemId) ?? 0;
+    const netDeficit = Math.max(0, grossDemand - stockConsumed);
+    const manufactured = manufacturedPerItem.get(itemId) ?? 0;
+    const intermediateYield = intermediateYieldPerItem.get(itemId) ?? 0;
+    const remainingToBuy = purchases.get(itemId) ?? 0;
+    const p = prices.get(itemId);
+    const up = unitPrice(p, itemId);
+    const totalCost = remainingToBuy > 0 && up !== null ? up * remainingToBuy : 0;
+    const action = actionPerItem.get(itemId) ?? (remainingToBuy > 0 ? 'buy' : (stockConsumed > 0 ? 'stock' : 'craft'));
+    const isIntermediate = intermediateMap.has(String(itemId)) || (recipesByOutput.get(itemId)?.length ?? 0) > 0;
+    const isAccountBound = up === null && remainingToBuy > 0;
+    const needsDiscovery = steps.some((st) => st.recipe.outputId === itemId && st.needsDiscovery);
+
+    return {
+      itemId,
+      grossDemand,
+      ownedStock,
+      stockConsumed,
+      netDeficit,
+      manufactured,
+      intermediateYield,
+      remainingToBuy,
+      action,
+      unitPrice: up,
+      totalCost,
+      isIntermediate,
+      isAccountBound,
+      needsDiscovery,
+    };
+  });
+
   return {
     steps,
     gaps,
@@ -1158,6 +1331,8 @@ export function planLevelRoute(input: PlannerInput): PlanResult {
     costComparison,
     gw2craftsComparison,
     unpricedItems: [...unpriced],
+    materials,
+    strategy,
   };
 }
 

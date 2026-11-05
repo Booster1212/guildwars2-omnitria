@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.6] - 2026-11-05
+
+### Added & Improved
+
+#### 1. Crafting Planner Engine Overhaul (`Berufsplaner`) & 3 Distinct Strategies (`src/domain/types.ts`, `src/domain/levelPlanner.ts`, `src/domain/craftingCalculator.ts`, `src/components/crafting/LevelPlanner.tsx`)
+* **Three Clearly Separated Crafting Strategies:**
+  * **Mode A: BUY EVERYTHING (`buy_everything`):** Minimizes player effort and crafting operations. Automatically buys finished intermediate products directly from the Trading Post or vendors. Invariant: `step.prepSteps` is strictly empty (`[]`) for buyable items.
+  * **Mode B: CRAFT EVERYTHING (`craft_everything`):** Recursively manufactures intermediate products down to raw base materials whenever valid discipline recipes exist. Consumes owned intermediate products first.
+  * **Mode C: OPTIMAL HYBRID (`optimal_hybrid` - Recommended):** Minimizes total gold expenditure by dynamically evaluating buy vs. craft cost factoring in owned inventory (cost 0 copper) and batch multi-yield surpluses.
+* **Strict 7-Tier Material Accounting Ledger:**
+  * Every material requirement in `plan.materials` and `calculateCraftingPlan` tracks 7 explicit tiers: `grossDemand`, `ownedStock`, `stockConsumed`, `netDeficit`, `manufactured`, `intermediateYield`, and `remainingToBuy`.
+* **Resolved Intermediate Inventory Blindness:**
+  * Owned intermediate stock is now checked and deducted *before* attempting to decompose into raw materials. Owning 100 Refined Ingots satisfies requirements directly without triggering purchases for raw ore.
+* **Sequential Multi-Yield Surplus Pooling:**
+  * Surpluses from batch recipes (e.g. 5x dowels) are returned to the active `inventoryPool` and tracked under `intermediateYield` for subsequent steps, eliminating over-purchasing.
+* **Authentic Guild Wars 2 Crafting XP Mathematics (`src/domain/craftingXp.ts`):**
+  * Updated `ranksPerCraft` with authentic $(1 + \text{mod})$ rarity discovery multipliers (Fine: $2.0\times$, Masterwork: $3.0\times$, Rare: $4.25\times$, Exotic: $5.0\times$) matching GW2 Wiki and `gw2craft`.
+* **Eliminated Shopping List & Demand Table Split-Brain Divergence:**
+  * Fixed the double-subtraction bug in `LevelPlanner.tsx` where the Shopping List subtracted stock a second time. Both the Shopping List and Demand Table now bind directly to the single source of truth in `plan.materials`.
+
+#### 2. Prominent 3-Card Material Strategy Hero UI & Dashboard Redesign (`src/components/crafting/LevelPlanner.tsx`, `src/index.css`)
+* **3-Card Material Strategy Hero Deck:**
+  * Transformed the previously cramped segmented button bar into a prominent 3-card centerpiece with distinctive color glow themes, clear tags (*Lowest Gold Cost*, *Max Convenience · 0 Preps*, *Full Crafting Chain*), active radio indicators, and explainable tooltips.
+* **Streamlined Header & Decluttered Master Dashboard:**
+  * Replaced the bulky 2-card bulk-vs-cost banner with an elegant, compact route method pill toggle (`[ ✨ Normal ]  [ ⚡ Bulk ]`) right in the strategy header, significantly reducing vertical bloat and giving immediate visibility to the actual crafting steps.
+  * Added a unified controls bar for discovery permissions, open steps filter, custom exception indicator, and live Trading Post pulse status.
+
+#### 3. Automated Benchmark Audit Test Suite (`tests/craftingStrategyAudit.test.ts`)
+* Added automated unit tests verifying all 12 competitive benchmark scenarios (empty inventory 0–400 and 400–500, starting level 450, large raw inventory, large intermediate inventory, zero stock, expensive intermediates, TP price dumping, vendor price caps, and partial inventory batch yields).
+* Expanded test suite to 176 passing tests with 100% German/English localization parity.
+
+---
+
 ## [0.3.5] - 2026-11-05
 
 ### Added & Improved

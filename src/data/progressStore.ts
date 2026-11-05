@@ -10,6 +10,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import { createEmitter } from './gw2/cache.ts';
+import type { CraftingStrategyMode } from '../domain/types.ts';
 
 const KEY = 'gw2_overlay_progress_v1';
 const BACKUP_KEY = 'gw2_overlay_progress_backup';
@@ -43,6 +44,7 @@ export interface CharacterDisciplineProgress {
   deferredSteps: string[];
   allowDiscovery: boolean;
   craftIntermediates: boolean;
+  craftingStrategy?: CraftingStrategyMode;
 }
 
 export interface CharacterPlannerProgress {
@@ -72,6 +74,7 @@ export interface CraftingProgress {
   doneSteps: string[];
   allowDiscovery: boolean;
   craftIntermediates: boolean;
+  craftingStrategy?: CraftingStrategyMode;
   skippedSteps?: string[];
   deferredSteps?: string[];
 }
@@ -98,6 +101,7 @@ export const DEFAULT_CRAFTING: CraftingProgress = {
   doneSteps: [],
   allowDiscovery: false,
   craftIntermediates: false,
+  craftingStrategy: 'optimal_hybrid',
 };
 
 export const DEFAULT_PLANNER_PREFERENCES: PlannerPreferences = {
@@ -118,6 +122,7 @@ export function createEmptyCharacterDiscipline(discipline?: string): CharacterDi
     deferredSteps: [],
     allowDiscovery: true,
     craftIntermediates: true,
+    craftingStrategy: 'optimal_hybrid',
   };
 }
 
@@ -491,6 +496,7 @@ export const progressActions = {
                 ...(patch.deferredSteps !== undefined ? { deferredSteps: uniqueStrings(patch.deferredSteps) } : {}),
                 ...(patch.allowDiscovery !== undefined ? { allowDiscovery: patch.allowDiscovery } : {}),
                 ...(patch.craftIntermediates !== undefined ? { craftIntermediates: patch.craftIntermediates } : {}),
+                ...(patch.craftingStrategy !== undefined ? { craftingStrategy: patch.craftingStrategy } : {}),
               },
             },
           },

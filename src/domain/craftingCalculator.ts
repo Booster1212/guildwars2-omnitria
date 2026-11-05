@@ -20,11 +20,11 @@
  *  - Robust handling of missing or invalid recipe data
  */
 
-import type { PriceInfo, Recipe } from './types.ts';
+import type { PriceInfo, Recipe, CraftingStrategyMode } from './types.ts';
 import { unitPrice } from './costs.ts';
 import { resolveSources, type SourceInfo } from './sources.ts';
 
-export type CraftingStrategy = 'all_craft' | 'all_buy' | 'custom';
+export type CraftingStrategy = 'all_craft' | 'all_buy' | 'custom' | CraftingStrategyMode;
 export type ItemProcurement = 'craft' | 'buy';
 
 export interface CraftingRecipeProvider {
@@ -96,6 +96,9 @@ export interface AggregatedMaterial {
   sourceInfo?: SourceInfo;
   needsDiscovery: boolean;
   requiredForDiscovery: boolean;
+  manufactured?: number;
+  intermediateYield?: number;
+  remainingToBuy?: number;
 }
 
 export interface CraftingCalculationResult {
@@ -199,6 +202,8 @@ function shouldCraftIntermediate(
   itemId: number,
   strategy: CraftingStrategy,
   itemOverrides?: ReadonlyMap<number, ItemProcurement> | ReadonlySet<number>,
+  prices?: ReadonlyMap<number, PriceInfo>,
+  provider?: CraftingRecipeProvider,
 ): boolean {
   if (itemOverrides) {
     if (itemOverrides instanceof Set) {
@@ -210,8 +215,31 @@ function shouldCraftIntermediate(
     }
   }
 
-  if (strategy === 'all_buy') return false;
-  // 'all_craft' and default for 'custom': self-craft
+  if (strategy === 'all_buy' || strategy === 'buy_everything') return false;
+  if (strategy === 'all_craft' || strategy === 'craft_everything') return true;
+
+  if (strategy === 'optimal_hybrid' && prices && provider) {
+    const p = prices.get(itemId);
+    const up = unitPrice(p, itemId);
+    if (up === null) return true; // Unbuyable -> craft
+    const r = provider.recipeFor(itemId);
+    if (!r || !r.ingredients?.length) return false;
+    const outCount = Math.max(1, r.outputCount);
+    let ingredientCost = 0;
+    for (const ing of r.ingredients) {
+      const ingP = prices.get(ing.itemId);
+      const ingUp = unitPrice(ingP, ing.itemId);
+      if (ingUp === null) {
+        ingredientCost += 50 * ing.count;
+      } else {
+        ingredientCost += ingUp * ing.count;
+      }
+    }
+    const craftUnitCost = ingredientCost / outCount;
+    return craftUnitCost < up;
+  }
+
+  // default for 'custom': self-craft
   return true;
 }
 
@@ -293,7 +321,7 @@ export function calculateCraftingPlan(
     const recipe = cyclic || depth >= maxDepth ? undefined : (presetRecipe ?? provider.recipeFor(itemId));
     if (recipe) recipesUsed.set(itemId, recipe);
     const isCraftable = Boolean(recipe && recipe.ingredients && recipe.ingredients.length > 0 && recipe.outputCount > 0);
-    const doCraft = depth === 0 ? isCraftable : isCraftable && shouldCraftIntermediate(itemId, strategy, options.itemOverrides);
+    const doCraft = depth === 0 ? isCraftable : isCraftable && shouldCraftIntermediate(itemId, strategy, options.itemOverrides, prices, provider);
 
     const isDisc = doCraft && recipe
       ? (presetDiscovery ?? (targetNeedsDiscoveryMap.get(itemId) ?? isRecipeDiscovery(recipe, options.knownRecipeIds)))
@@ -343,6 +371,7 @@ export function calculateCraftingPlan(
   const netMissingTotals = new Map<number, number>();
   const netCraftRuns = new Map<number, number>();
   const stockUsedPerItem = new Map<number, number>();
+  const intermediateSurplusPerItem = new Map<number, number>();
 
   function visitNet(
     itemId: number,
@@ -358,7 +387,7 @@ export function calculateCraftingPlan(
     const recipe = cyclic || depth >= maxDepth ? undefined : (presetRecipe ?? provider.recipeFor(itemId));
     if (recipe) recipesUsed.set(itemId, recipe);
     const isCraftable = Boolean(recipe && recipe.ingredients && recipe.ingredients.length > 0 && recipe.outputCount > 0);
-    const doCraft = depth === 0 ? isCraftable : isCraftable && shouldCraftIntermediate(itemId, strategy, options.itemOverrides);
+    const doCraft = depth === 0 ? isCraftable : isCraftable && shouldCraftIntermediate(itemId, strategy, options.itemOverrides, prices, provider);
 
     const isDisc = doCraft && recipe
       ? (presetDiscovery ?? (targetNeedsDiscoveryMap.get(itemId) ?? isRecipeDiscovery(recipe, options.knownRecipeIds)))
@@ -403,6 +432,7 @@ export function calculateCraftingPlan(
         const surplus = produced - netDemand;
         if (surplus > 0) {
           inventoryPool.set(itemId, (inventoryPool.get(itemId) ?? 0) + surplus);
+          intermediateSurplusPerItem.set(itemId, (intermediateSurplusPerItem.get(itemId) ?? 0) + surplus);
         }
 
         // Calculate ingredients for these crafting runs
@@ -474,7 +504,7 @@ export function calculateCraftingPlan(
 
     const r = recipesUsed.get(itemId) ?? provider.recipeFor(itemId);
     const isCraftable = Boolean(r && r.ingredients && r.ingredients.length > 0 && r.outputCount > 0);
-    const doCraft = shouldCraftIntermediate(itemId, strategy, options.itemOverrides);
+    const doCraft = shouldCraftIntermediate(itemId, strategy, options.itemOverrides, prices, provider);
 
     const isRoot = targetIdSet.has(itemId);
     let role: 'end_product' | 'intermediate' | 'base_material' = 'base_material';
@@ -526,6 +556,10 @@ export function calculateCraftingPlan(
       Boolean(action === 'craft' && isRecipeDiscovery(r, options.knownRecipeIds));
     const requiredForDiscovery = discoveryIngredientIds.has(itemId);
 
+    const manufactured = action === 'craft' && r?.outputCount ? cRuns * r.outputCount : 0;
+    const intermediateYield = intermediateSurplusPerItem.get(itemId) ?? 0;
+    const remainingToBuy = (action === 'buy' || role === 'base_material') ? netDemand : 0;
+
     materials.push({
       itemId,
       grossDemand,
@@ -541,6 +575,9 @@ export function calculateCraftingPlan(
       sourceInfo,
       needsDiscovery,
       requiredForDiscovery,
+      manufactured,
+      intermediateYield,
+      remainingToBuy,
     });
   }
 
